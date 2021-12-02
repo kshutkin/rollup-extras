@@ -1,0 +1,14 @@
+{
+  "name": "test",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "rollup -c"
+  },
+  "author": "Konstantin Shutkin",
+  "license": "MIT",
+  "dependencies": {
+    "rollup": "2.60.2",
+    "@niceties/draftlog-appender": "1.0.6"
+  }
+}

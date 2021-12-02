@@ -102,9 +102,3 @@ dist
 
 # TernJS port file
 .tern-port
-
-# Temp files
-dest
-dest2
-dest3
-dest4
