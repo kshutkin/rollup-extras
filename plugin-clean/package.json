@@ -30,7 +30,9 @@
     "url": "https://github.com/kshutkin/rollup-extras/issues"
   },
   "homepage": "https://github.com/kshutkin/rollup-extras/plugin-clean/README.md",
-  "keywords": ["rollup-plugin"],
+  "keywords": [
+    "rollup-plugin"
+  ],
   "scripts": {
     "build": "rimraf ./dist && rollup -c",
     "dev": "rimraf ./dist && rollup -c -w",
@@ -70,5 +72,6 @@
   },
   "dependencies": {
     "@niceties/logger": "1.0.4"
-  }
+  },
+  "readme": "ERROR: No README data found!"
 }
