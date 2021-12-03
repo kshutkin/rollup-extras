@@ -71,7 +71,6 @@
     "rollup": "^2.60.2"
   },
   "dependencies": {
-    "@niceties/logger": "1.0.4"
-  },
-  "readme": "ERROR: No README data found!"
+    "@niceties/logger": "^1.0.4"
+  }
 }
