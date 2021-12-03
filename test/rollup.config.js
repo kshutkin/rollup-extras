@@ -23,7 +23,9 @@ export default [{
         chunkFileNames: '[name].mjs'
     }],
 
-	plugins: [clean()],
+	plugins: [clean({
+        verbose: true
+    })],
 }, {
 	input,
 

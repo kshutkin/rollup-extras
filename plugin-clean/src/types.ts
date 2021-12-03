@@ -1,5 +1,6 @@
 export type CleanPluginOptions = {
     targets?: string | string[],
     pluginName?: string,
-    runOnce?: boolean
+    runOnce?: boolean,
+    verbose?: boolean
 };
