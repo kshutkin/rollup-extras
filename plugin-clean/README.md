@@ -31,3 +31,7 @@ export type CleanPluginOptions = {
 - https://github.com/vladshcherbin/rollup-plugin-delete
 - https://github.com/saf33r/rollup-plugin-cleaner
 - https://github.com/DongShelton/rollup-plugin-clear
+
+# License
+
+[MIT](./LICENSE)
