@@ -1,6 +1,7 @@
 // import "@niceties/draftlog-appender";
 // import { appender } from "@niceties/logger";
 import clean from '@rollup-extras/plugin-clean';
+import copy from '@rollup-extras/plugin-copy';
 
 // appender((msg) => {
 //     console.log(msg.message);
@@ -18,12 +19,20 @@ export default [{
         chunkFileNames: '[name].mjs'
     }, {
         format: 'es',
-        dir: './dest/',
+        dir: './dest2/',
         entryFileNames: '[name].mjs',
         chunkFileNames: '[name].mjs'
     }],
 
 	plugins: [clean({
+        verbose: true
+    }), copy({
+        targets: [
+            { src: './assets/*', dest: './dest', exclude: '*.json' }
+        ],
+        flattern: false,
+        emitFiles: false,
+        outputPlugin: true,
         verbose: true
     })],
 }, {
@@ -36,7 +45,7 @@ export default [{
         chunkFileNames: '[name].cjs'
     },
 
-	plugins: [clean()],
+	plugins: [clean(), copy('./assets/**/*.json')],
 }, {
     input,
     output: {
@@ -44,7 +53,7 @@ export default [{
         dir: './dest4',
         entryFileNames: '[name].umd.js',
         name: 'test',
-        plugins: [clean()],
+        plugins: [clean(), copy({ src: './assets/**/*.json', outputPlugin: true })],
         sourcemap: true
     }
 }];
