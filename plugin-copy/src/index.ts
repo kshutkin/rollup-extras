@@ -53,12 +53,12 @@ export default function(options: CopyPluginOptions) {
 
             const logger = createLogger(pluginName);
             const statistics: string[] = [];
-            logger.start(`coping files`, verbose ? LogLevel.info : LogLevel.verbose);
+            logger.start('coping files', verbose ? LogLevel.info : LogLevel.verbose);
             for (const [fileName, fileDesc] of files) {
                 try {
                     const fileStat = await fs.stat(fileName);
                     if (!fileStat.isFile() && !fileStat.isSymbolicLink()) {
-                        continue
+                        continue;
                     }
                     const timestamp = fileStat.mtime.getTime();
                     if (timestamp > fileDesc.timestamp) {
@@ -67,7 +67,7 @@ export default function(options: CopyPluginOptions) {
                     }
                     let source: Buffer | undefined;
                     if (emitFiles) {
-                        source = await fs.readFile(fileName)
+                        source = await fs.readFile(fileName);
                     }
                     for (const dest of fileDesc.dest) {
                         if (copyOnce && fileDesc.copied.includes(dest)) {
@@ -75,7 +75,7 @@ export default function(options: CopyPluginOptions) {
                         }
                         const baseName = path.basename(fileName);
                         // path.join removes ./ from the beginning, that's needed for rollup name/fileName fields
-                        let destFileName = path.join(dest, baseName);
+                        const destFileName = path.join(dest, baseName);
                         if (emitFiles) {
                             (this as unknown as PluginContext).emitFile({
                                 type: 'asset',
