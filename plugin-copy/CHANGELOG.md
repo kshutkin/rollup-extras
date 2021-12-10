@@ -1,5 +1,12 @@
 Changelog
 
+# @rollup-extras/plugin-copy-v1.0.0 (2021-12-10)
+
+
+### Features
+
+* plugin-copy - initial implementation ([dfe8e16](https://github.com/kshutkin/rollup-extras/commit/dfe8e16d30f2c4905f87bde28404d38c7ce46e15))
+
 # @rollup-extras/plugin-clean-v1.0.0 (2021-12-03)
 
 
