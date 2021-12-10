@@ -44,12 +44,12 @@ describe('@rollup-extras/plugin-copy', () => {
         expect(plugin).toBeDefined();
     });
 
-    it('pluginName (default)', async () => {
+    it('pluginName (default)', () => {
         const pluginInstance = plugin('assets/**/*.json');
         expect((pluginInstance as {name: string}).name).toEqual('@rollup-extras/plugin-copy');
     });
 
-    it('pluginName (changed)', async () => {
+    it('pluginName (changed)', () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json', pluginName: 'test' });
         expect((pluginInstance as {name: string}).name).toEqual('test');
     });
@@ -257,6 +257,12 @@ describe('@rollup-extras/plugin-copy', () => {
     });
 
     it('copyOnce (default)', async () => {
+        const mtime = new Date();
+        (fs.stat as jest.Mock<ReturnType<typeof fs.stat>, Parameters<typeof fs.stat>>).mockImplementation(() => Promise.resolve({
+            mtime,
+            isFile: () => true,
+            isSymbolicLink: () => false
+        }) as unknown as ReturnType<typeof fs.stat>);
         const pluginInstance = plugin({ src: 'assets/**/*.json'});
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
