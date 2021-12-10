@@ -2,6 +2,7 @@
     "private": true,
     "workspaces": [
         "plugin-clean",
+        "plugin-copy",
         "test"
     ]
 }

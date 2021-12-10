@@ -10,6 +10,7 @@
   "dependencies": {
     "rollup": "2.60.2",
     "@niceties/draftlog-appender": "1.0.7",
-    "@rollup-extras/plugin-clean": "1.0.0"
+    "@rollup-extras/plugin-clean": "1.0.0",
+    "@rollup-extras/plugin-copy": "1.0.0"
   }
 }
