@@ -36,7 +36,7 @@
   "scripts": {
     "build": "rimraf ./dist && rollup -c",
     "dev": "rimraf ./dist && rollup -c -w",
-    "test": "jest --collectCoverage --runInBand",
+    "test": "jest --collectCoverage",
     "lint": "eslint ./src",
     "semantic-release": "npx semantic-release"
   },
