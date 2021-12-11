@@ -15,7 +15,27 @@ Points:
 
 Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/README.md) to log messages, can be configured through `@niceties/logger` API.
 
+[Changlelog](./CHANGELOG.md)
+
+## Installation
+
+Using npm:
+```
+npm install --save-dev @rollup-extras/plugin-copy
+```
+
+Using yarn:
+```
+yarn add --dev @rollup-extras/plugin-copy
+```
+
 ## Examples
+
+Assuming you imported plugin using:
+
+```javascript
+import copy from '@rollup-extras/plugin-copy';
+```
 
 Next examples are equivalent:
 ```javascript
