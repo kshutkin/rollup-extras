@@ -15,17 +15,36 @@ export default function(options: CopyPluginOptions) {
         timestamp: number
     }>();
 
-    const { pluginName, copyOnce, verbose, exactFileNames, targets, outputPlugin, watch, flattern, emitFiles } = normalizeOptions(options);
+    const normilizedOptions = normalizeOptions(options);
+    const { pluginName, copyOnce, verbose, exactFileNames, targets, outputPlugin, flattern, emitFiles } = normilizedOptions;
+    let { watch } = normilizedOptions;
+
+    const hookName = outputPlugin ? 'generateBundle' : emitFiles ? 'buildStart' : 'buildEnd';
+
+    {
+        const log = createLogger(pluginName);
+
+        if (!outputPlugin && !emitFiles && watch) {
+            watch = false;
+            log('can\'t use watch with emitFiles = false and outputPlugin = false', LogLevel.verbose);
+        }
+
+        if (outputPlugin && watch) {
+            watch = false;
+            log('can\'t use watch with outputPlugin = true', LogLevel.verbose);
+        }
+    }
 
     return <Partial<PluginHooks>>{
         name: pluginName,
 
-        async [outputPlugin ? 'generateBundle' : 'buildStart']() {
-            const results = await Promise.all(targets.map(target => glob(target.src, { ignore: target.exclude }).then((result: string[]) => ({
-                src: result,
-                dest: target.dest ? target.dest as string: '',
-                parent: globParent(target.src)
-            }))));
+        async [hookName]() {
+            const results = await Promise.all(targets.map(target => glob(target.src, { ignore: target.exclude })
+                .then((result: string[]) => ({
+                    src: result,
+                    dest: target.dest ? target.dest as string: '',
+                    parent: globParent(target.src)
+                }))));
 
             for (const result of results) {
                 for (const file of result.src) {
@@ -45,7 +64,7 @@ export default function(options: CopyPluginOptions) {
                         fileDesc.dest.push(dest);
                     }
                     // don't forget to watch it
-                    if (!outputPlugin && watch) {
+                    if (watch) {
                         (this as unknown as PluginContext).addWatchFile(file);
                     }
                 }

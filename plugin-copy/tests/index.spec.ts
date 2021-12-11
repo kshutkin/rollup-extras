@@ -310,8 +310,8 @@ describe('@rollup-extras/plugin-copy', () => {
 
     it('emitFiles (false)', async () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
+        await (pluginInstance as any).buildEnd.apply(rollupContextMock);
+        expect(rollupContextMock.addWatchFile).toBeCalledTimes(0);
         expect(rollupContextMock.emitFile).toBeCalledTimes(0);
         expect(fs.copyFile).toBeCalledWith('assets/aFolder/test.json', 'aFolder/test.json');
         expect(fs.copyFile).toBeCalledWith('assets/aFolder/test2.json', 'aFolder/test2.json');
@@ -335,7 +335,7 @@ describe('@rollup-extras/plugin-copy', () => {
         (fs.copyFile as jest.Mock<ReturnType<typeof fs.copyFile>, Parameters<typeof fs.copyFile>>)
             .mockImplementationOnce(() => { throw { stack: '' }; });
             const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
+        await (pluginInstance as any).buildEnd.apply(rollupContextMock);
         expect(logger).toBeCalledWith(`error reading file assets/aFolder/test.json `, LogLevel.warn);
     });
 
@@ -343,7 +343,7 @@ describe('@rollup-extras/plugin-copy', () => {
         (fs.copyFile as jest.Mock<ReturnType<typeof fs.copyFile>, Parameters<typeof fs.copyFile>>)
             .mockImplementationOnce(() => { throw { code: 'ENOENT', stack: '' }; });
         const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
+        await (pluginInstance as any).buildEnd.apply(rollupContextMock);
         expect(logger).toBeCalledWith(`error reading file assets/aFolder/test.json `, undefined);
     });
 
