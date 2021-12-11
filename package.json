@@ -3,6 +3,7 @@
     "workspaces": [
         "plugin-clean",
         "plugin-copy",
+        "plugin-html",
         "test"
     ]
 }

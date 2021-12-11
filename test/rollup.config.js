@@ -2,6 +2,7 @@
 // import { appender } from "@niceties/logger";
 import clean from '@rollup-extras/plugin-clean';
 import copy from '@rollup-extras/plugin-copy';
+import html from '@rollup-extras/plugin-html';
 
 // appender((msg) => {
 //     console.log(msg.message);
@@ -9,32 +10,26 @@ import copy from '@rollup-extras/plugin-copy';
 
 const input = 'src/index.ts';
 
+const htmlPluginInctance = html();
+
 export default [{
 	input,
 
     output: [{
         format: 'es',
-        dir: './dest',
-        entryFileNames: '[name].mjs',
-        chunkFileNames: '[name].mjs'
+        dir: 'dest',
+        entryFileNames: '[name].js'
     }, {
         format: 'es',
-        dir: './dest2/',
-        entryFileNames: '[name].mjs',
-        chunkFileNames: '[name].mjs'
+        dir: 'dest',
+        entryFileNames: '[name]second.js'
     }],
 
-	plugins: [clean({
-        verbose: true
-    }), copy({
-        targets: [
-            { src: './assets/*', dest: './dest', exclude: '*.json' }
-        ],
-        flattern: false,
-        emitFiles: false,
-        outputPlugin: true,
-        verbose: true
-    })],
+	plugins: [
+        clean({ verbose: true }),
+        copy({ src: 'assets/**/*.json', verbose: true }),
+        htmlPluginInctance
+    ],
 }, {
 	input,
 
