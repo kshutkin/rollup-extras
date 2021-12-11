@@ -1,3 +1,5 @@
+![workflow](https://github.com/kshutkin/rollup-extras/actions/workflows/main.yml/badge.svg)
+
 # rollup-extras
 Collection of rollup plugins
 
