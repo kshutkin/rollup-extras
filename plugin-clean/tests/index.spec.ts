@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import { createLogger, LogLevel } from '@niceties/logger';
 import plugin from '../src';
+import { CleanPluginOptions } from '../src/types';
 
 let loggerStart: jest.Mock, loggerFinish: jest.Mock;
 
@@ -30,6 +31,26 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
     });
 
+    it('unhappy path', async () => {
+        const pluginInstance = plugin(123 as CleanPluginOptions);
+        await (pluginInstance as any).renderStart({dir: '/dist2'});
+        expect(fs.rm).toBeCalledTimes(0);
+    });
+
+    it('with non default directory (string)', async () => {
+        const pluginInstance = plugin('/dist2');
+        await (pluginInstance as any).renderStart({dir: '/dist3'});
+        expect(fs.rm).toBeCalledTimes(1);
+        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+    });
+
+    it('with non default directory (string[])', async () => {
+        const pluginInstance = plugin(['/dist2']);
+        await (pluginInstance as any).renderStart({dir: '/dist3'});
+        expect(fs.rm).toBeCalledTimes(1);
+        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+    });
+
     it('happy path (with targets string)', async () => {
         const pluginInstance = plugin({targets: '/dist2'});
         await (pluginInstance as any).renderStart({});
@@ -51,7 +72,7 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
     });
 
-    it('runOnce by default', async () => {
+    it('deleteOnce by default', async () => {
         const pluginInstance = plugin();
         await (pluginInstance as any).renderStart({dir: '/dist2'});
         await (pluginInstance as any).renderStart({dir: '/dist2'});
@@ -59,8 +80,20 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
     });
 
-    it('runOnce false', async () => {
-        const pluginInstance = plugin({runOnce: false});
+    it('deleteOnce by default (check timings)', async () => {
+        (fs.rm as jest.Mock<ReturnType<typeof fs.rm>, Parameters<typeof fs.rm>>)
+            .mockImplementation(() => new Promise((resolve) => {
+                setTimeout(resolve, 50);
+            }));
+        const pluginInstance = plugin();
+        let rmFinished = false;
+        (pluginInstance as any).renderStart({dir: '/dist2'}).then(() => {rmFinished = true;});
+        await (pluginInstance as any).renderStart({dir: '/dist2'});
+        expect(rmFinished).toBeTruthy();
+    });
+
+    it('deleteOnce false', async () => {
+        const pluginInstance = plugin({deleteOnce: false});
         await (pluginInstance as any).renderStart({dir: '/dist2'});
         await (pluginInstance as any).renderStart({dir: '/dist2'});
         expect(fs.rm).toBeCalledTimes(2);
@@ -92,15 +125,52 @@ describe('@rollup-extras/plugin-clean', () => {
         (fs.rm as jest.Mock<ReturnType<typeof fs.rm>, Parameters<typeof fs.rm>>)
             .mockImplementationOnce(() => { throw { stack: '' }; });
         const pluginInstance = plugin({ verbose: true });
-        await (pluginInstance as any).renderStart({dir: '/dist2'});
-        expect(loggerFinish).toBeCalledWith(`failed cleaning '/dist2'\n`, LogLevel.warn);
+        await (pluginInstance as any).renderStart({dir: 'dist2'});
+        expect(loggerFinish).toBeCalledWith(`failed cleaning 'dist2'\n`, LogLevel.warn);
     });
 
     it('missing directory exception', async () => {
         (fs.rm as jest.Mock<ReturnType<typeof fs.rm>, Parameters<typeof fs.rm>>)
             .mockImplementationOnce(() => { throw { code: 'ENOENT', stack: '' }; });
         const pluginInstance = plugin({ verbose: true });
-        await (pluginInstance as any).renderStart({dir: '/dist2'});
-        expect(loggerFinish).toBeCalledWith(`failed cleaning '/dist2'\n`, undefined);
+        await (pluginInstance as any).renderStart({dir: 'dist2'});
+        expect(loggerFinish).toBeCalledWith(`failed cleaning 'dist2'\n`, undefined);
+    });
+
+    it('outputPlugin: false', async () => {
+        const pluginInstance = plugin({ targets: 'dist2', outputPlugin: false });
+        await (pluginInstance as any).buildStart();
+        expect(fs.rm).toBeCalledTimes(1);
+        expect(fs.rm).toBeCalledWith('dist2', { recursive: true });
+    });
+
+    it('outputPlugin: false + options without dir', async () => {
+        const pluginInstance = plugin({ outputPlugin: false });
+        await (pluginInstance as any).options({});
+        await (pluginInstance as any).buildStart();
+        expect(fs.rm).toBeCalledTimes(0);
+    });
+
+    it('outputPlugin: false + options without dir 2', async () => {
+        const pluginInstance = plugin({ outputPlugin: false });
+        await (pluginInstance as any).options({output: {  }});
+        await (pluginInstance as any).buildStart();
+        expect(fs.rm).toBeCalledTimes(0);
+    });
+
+    it('outputPlugin: false + options', async () => {
+        const pluginInstance = plugin({ outputPlugin: false });
+        await (pluginInstance as any).options({output: { dir: 'dist2' }});
+        await (pluginInstance as any).buildStart();
+        expect(fs.rm).toBeCalledTimes(1);
+        expect(fs.rm).toBeCalledWith('dist2', { recursive: true });
+    });
+
+    it('outputPlugin: false + options with outputs array', async () => {
+        const pluginInstance = plugin({ outputPlugin: false });
+        await (pluginInstance as any).options({output: [{ dir: 'dist2' }]});
+        await (pluginInstance as any).buildStart();
+        expect(fs.rm).toBeCalledTimes(1);
+        expect(fs.rm).toBeCalledWith('dist2', { recursive: true });
     });
 });
