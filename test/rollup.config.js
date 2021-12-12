@@ -10,7 +10,7 @@ import html from '@rollup-extras/plugin-html';
 
 const input = 'src/index.ts';
 
-const htmlPluginInctance = html();
+const htmlPluginInstance = html();
 
 export default [{
 	input,
@@ -28,7 +28,7 @@ export default [{
 	plugins: [
         clean({ verbose: true }),
         copy({ src: 'assets/**/*.json', verbose: true }),
-        htmlPluginInctance
+        htmlPluginInstance
     ],
 }, {
 	input,
@@ -40,15 +40,15 @@ export default [{
         chunkFileNames: '[name].cjs'
     },
 
-	plugins: [clean(), copy('./assets/**/*.json')],
+	plugins: [clean(), copy('./assets/**/*.json'), htmlPluginInstance.addInstance()],
 }, {
     input,
     output: {
         format: 'umd',
-        dir: './dest4',
+        dir: './dest',
         entryFileNames: '[name].umd.js',
         name: 'test',
-        plugins: [clean(), copy({ src: './assets/**/*.json', outputPlugin: true })],
+        plugins: [clean(), copy({ src: './assets/**/*.json', outputPlugin: true }), htmlPluginInstance.addInstance()],
         sourcemap: true
     }
 }];
