@@ -4,13 +4,26 @@ import { NormalizedOutputOptions, OutputBundle, OutputChunk, PluginContext, Plug
 import { HtmlPluginOptions } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
 
-const defaultTemplate = '<html><head></head><body></body></html>';
+const defaultTemplate = '<!DOCTYPE html><html><head></head><body></body></html>';
+const headClosingElement = '</head>';
+const bodyClosingElement = '</body>';
 
 type AssetType = 'css' | 'es' | 'iife' | 'umd';
 
+// Plan
+// + 1. file name
+// + 2. template string option
+// + 3. template file name option
+// 4. working with assets
+// 5. watch
+// 6. templateFactory option
+// 7. other options: verbose, outputPlugin, watch, emitFiles
+// 7.1. logger
+// 8. hook??? (not initial implementation)
+
 export default function(options: HtmlPluginOptions = {}) {
 
-    const { pluginName } = normalizeOptions(options);
+    const { pluginName, outputFile, template } = normalizeOptions(options);
 
     const templateFactory = defaultTemplateFactory;
 
@@ -29,9 +42,9 @@ export default function(options: HtmlPluginOptions = {}) {
     return {
         name: pluginName,
 
-        buildStart(this: PluginContext) {
-            this.addWatchFile('src/index.html');
-        },
+        // buildStart(this: PluginContext) {
+        //     this.addWatchFile('src/index.html');
+        // },
 
         renderStart: (options: NormalizedOutputOptions) => {
             initialDir = options.dir || '';
@@ -50,9 +63,9 @@ export default function(options: HtmlPluginOptions = {}) {
         return {
             name: `${pluginName}#${configId}`,
 
-            buildStart(this: PluginContext) {
-                this.addWatchFile('src/index.html');
-            },
+            // buildStart(this: PluginContext) {
+            //     this.addWatchFile('src/index.html');
+            // },
 
             renderStart: (options: NormalizedOutputOptions) => {
                 configs.delete(configId);
@@ -71,6 +84,28 @@ export default function(options: HtmlPluginOptions = {}) {
         --remainingOutputsCount;
         getAssets(options, bundle);
         if (configs.size === 0 && remainingOutputsCount === 0) {
+
+            let templateString = defaultTemplate;
+
+            if (template) {
+                if (template.indexOf(headClosingElement) >= 0 && template.indexOf(bodyClosingElement)) {
+                    templateString = template;
+                } else {
+                    try {
+                        templateString = await fs.readFile(template, { encoding: 'utf8' });
+                    } catch(e) {
+                        // TODO revisit logger approach here
+                        if ((e as NodeJS.ErrnoException)?.code === 'ENOENT') {
+                            // TODO revisit logger approach here
+                            createLogger(pluginName)('template nor a file or string', LogLevel.warn, e as Error);
+                        } else {
+                            // TODO revisit logger approach here
+                            createLogger(pluginName)('error reading template', LogLevel.warn, e as Error);
+                        }
+                    }
+                }                
+            }
+
             const dir = options.dir || '',
                 relativePath = (fileName: string) => path.relative(initialDir, fileName),
                 links = assets.css
@@ -85,9 +120,9 @@ export default function(options: HtmlPluginOptions = {}) {
                             .map(relativePath)
                             .map(getModuleScriptElement)
                     ),
-                fileNameInInitialDir = path.join(initialDir, 'index.html'),
+                fileNameInInitialDir = path.join(initialDir, outputFile),
                 fileName = path.relative(dir, fileNameInInitialDir),
-                source = templateFactory(defaultTemplate, links, scripts);
+                source = templateFactory(templateString, links, scripts);
 
             if (fileName.startsWith('..')) {
                 try {
@@ -139,6 +174,7 @@ function getModuleScriptElement(fileName: string) {
 
 type NormilizedOptions = {
     pluginName: string,
+    outputFile: string,
     template?: string,
 }
 
@@ -146,14 +182,15 @@ function normalizeOptions(userOptions: HtmlPluginOptions): NormilizedOptions {
     const options = {
         pluginName: userOptions.pluginName ?? '@rollup-extras/plugin-html',
         template: userOptions.template,
+        outputFile: userOptions.outputFile ?? 'index.html',
     };
 
     return options;
 }
 
 function defaultTemplateFactory(template: string, links: string[], scripts: string[]): string {
-    const headIndex = template.toLowerCase().indexOf('</head>');
-    template = `${template.substring(0, headIndex)}${links.join('\n')}${template.substring(headIndex)}`;
-    const bodyIndex = template.toLowerCase().indexOf('</body>');
-    return `${template.substring(0, bodyIndex)}${scripts.join('\n')}${template.substring(bodyIndex)}`;
+    const headIndex = template.toLowerCase().indexOf(headClosingElement);
+    template = `${template.substring(0, headIndex)}${links.join('')}${template.substring(headIndex)}`;
+    const bodyIndex = template.toLowerCase().indexOf(bodyClosingElement);
+    return `${template.substring(0, bodyIndex)}${scripts.join('')}${template.substring(bodyIndex)}`;
 }
