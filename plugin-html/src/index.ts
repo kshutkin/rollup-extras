@@ -1,20 +1,18 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { NormalizedOutputOptions, OutputBundle, OutputChunk, PluginContext, PluginHooks } from 'rollup';
-import { HtmlPluginOptions } from './types';
+import { NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, PluginContext, PluginHooks } from 'rollup';
+import { AssetDescriptor, AssetFactory, AssetPredicate, Assets, HtmlPluginOptions, SimpleAssetDescriptor } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
 
 const defaultTemplate = '<!DOCTYPE html><html><head></head><body></body></html>';
 const headClosingElement = '</head>';
 const bodyClosingElement = '</body>';
 
-type AssetType = 'css' | 'es' | 'iife' | 'umd';
-
 // Plan
 // + 1. file name
 // + 2. template string option
 // + 3. template file name option
-// 4. working with assets
+// + 4. working with assets
 // 5. watch
 // 6. templateFactory option
 // 7. other options: verbose, outputPlugin, watch, emitFiles
@@ -23,7 +21,7 @@ type AssetType = 'css' | 'es' | 'iife' | 'umd';
 
 export default function(options: HtmlPluginOptions = {}) {
 
-    const { pluginName, outputFile, template } = normalizeOptions(options);
+    const { pluginName, outputFile, template, injectIntoHead, ignore, assetsFactory } = normalizeOptions(options);
 
     const templateFactory = defaultTemplateFactory;
 
@@ -32,11 +30,11 @@ export default function(options: HtmlPluginOptions = {}) {
     const configs = new Set<number>();
     let initialDir = '';
 
-    const assets: {[key in AssetType]: string[]} = {
-        'css': [],
-        'es': [],
-        'iife': [],
-        'umd': []
+    const assets: Assets = {
+        asset: [],
+        es: [],
+        iife: [],
+        umd: []
     };
 
     return {
@@ -53,7 +51,7 @@ export default function(options: HtmlPluginOptions = {}) {
 
         generateBundle,
 
-        addInstance
+        api: { addInstance }
     } as never as Partial<PluginHooks> & { addOutput: void };
 
     function addInstance() {
@@ -107,22 +105,18 @@ export default function(options: HtmlPluginOptions = {}) {
             }
 
             const dir = options.dir || '',
-                relativePath = (fileName: string) => path.relative(initialDir, fileName),
-                links = assets.css
-                    .map(relativePath)
-                    .map(getLinkElement),
-                conditionalLoading = !!((assets.iife.length || assets.umd.length) && assets.es.length),
-                scripts = (assets.iife.length ? assets.iife : assets.umd)
-                    .map(relativePath)
-                    .map((fn) => getNonModuleScriptElement(fn, conditionalLoading))
-                    .concat(
-                        assets.es
-                            .map(relativePath)
-                            .map(getModuleScriptElement)
-                    ),
+                allAssets: SimpleAssetDescriptor[] = (assets.asset as AssetDescriptor[])
+                    .concat(((assets.iife as AssetDescriptor[]).length ? assets.iife : assets.umd) as AssetDescriptor[])
+                    .concat(assets.es as AssetDescriptor[])
+                    .map((asset: AssetDescriptor) => {
+                        if (typeof asset.html === 'function') {
+                            asset.html = asset.html(assets);
+                        }
+                        return asset as SimpleAssetDescriptor;
+                    }),
                 fileNameInInitialDir = path.join(initialDir, outputFile),
                 fileName = path.relative(dir, fileNameInInitialDir),
-                source = templateFactory(templateString, links, scripts);
+                source = templateFactory(templateString, allAssets);
 
             if (fileName.startsWith('..')) {
                 try {
@@ -144,15 +138,69 @@ export default function(options: HtmlPluginOptions = {}) {
     function getAssets(options: NormalizedOutputOptions, bundle: OutputBundle) {
         const dir = options.dir || '';
         for (const fileName of Object.keys(bundle)) {
-            if (fileName.endsWith('.css')) {
-                assets.css.push(path.join(dir, fileName));
+            const relativeToRootAssetPath = path.join(dir, fileName);
+            if (ignore(relativeToRootAssetPath)) {
                 continue;
             }
-            if (bundle[fileName].type == 'chunk') {
+            if (bundle[fileName].type == 'asset') {
+                if (assetsFactory) {
+                    let asset = assetsFactory(fileName, (bundle[fileName] as OutputAsset).source, 'asset');
+                    if (asset) {
+                        if (typeof asset === 'string') {
+                            asset = {
+                                html: asset,
+                                head: injectIntoHead(relativeToRootAssetPath),
+                                type: 'asset'
+                            };
+                        }
+                        if (!assets[asset.type]) {
+                            assets[asset.type] = [];
+                        }
+                        (assets[asset.type] as AssetDescriptor[]).push(asset);
+                        continue;
+                    }
+                }
+                if (fileName.endsWith('.css')) {
+                    const assetPath = path.relative(initialDir, relativeToRootAssetPath);
+                    (assets.asset as AssetDescriptor[]).push({
+                        html: getLinkElement(assetPath),
+                        head: injectIntoHead(relativeToRootAssetPath),
+                        type: 'asset'
+                    });
+                    continue;
+                }
+            } else if (bundle[fileName].type == 'chunk') {
                 const chunk = bundle[fileName] as OutputChunk;
                 if (chunk.isEntry) {
+                    if (assetsFactory) {
+                        let asset = assetsFactory(fileName, chunk.code, options.format);
+                        if (asset) {
+                            if (typeof asset === 'string') {
+                                asset = {
+                                    html: asset,
+                                    head: injectIntoHead(relativeToRootAssetPath),
+                                    type: options.format
+                                };
+                            }
+                            if (!assets[asset.type]) {
+                                assets[asset.type] = [];
+                            }
+                            (assets[asset.type] as AssetDescriptor[]).push(asset);
+                            continue;
+                        }
+                    }
                     if (options.format === 'es' || options.format === 'iife' || options.format === 'umd') {
-                        assets[options.format].push(path.join(dir, fileName));
+                        const assetPath = path.relative(initialDir, relativeToRootAssetPath);
+                        (assets[options.format] as AssetDescriptor[]).push({
+                            html: (assets: Assets) => {
+                                const conditionalLoading = !!(((assets.iife  as AssetDescriptor[]).length 
+                                    || (assets.umd as AssetDescriptor[]).length) 
+                                    && (assets.es as AssetDescriptor[]).length);
+                                return (options.format === 'iife' || options.format === 'umd') ? getNonModuleScriptElement(assetPath, conditionalLoading) : getModuleScriptElement(assetPath);
+                            },
+                            head: injectIntoHead(relativeToRootAssetPath),
+                            type: 'asset'
+                        });
                     }
                 }
             }
@@ -176,21 +224,58 @@ type NormilizedOptions = {
     pluginName: string,
     outputFile: string,
     template?: string,
+    injectIntoHead: AssetPredicate,
+    ignore: AssetPredicate,
+    assetsFactory?: AssetFactory,
 }
 
 function normalizeOptions(userOptions: HtmlPluginOptions): NormilizedOptions {
-    const options = {
+    const options: NormilizedOptions = {
         pluginName: userOptions.pluginName ?? '@rollup-extras/plugin-html',
         template: userOptions.template,
         outputFile: userOptions.outputFile ?? 'index.html',
+        injectIntoHead: () => false,
+        ignore: () => false,
+        assetsFactory: userOptions.assetsFactory
     };
+
+    if (userOptions.injectIntoHead != null) {
+        const predicate = toAssetPredicate(userOptions.injectIntoHead);
+        if (predicate) {
+            options.injectIntoHead = predicate;
+        } else {
+            // TODO warn
+        }
+    }
+
+    if (userOptions.ignore != null) {
+        const predicate = toAssetPredicate(userOptions.ignore);
+        if (predicate) {
+            options.ignore = predicate;
+        } else {
+            // TODO warn
+        }
+    }
 
     return options;
 }
 
-function defaultTemplateFactory(template: string, links: string[], scripts: string[]): string {
+function toAssetPredicate(sourceOption: boolean | AssetPredicate | RegExp): AssetPredicate | undefined {
+    if (typeof sourceOption === 'boolean') {
+        return () => sourceOption as boolean;
+    } else if (typeof sourceOption === 'function') {
+        return sourceOption as AssetPredicate;
+    } else if (sourceOption instanceof RegExp) {
+        return (fileName: string) => (sourceOption as RegExp).test(fileName);
+    }
+    return undefined;
+}
+
+function defaultTemplateFactory(template: string, assets: SimpleAssetDescriptor[]): string {
+    const headElements = assets.filter(asset => asset.head).map(asset => asset.html);
+    const bodyElements = assets.filter(asset => !asset.head).map(asset => asset.html);
     const headIndex = template.toLowerCase().indexOf(headClosingElement);
-    template = `${template.substring(0, headIndex)}${links.join('')}${template.substring(headIndex)}`;
+    template = `${template.substring(0, headIndex)}${headElements.join('')}${template.substring(headIndex)}`;
     const bodyIndex = template.toLowerCase().indexOf(bodyClosingElement);
-    return `${template.substring(0, bodyIndex)}${scripts.join('')}${template.substring(bodyIndex)}`;
+    return `${template.substring(0, bodyIndex)}${bodyElements.join('')}${template.substring(bodyIndex)}`;
 }

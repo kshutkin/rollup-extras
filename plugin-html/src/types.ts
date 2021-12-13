@@ -1,8 +1,25 @@
+import { InternalModuleFormat } from "rollup";
+
+export type AssetType = 'asset' | InternalModuleFormat;
+export type Assets = {[key in AssetType]?: AssetDescriptor[]};
+export type AssetPredicate = (fileName: string) => boolean;
+export type AssetDescriptor = {
+    html: string | ((assets: Assets) => string),
+    head: boolean,
+    type: 'asset' | InternalModuleFormat
+};
+export type SimpleAssetDescriptor = {
+    html: string,
+    head: boolean,
+    type: 'asset' | InternalModuleFormat
+};
+export type AssetFactory = (fileName: string, content: string | Uint8Array, type: 'asset' | InternalModuleFormat) => AssetDescriptor | string | undefined;
+
 export type HtmlPluginOptions = {
     pluginName?: string;
     outputFile?: string;
     template?: string;
-    injectIntoHead?: RegExp; // placing js into head
-    ignoreCss?: RegExp; // filter some of css files (do not add links to them)
-    assetsFactory?: (fileName: string) => { html: string, head: boolean } | string | undefined; // add some js assets from emitted assets + preloads
+    injectIntoHead?: boolean | AssetPredicate | RegExp; // placing asset into head
+    ignore?: boolean | AssetPredicate | RegExp; // filter some of files
+    assetsFactory?: AssetFactory; // add some assets from emitted chunks / assets in custom way
 };

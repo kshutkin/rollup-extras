@@ -42,7 +42,7 @@ export default [{
         chunkFileNames: '[name].cjs'
     },
 
-	plugins: [clean(), copy('./assets/**/*.json'), htmlPluginInstance.addInstance()],
+	plugins: [clean(), copy('./assets/**/*.json'), htmlPluginInstance.api.addInstance()],
 }, {
     input,
     output: {
@@ -50,7 +50,7 @@ export default [{
         dir: './dest',
         entryFileNames: '[name].umd.js',
         name: 'test',
-        plugins: [clean(), copy({ src: './assets/**/*.json', outputPlugin: true }), htmlPluginInstance.addInstance()],
+        plugins: [clean(), copy({ src: './assets/**/*.json', outputPlugin: true }), htmlPluginInstance.api.addInstance()],
         sourcemap: true
     }
 }];
