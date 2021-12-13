@@ -11,8 +11,7 @@ import html from '@rollup-extras/plugin-html';
 const input = 'src/index.ts';
 
 const htmlPluginInstance = html({
-    template: 'src/index.html',
-    watch: false
+    template: 'src/index.html'
 });
 
 export default [{

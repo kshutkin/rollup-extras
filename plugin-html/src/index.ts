@@ -1,8 +1,8 @@
 import fs from 'fs/promises';
-import oldFs from 'fs';
+import oldStyleFs from 'fs';
 import path from 'path';
 import { NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, PluginContext, PluginHooks } from 'rollup';
-import { AssetDescriptor, AssetFactory, AssetPredicate, Assets, HtmlPluginOptions, SimpleAssetDescriptor } from './types';
+import { AssetDescriptor, AssetFactory, AssetPredicate, Assets, HtmlPluginOptions, SimpleAssetDescriptor, TemplateFactory } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
 
 const defaultTemplate = '<!DOCTYPE html><html><head></head><body></body></html>';
@@ -15,17 +15,22 @@ const bodyClosingElement = '</body>';
 // + 3. template file name option
 // + 4. working with assets
 // + 5. watch + option
-// 6. templateFactory option
-// 7. other options: verbose, outputPlugin, emitFiles
-// 7.1. logger
-// 8. hook??? (not initial implementation)
+// + 6. templateFactory option
+// + 7. logger
+/*
+    [start] collecting inputs
+    [update] collecting assets (ramaining count)
+    [update] generating html
+    [msg] cannot emit file using writeFile
+    [finish] finished
+*/
+// ???async factories???
+// 8. other options: verbose, emitFiles, conditionalLoading
+// 9. hook??? (not initial implementation)
 
 export default function(options: HtmlPluginOptions = {}) {
 
-    const { pluginName, outputFile, template, watch, injectIntoHead, ignore, assetsFactory } = normalizeOptions(options);
-
-    const templateFactory = defaultTemplateFactory;
-    const logger = createLogger(pluginName);
+    const { pluginName, outputFile, template, watch, logger, injectIntoHead, ignore, assetsFactory, templateFactory } = normalizeOptions(options);
 
     let templateString: string | Promise<string> = defaultTemplate, hasTemplateFile = false;
 
@@ -36,7 +41,7 @@ export default function(options: HtmlPluginOptions = {}) {
             if (watch) {
                 try {
                     // using sync fs call because we need to return plugin object immidiately
-                    templateString = oldFs.readFileSync(template, { encoding: 'utf8' });
+                    templateString = oldStyleFs.readFileSync(template, { encoding: 'utf8' });
 
                     hasTemplateFile = true;
                 } catch(e) {
@@ -69,7 +74,7 @@ export default function(options: HtmlPluginOptions = {}) {
 
         renderStart: (options: NormalizedOutputOptions) => {
             initialDir = options.dir || '';
-            return renderStart(options);
+            return renderStart();
         },
 
         generateBundle,
@@ -107,9 +112,9 @@ export default function(options: HtmlPluginOptions = {}) {
         const instance = {
             name: `${pluginName}#${configId}`,
 
-            renderStart: (options: NormalizedOutputOptions) => {
+            renderStart: () => {
                 configs.delete(configId);
-                return renderStart(options);
+                return renderStart();
             },
 
             generateBundle
@@ -126,7 +131,7 @@ export default function(options: HtmlPluginOptions = {}) {
         this.addWatchFile('src/index.html');
     }
 
-    function renderStart(_options: NormalizedOutputOptions) {
+    function renderStart() {
         ++remainingOutputsCount;
     }
 
@@ -135,25 +140,16 @@ export default function(options: HtmlPluginOptions = {}) {
         getAssets(options, bundle);
         if (configs.size === 0 && remainingOutputsCount === 0) {
             const dir = options.dir || '',
-                allAssets: SimpleAssetDescriptor[] = (assets.asset as AssetDescriptor[])
-                    .concat(((assets.iife as AssetDescriptor[]).length ? assets.iife : assets.umd) as AssetDescriptor[])
-                    .concat(assets.es as AssetDescriptor[])
-                    .map((asset: AssetDescriptor) => {
-                        if (typeof asset.html === 'function') {
-                            asset.html = asset.html(assets);
-                        }
-                        return asset as SimpleAssetDescriptor;
-                    }),
                 fileNameInInitialDir = path.join(initialDir, outputFile),
                 fileName = path.relative(dir, fileNameInInitialDir),
-                source = templateFactory(await Promise.resolve(templateString), allAssets);
+                depromisifiedTemplateString = await Promise.resolve(templateString),
+                source = templateFactory(depromisifiedTemplateString, assets, defaultTemplateFactory);
 
             if (fileName.startsWith('..')) {
                 try {
                     await fs.writeFile(fileNameInInitialDir, source);
                 } catch(e) {
-                    // TODO revisit logger approach here
-                    createLogger(pluginName)('error creating html file', LogLevel.warn, e as Error);
+                    logger('error creating html file', LogLevel.warn, e as Error);
                 }
             } else {
                 this.emitFile({
@@ -258,38 +254,44 @@ type NormilizedOptions = {
     injectIntoHead: AssetPredicate,
     ignore: AssetPredicate,
     assetsFactory?: AssetFactory,
+    templateFactory: TemplateFactory,
+    logger: ReturnType<typeof createLogger>
 }
 
 function normalizeOptions(userOptions: HtmlPluginOptions): NormilizedOptions {
-    const options: NormilizedOptions = {
-        pluginName: userOptions.pluginName ?? '@rollup-extras/plugin-html',
-        template: userOptions.template,
-        outputFile: userOptions.outputFile ?? 'index.html',
-        watch: userOptions.watch ?? true,
-        injectIntoHead: () => false,
-        ignore: () => false,
-        assetsFactory: userOptions.assetsFactory
-    };
+    const options = {
+            pluginName: userOptions.pluginName ?? '@rollup-extras/plugin-html',
+            template: userOptions.template,
+            outputFile: userOptions.outputFile ?? 'index.html',
+            watch: userOptions.watch ?? true,
+            injectIntoHead: () => false,
+            ignore: () => false,
+            assetsFactory: userOptions.assetsFactory,
+            templateFactory: userOptions.templateFactory
+                ?? ((template, assets, defaultTemplateFactory) => defaultTemplateFactory(template, assets)),
+        },
+        logger = (options as never as NormilizedOptions).logger = createLogger(options.pluginName),
+        optionIgnoredText = 'option ignored because it is not a function, RegExp or boolean';
 
     if (userOptions.injectIntoHead != null) {
         const predicate = toAssetPredicate(userOptions.injectIntoHead);
         if (predicate) {
-            options.injectIntoHead = predicate;
+            (options as never as NormilizedOptions).injectIntoHead = predicate;
         } else {
-            // TODO warn
+            logger(`injectIntoHead ${optionIgnoredText}`, LogLevel.warn);
         }
     }
 
     if (userOptions.ignore != null) {
         const predicate = toAssetPredicate(userOptions.ignore);
         if (predicate) {
-            options.ignore = predicate;
+            (options as never as NormilizedOptions).ignore = predicate;
         } else {
-            // TODO warn
+            logger(`ignore ${optionIgnoredText}`, LogLevel.warn);
         }
     }
 
-    return options;
+    return (options as never as NormilizedOptions);
 }
 
 function toAssetPredicate(sourceOption: boolean | AssetPredicate | RegExp): AssetPredicate | undefined {
@@ -303,9 +305,18 @@ function toAssetPredicate(sourceOption: boolean | AssetPredicate | RegExp): Asse
     return undefined;
 }
 
-function defaultTemplateFactory(template: string, assets: SimpleAssetDescriptor[]): string {
-    const headElements = assets.filter(asset => asset.head).map(asset => asset.html);
-    const bodyElements = assets.filter(asset => !asset.head).map(asset => asset.html);
+function defaultTemplateFactory(template: string, assets: Assets): string {
+    const assetsAsArray: SimpleAssetDescriptor[] = (assets.asset as AssetDescriptor[])
+        .concat(((assets.iife as AssetDescriptor[]).length ? assets.iife : assets.umd) as AssetDescriptor[])
+        .concat(assets.es as AssetDescriptor[])
+        .map((asset: AssetDescriptor) => {
+            if (typeof asset.html === 'function') {
+                asset.html = asset.html(assets) as string;
+            }
+            return asset as SimpleAssetDescriptor;
+        });
+    const headElements = assetsAsArray.filter(asset => asset.head).map(asset => asset.html);
+    const bodyElements = assetsAsArray.filter(asset => !asset.head).map(asset => asset.html);
     const headIndex = template.toLowerCase().indexOf(headClosingElement);
     template = `${template.substring(0, headIndex)}${headElements.join('')}${template.substring(headIndex)}`;
     const bodyIndex = template.toLowerCase().indexOf(bodyClosingElement);
