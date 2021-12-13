@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import oldFs from 'fs';
 import path from 'path';
 import { NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, PluginContext, PluginHooks } from 'rollup';
 import { AssetDescriptor, AssetFactory, AssetPredicate, Assets, HtmlPluginOptions, SimpleAssetDescriptor } from './types';
@@ -13,17 +14,43 @@ const bodyClosingElement = '</body>';
 // + 2. template string option
 // + 3. template file name option
 // + 4. working with assets
-// 5. watch
+// + 5. watch + option
 // 6. templateFactory option
-// 7. other options: verbose, outputPlugin, watch, emitFiles
+// 7. other options: verbose, outputPlugin, emitFiles
 // 7.1. logger
 // 8. hook??? (not initial implementation)
 
 export default function(options: HtmlPluginOptions = {}) {
 
-    const { pluginName, outputFile, template, injectIntoHead, ignore, assetsFactory } = normalizeOptions(options);
+    const { pluginName, outputFile, template, watch, injectIntoHead, ignore, assetsFactory } = normalizeOptions(options);
 
     const templateFactory = defaultTemplateFactory;
+    const logger = createLogger(pluginName);
+
+    let templateString: string | Promise<string> = defaultTemplate, hasTemplateFile = false;
+
+    if (template) {
+        if (template.indexOf(headClosingElement) >= 0 && template.indexOf(bodyClosingElement)) {
+            templateString = template;
+        } else {
+            if (watch) {
+                try {
+                    // using sync fs call because we need to return plugin object immidiately
+                    templateString = oldFs.readFileSync(template, { encoding: 'utf8' });
+
+                    hasTemplateFile = true;
+                } catch(e) {
+                    handleTemplateReadError(e);
+                }
+            } else {
+                templateString = new Promise(resolve => {
+                    fs.readFile(template, { encoding: 'utf8' })
+                        .then(resolve)
+                        .catch(handleTemplateReadError);
+                });
+            }
+        }
+    }
 
     let remainingOutputsCount = 0;
     let configsCount = 0;
@@ -37,12 +64,8 @@ export default function(options: HtmlPluginOptions = {}) {
         umd: []
     };
 
-    return {
+    const instance = {
         name: pluginName,
-
-        // buildStart(this: PluginContext) {
-        //     this.addWatchFile('src/index.html');
-        // },
 
         renderStart: (options: NormalizedOutputOptions) => {
             initialDir = options.dir || '';
@@ -52,18 +75,37 @@ export default function(options: HtmlPluginOptions = {}) {
         generateBundle,
 
         api: { addInstance }
-    } as never as Partial<PluginHooks> & { addOutput: void };
+    } as Partial<PluginHooks>;
+
+    if (hasTemplateFile && watch) {
+        instance.buildStart = async function() {
+            try {
+                templateString = await fs.readFile(template as string, { encoding: 'utf8' });
+    
+                hasTemplateFile = true;
+            } catch(e) {
+                handleTemplateReadError(e);
+            }
+            await buildStart.apply(this);
+        }
+    }
+
+    return instance;
+
+    function handleTemplateReadError(e: unknown) {
+        if ((e as NodeJS.ErrnoException)?.code === 'ENOENT') {
+            logger('template nor a file or string', LogLevel.warn, e as Error);
+        } else {
+            logger('error reading template', LogLevel.warn, e as Error);
+        }
+    }
 
     function addInstance() {
         const configId = ++configsCount;
         configs.add(configId);
 
-        return {
+        const instance = {
             name: `${pluginName}#${configId}`,
-
-            // buildStart(this: PluginContext) {
-            //     this.addWatchFile('src/index.html');
-            // },
 
             renderStart: (options: NormalizedOutputOptions) => {
                 configs.delete(configId);
@@ -71,7 +113,17 @@ export default function(options: HtmlPluginOptions = {}) {
             },
 
             generateBundle
+        } as Partial<PluginHooks>;
+
+        if (hasTemplateFile && watch) {
+            instance.buildStart = buildStart;
         }
+    
+        return instance;
+    }
+
+    async function buildStart(this: PluginContext) {
+        this.addWatchFile('src/index.html');
     }
 
     function renderStart(_options: NormalizedOutputOptions) {
@@ -82,28 +134,6 @@ export default function(options: HtmlPluginOptions = {}) {
         --remainingOutputsCount;
         getAssets(options, bundle);
         if (configs.size === 0 && remainingOutputsCount === 0) {
-
-            let templateString = defaultTemplate;
-
-            if (template) {
-                if (template.indexOf(headClosingElement) >= 0 && template.indexOf(bodyClosingElement)) {
-                    templateString = template;
-                } else {
-                    try {
-                        templateString = await fs.readFile(template, { encoding: 'utf8' });
-                    } catch(e) {
-                        // TODO revisit logger approach here
-                        if ((e as NodeJS.ErrnoException)?.code === 'ENOENT') {
-                            // TODO revisit logger approach here
-                            createLogger(pluginName)('template nor a file or string', LogLevel.warn, e as Error);
-                        } else {
-                            // TODO revisit logger approach here
-                            createLogger(pluginName)('error reading template', LogLevel.warn, e as Error);
-                        }
-                    }
-                }                
-            }
-
             const dir = options.dir || '',
                 allAssets: SimpleAssetDescriptor[] = (assets.asset as AssetDescriptor[])
                     .concat(((assets.iife as AssetDescriptor[]).length ? assets.iife : assets.umd) as AssetDescriptor[])
@@ -116,7 +146,7 @@ export default function(options: HtmlPluginOptions = {}) {
                     }),
                 fileNameInInitialDir = path.join(initialDir, outputFile),
                 fileName = path.relative(dir, fileNameInInitialDir),
-                source = templateFactory(templateString, allAssets);
+                source = templateFactory(await Promise.resolve(templateString), allAssets);
 
             if (fileName.startsWith('..')) {
                 try {
@@ -224,6 +254,7 @@ type NormilizedOptions = {
     pluginName: string,
     outputFile: string,
     template?: string,
+    watch?: boolean,
     injectIntoHead: AssetPredicate,
     ignore: AssetPredicate,
     assetsFactory?: AssetFactory,
@@ -234,6 +265,7 @@ function normalizeOptions(userOptions: HtmlPluginOptions): NormilizedOptions {
         pluginName: userOptions.pluginName ?? '@rollup-extras/plugin-html',
         template: userOptions.template,
         outputFile: userOptions.outputFile ?? 'index.html',
+        watch: userOptions.watch ?? true,
         injectIntoHead: () => false,
         ignore: () => false,
         assetsFactory: userOptions.assetsFactory

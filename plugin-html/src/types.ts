@@ -19,6 +19,7 @@ export type HtmlPluginOptions = {
     pluginName?: string;
     outputFile?: string;
     template?: string;
+    watch?: boolean;
     injectIntoHead?: boolean | AssetPredicate | RegExp; // placing asset into head
     ignore?: boolean | AssetPredicate | RegExp; // filter some of files
     assetsFactory?: AssetFactory; // add some assets from emitted chunks / assets in custom way
