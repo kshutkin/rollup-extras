@@ -12,18 +12,19 @@ const cssExtention = '.css';
 
 export default function(options: HtmlPluginOptions = {}) {
 
-    const { pluginName, outputFile, template, watch, emitFile, conditionalLoading, logger, injectIntoHead, ignore, assetsFactory, templateFactory } = normalizeOptions(options);
+    const { pluginName, outputFile, template, watch, emitFile, conditionalLoading, logger, injectIntoHead, ignore, assetsFactory, templateFactory } = normalizeOptions(options),
+        hasCustomTemplateFactory = 'templateFactory' in options;
 
     let templateString: string | Promise<string> = defaultTemplate, hasTemplateFile = false;
 
     if (template) {
-        if (template.indexOf(headClosingElement) >= 0 && template.indexOf(bodyClosingElement) >= 0) {
+        if (isUsableByDefaultTemplateFactory(template)) {
             templateString = template;
         } else {
             if (watch) {
                 try {
                     // using sync fs call because we need to return plugin object immidiately
-                    templateString = oldStyleFs.readFileSync(template, { encoding: 'utf8' });
+                    useNewTemplate(oldStyleFs.readFileSync(template, { encoding: 'utf8' }));
 
                     hasTemplateFile = true;
                 } catch(e) {
@@ -32,7 +33,14 @@ export default function(options: HtmlPluginOptions = {}) {
             } else {
                 templateString = new Promise(resolve => {
                     fs.readFile(template, { encoding: 'utf8' })
-                        .then(resolve)
+                        .then((newTemplateString) => {
+                            if (!isUsableByDefaultTemplateFactory(newTemplateString) && !hasCustomTemplateFactory) {
+                                warnAboutUsingDefaultTemplate();
+                                resolve(defaultTemplate);
+                            } else {
+                                resolve(newTemplateString);
+                            }
+                        })
                         .catch(handleTemplateReadError);
                 });
             }
@@ -68,17 +76,23 @@ export default function(options: HtmlPluginOptions = {}) {
     if (hasTemplateFile && watch) {
         instance.buildStart = async function() {
             try {
-                templateString = await fs.readFile(template as string, { encoding: 'utf8' });
-    
-                hasTemplateFile = true;
+                useNewTemplate(await fs.readFile(template as string, { encoding: 'utf8' }));
             } catch(e) {
                 handleTemplateReadError(e);
             }
             await buildStart.apply(this);
-        }
+        };
     }
 
     return instance;
+
+    function useNewTemplate(newTemplateString: string) {
+        if (!isUsableByDefaultTemplateFactory(newTemplateString) && !hasCustomTemplateFactory) {
+            warnAboutUsingDefaultTemplate();
+        } else {
+            templateString = newTemplateString;
+        }
+    }
 
     function handleTemplateReadError(e: unknown) {
         if ((e as NodeJS.ErrnoException)?.code === 'ENOENT') {
@@ -86,6 +100,10 @@ export default function(options: HtmlPluginOptions = {}) {
         } else {
             logger('error reading template', LogLevel.warn, e as Error);
         }
+    }
+
+    function warnAboutUsingDefaultTemplate() {
+        logger('template is unusable by default template factory, using default one', LogLevel.warn);
     }
 
     function addInstance() {
@@ -127,6 +145,7 @@ export default function(options: HtmlPluginOptions = {}) {
             .map(({ key, count }) => `${key}: ${count}`)
             .join(', ');
         logger(`assets collected: [${statistics}], remaining: ${remainingOutputsCount} outputs, ${configs.size} configs`, LogLevel.verbose);
+
         if (configs.size === 0 && remainingOutputsCount === 0) {
             logger.start('generating html', LogLevel.verbose);
             try {
@@ -137,7 +156,6 @@ export default function(options: HtmlPluginOptions = {}) {
                     source = await Promise.resolve(templateFactory(depromisifiedTemplateString, assets, defaultTemplateFactory));
 
                 if (!emitFile || fileName.startsWith('..')) {
-                    console.log(emitFile);
                     if (emitFile && emitFile !== 'auto') {
                         logger('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
                     }
@@ -229,6 +247,10 @@ export default function(options: HtmlPluginOptions = {}) {
             }
         }
     }
+}
+
+function isUsableByDefaultTemplateFactory(template: string) {
+    return template.indexOf(headClosingElement) >= 0 && template.indexOf(bodyClosingElement) >= 0;
 }
 
 function getLinkElement(fileName: string) {

@@ -1,4 +1,4 @@
-import { InternalModuleFormat } from "rollup";
+import { InternalModuleFormat } from 'rollup';
 
 export type AssetType = 'asset' | InternalModuleFormat;
 export type Assets = {[key in AssetType]?: AssetDescriptor[]};
