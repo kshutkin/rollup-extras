@@ -1,15 +1,14 @@
 import fs from 'fs/promises';
-import glob from 'glob-promise';
-import globParent from 'glob-parent';
-import { createLogger, LogLevel } from '@niceties/logger';
+import oldFs from 'fs';
+import { LogLevel } from '@niceties/logger';
+import { InternalModuleFormat, PluginContext } from 'rollup';
 import plugin from '../src';
-import { PluginContext } from 'rollup';
 
+// @ts-ignore
 let loggerStart: jest.Mock, loggerFinish: jest.Mock, logger: jest.Mock;
 
 jest.mock('fs/promises');
-jest.mock('glob-promise');
-jest.mock('glob-parent');
+jest.mock('fs');
 jest.mock('@niceties/logger', () => ({
     createLogger: jest.fn(() => Object.assign((logger =jest.fn()), {
         start: (loggerStart = jest.fn()),
@@ -17,27 +16,24 @@ jest.mock('@niceties/logger', () => ({
     }))
 }));
 
-describe('@rollup-extras/plugin-copy', () => {
+describe('@rollup-extras/plugin-html', () => {
 
     let rollupContextMock: Partial<PluginContext>;
 
     beforeEach(() => {
-        (fs.mkdir as unknown as jest.Mock<ReturnType<typeof fs.mkdir>, Parameters<typeof fs.mkdir>>).mockClear();
-        (fs.copyFile as unknown as jest.Mock<ReturnType<typeof fs.copyFile>, Parameters<typeof fs.copyFile>>).mockClear();
-        (fs.readFile as unknown as jest.Mock<ReturnType<typeof fs.readFile>, Parameters<typeof fs.readFile>>).mockClear();
-        (fs.stat as unknown as jest.Mock<ReturnType<typeof fs.stat>, Parameters<typeof fs.stat>>).mockClear();
-        (createLogger as jest.Mock<ReturnType<typeof createLogger>, Parameters<typeof createLogger>>).mockClear();
+        // (fs.mkdir as unknown as jest.Mock<ReturnType<typeof fs.mkdir>, Parameters<typeof fs.mkdir>>).mockClear();
+        (fs.writeFile as unknown as jest.Mock<ReturnType<typeof fs.writeFile>, Parameters<typeof fs.writeFile>>).mockClear();
+        (fs.readFile as unknown as jest.Mock<ReturnType<typeof fs.readFile>, Parameters<typeof fs.writeFile>>)
+            .mockClear()
+            .mockImplementation(() => Promise.resolve('<!DOCTYPE html><html><head></head><body>File Template</body></html>'));
+        (oldFs.readFileSync as unknown as jest.Mock<ReturnType<typeof oldFs.writeFile>, Parameters<typeof fs.writeFile>>)
+            .mockClear()
+            .mockImplementation(() => '<!DOCTYPE html><html><head></head><body>File Template</body></html>');
+        // (createLogger as jest.Mock<ReturnType<typeof createLogger>, Parameters<typeof createLogger>>).mockClear();
         rollupContextMock = {
             emitFile: jest.fn(),
             addWatchFile: jest.fn()
         };
-        (glob as unknown as jest.Mock<ReturnType<typeof glob>, Parameters<typeof glob>>).mockImplementation(() => Promise.resolve(['assets/aFolder/test.json', 'assets/aFolder/test2.json']));
-        (globParent as jest.Mock<ReturnType<typeof globParent>, Parameters<typeof globParent>>).mockImplementation(() => 'assets');
-        (fs.readFile as jest.Mock<ReturnType<typeof fs.readFile>, Parameters<typeof fs.readFile>>).mockImplementation(() => Promise.resolve(''));
-        (fs.stat as jest.Mock<ReturnType<typeof fs.stat>, Parameters<typeof fs.stat>>).mockImplementation(() => Promise.resolve({
-            mtime: new Date(),
-            isFile: () => true
-        }) as unknown as ReturnType<typeof fs.stat>);
     })
 
     it('smoke', () => {
@@ -45,347 +41,794 @@ describe('@rollup-extras/plugin-copy', () => {
     });
 
     it('pluginName (default)', () => {
-        const pluginInstance = plugin('assets/**/*.json');
-        expect((pluginInstance as {name: string}).name).toEqual('@rollup-extras/plugin-copy');
+        const pluginInstance = plugin();
+        expect((pluginInstance as {name: string}).name).toEqual('@rollup-extras/plugin-html');
     });
 
     it('pluginName (changed)', () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', pluginName: 'test' });
+        const pluginInstance = plugin({ pluginName: 'test' });
         expect((pluginInstance as {name: string}).name).toEqual('test');
     });
+    
+    it('happy path', async () => {
+        const pluginInstance = plugin();
 
-    it('single string parameter', async () => {
-        const pluginInstance = plugin('assets/**/*.json');
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test.json', 
-            source: '',
-            type: 'asset'
-        }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test2.json', 
-            source: '',
-            type: 'asset'
-        }));
-    });
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            },
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
 
-    it('array of strings as a parameter', async () => {
-        const pluginInstance = plugin(['assets/**/*.json']);
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test.json', 
-            source: '',
-            type: 'asset'
-        }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test2.json', 
-            source: '',
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body><script src=\"index.js\" type=\"module\"></script></body></html>',
             type: 'asset'
         }));
     });
 
-    it('array of objects as a parameter', async () => {
-        const pluginInstance = plugin([{ src: 'assets/**/*.json' }]);
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test.json', 
-            source: '',
-            type: 'asset'
-        }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test2.json', 
-            source: '',
-            type: 'asset'
-        }));
-    });
+    it('happy path multiple configs', async () => {
+        const pluginInstance = plugin();
+        const additionalInstance = (pluginInstance as any).api.addInstance();
 
-    it('object with targets (array of objects) as a parameter', async () => {
-        const pluginInstance = plugin({ targets: [{ src: 'assets/**/*.json' }] });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            },
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+        (additionalInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (additionalInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {}]);
+
+        expect(additionalInstance.name).toEqual('@rollup-extras/plugin-html#1');
+
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test.json', 
-            source: '',
-            type: 'asset'
-        }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test2.json', 
-            source: '',
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body><script src=\"index.js\" type=\"module\"></script></body></html>',
             type: 'asset'
         }));
     });
 
-    it('object with targets (array of strings) as a parameter', async () => {
-        const pluginInstance = plugin({ targets: ['assets/**/*.json'] });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test.json', 
-            source: '',
-            type: 'asset'
-        }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test2.json', 
-            source: '',
-            type: 'asset'
-        }));
-    });
+    it('conditinal loding by default (es + iife)', async () => {
+        const pluginInstance = plugin();
 
-    it('object with targets (string) as a parameter', async () => {
-        const pluginInstance = plugin({ targets: 'assets/**/*.json' });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.mjs': {
+                type: 'chunk',
+                isEntry: true
+            }
+        }]);
+
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'iife'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            }
+        }]);
+
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test.json', 
-            source: '',
-            type: 'asset'
-        }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test2.json', 
-            source: '',
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head></head><body><script src=\"index.js\" type=\"text/javascript\" nomodule></script><script src=\"index.mjs\" type=\"module\"></script></body></html>',
             type: 'asset'
         }));
     });
 
-    it('object without targets as a parameter', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json' });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test.json', 
-            source: '',
-            type: 'asset'
-        }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test2.json', 
-            source: '',
-            type: 'asset'
-        }));
-    });
+    it('conditinal loding by default (es + umd)', async () => {
+        const pluginInstance = plugin();
 
-    it('empty array', async () => {
-        const pluginInstance = plugin([]);
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledTimes(0);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(0);
-    });
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.mjs': {
+                type: 'chunk',
+                isEntry: true
+            }
+        }]);
 
-    it('invalid array', async () => {
-        const pluginInstance = plugin([null, '', 123] as string[]);
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledTimes(0);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(0);
-    });
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'umd'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            }
+        }]);
 
-    it('invalid parameter', async () => {
-        const pluginInstance = plugin(123 as unknown as string[]);
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledTimes(0);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(0);
-    });
-
-    it('outputPlugin (generateBundle)', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', outputPlugin: true });
-        await (pluginInstance as any).generateBundle.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledTimes(0);
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test.json', 
-            source: '',
-            type: 'asset'
-        }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test2.json', 
-            source: '',
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head></head><body><script src=\"index.js\" type=\"text/javascript\" nomodule></script><script src=\"index.mjs\" type=\"module\"></script></body></html>',
             type: 'asset'
         }));
     });
 
-    it('dest', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', dest: 'folder' });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'folder/aFolder/test.json', 
-            source: '',
-            type: 'asset'
-        }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'folder/aFolder/test2.json', 
-            source: '',
-            type: 'asset'
-        }));
-    });
+    it('conditinal loding by default (es + umd + iife)', async () => {
+        const pluginInstance = plugin();
 
-    it('exclude', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', dest: 'folder', exclude: 'assets/**' });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(glob).toBeCalledWith('assets/**/*.json', { ignore: 'assets/**' });
-    });
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.mjs': {
+                type: 'chunk',
+                isEntry: true
+            }
+        }]);
 
-    it('falttern', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', flattern: true });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'iife'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            }
+        }]);
+
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'umd'}, {
+            'index.umd.js': {
+                type: 'chunk',
+                isEntry: true
+            }
+        }]);
+
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'test.json', 
-            source: '',
-            type: 'asset'
-        }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'test2.json', 
-            source: '',
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head></head><body><script src=\"index.js\" type=\"text/javascript\" nomodule></script><script src=\"index.mjs\" type=\"module\"></script></body></html>',
             type: 'asset'
         }));
     });
 
-    it('dest with slash and flattern', async () => {
-        const pluginInstance = plugin({
-            targets: [{ src: 'assets/**/*.json', dest: 'folder' }, { src: 'assets/**/*.json', dest: 'folder/' }],
-            flattern: true
-        });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(2);
-    });    
+    it('conditinal loding by default (es + iife)', async () => {
+        const pluginInstance = plugin({conditionalLoading: false});
 
-    it('duplicates', async () => {
-        const pluginInstance = plugin(['assets/**/*.json', 'assets/**/*.json']);
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(2);
-    });
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.mjs': {
+                type: 'chunk',
+                isEntry: true
+            }
+        }]);
 
-    it('copyOnce (default)', async () => {
-        const mtime = new Date();
-        (fs.stat as jest.Mock<ReturnType<typeof fs.stat>, Parameters<typeof fs.stat>>).mockImplementation(() => Promise.resolve({
-            mtime,
-            isFile: () => true,
-            isSymbolicLink: () => false
-        }) as unknown as ReturnType<typeof fs.stat>);
-        const pluginInstance = plugin({ src: 'assets/**/*.json'});
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(2);
-    });
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'iife'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            }
+        }]);
 
-    it('copyOnce (false)', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', copyOnce: false});
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(4);
-    });
-
-    it('exactFileNames (false)', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', exactFileNames: false });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            name: 'aFolder/test.json', 
-            source: '',
-            type: 'asset'
-        }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            name: 'aFolder/test2.json', 
-            source: '',
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head></head><body><script src=\"index.js\" type=\"text/javascript\"></script><script src=\"index.mjs\" type=\"module\"></script></body></html>',
             type: 'asset'
         }));
     });
 
-    it('watch (false)', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', watch: false });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledTimes(0);
+    it('conditinal loding by default (iife)', async () => {
+        const pluginInstance = plugin({conditionalLoading: true});
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'iife'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            }
+        }]);
+
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test.json', 
-            source: '',
-            type: 'asset'
-        }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test2.json', 
-            source: '',
-            type: 'asset'
-        }));
-    });
-
-    it('emitFiles (false)', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledTimes(0);
-        expect(fs.copyFile).toBeCalledWith('assets/aFolder/test.json', 'aFolder/test.json');
-        expect(fs.copyFile).toBeCalledWith('assets/aFolder/test2.json', 'aFolder/test2.json');
-    });
-
-    it('non verbose', async () => {
-        const pluginInstance = plugin('assets/**/*.json');
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(loggerStart).toBeCalledWith(`coping files`, LogLevel.verbose);
-        expect(loggerFinish).toBeCalledWith(`copied test.json, test2.json`);
-    });
-
-    it('verbose', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', verbose: true });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(loggerStart).toBeCalledWith(`coping files`, LogLevel.info);
-        expect(loggerFinish).toBeCalledWith(`copied test.json, test2.json`);
-    });
-
-    it('exception', async () => {
-        (fs.copyFile as jest.Mock<ReturnType<typeof fs.copyFile>, Parameters<typeof fs.copyFile>>)
-            .mockImplementationOnce(() => { throw { stack: '' }; });
-            const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(logger).toBeCalledWith(`error reading file assets/aFolder/test.json `, LogLevel.warn);
-    });
-
-    it('missing directory exception', async () => {
-        (fs.copyFile as jest.Mock<ReturnType<typeof fs.copyFile>, Parameters<typeof fs.copyFile>>)
-            .mockImplementationOnce(() => { throw { code: 'ENOENT', stack: '' }; });
-        const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(logger).toBeCalledWith(`error reading file assets/aFolder/test.json `, undefined);
-    });
-
-    it('statistics', async () => {
-        (glob as unknown as jest.Mock<ReturnType<typeof glob>, Parameters<typeof glob>>)
-            .mockImplementation(() => Promise.resolve(['1', '2', '3', '4', '5', '6']));
-        const pluginInstance = plugin('assets/**/*.json');
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(loggerFinish).toBeCalledWith(`copied 6 files`);
-    });
-
-    it('symbolic link', async () => {
-        (fs.stat as jest.Mock<ReturnType<typeof fs.stat>, Parameters<typeof fs.stat>>).mockImplementation(() => Promise.resolve({
-            mtime: new Date(),
-            isFile: () => false,
-            isSymbolicLink: () => true
-        }) as unknown as ReturnType<typeof fs.stat>);
-
-        const pluginInstance = plugin('assets/**/*.json');
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test.json', 
-            source: '',
-            type: 'asset'
-        }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test2.json', 
-            source: '',
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head></head><body><script src=\"index.js\" type=\"text/javascript\" nomodule></script></body></html>',
             type: 'asset'
         }));
     });
 
-    it('something else than file or symlink', async () => {
-        (fs.stat as jest.Mock<ReturnType<typeof fs.stat>, Parameters<typeof fs.stat>>).mockImplementation(() => Promise.resolve({
-            mtime: new Date(),
-            isFile: () => false,
-            isSymbolicLink: () => false
-        }) as unknown as ReturnType<typeof fs.stat>);
+    it('sync assets factory (js)', async () => {
+        const assetsFactory = jest.fn(() => '<asset/>');
+        const pluginInstance = plugin({ assetsFactory });
 
-        const pluginInstance = plugin('assets/**/*.json');
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(0);
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.mjs': {
+                type: 'chunk',
+                isEntry: true,
+                code: 'code1'
+            }
+        }]);
+
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'iife'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true,
+                code: 'code2'
+            }
+        }]);
+
+        expect(assetsFactory).toBeCalledWith('index.mjs', 'code1', 'es');
+        expect(assetsFactory).toBeCalledWith('index.js', 'code2', 'iife');
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head></head><body><asset/><asset/></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('sync assets factory (js amd)', async () => {
+        const assetsFactory = jest.fn(() => ({ html: '<asset/>', head: true, type: 'amd' as InternalModuleFormat }));
+        const pluginInstance = plugin({ assetsFactory });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'amd'}, {
+            'index.mjs': {
+                type: 'chunk',
+                isEntry: true,
+                code: 'code1'
+            }
+        }]);
+
+        expect(assetsFactory).toBeCalledWith('index.mjs', 'code1', 'amd');
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head></head><body></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('async assets factory (js)', async () => {
+        const assetsFactory = jest.fn(() => Promise.resolve('<asset/>'));
+        const pluginInstance = plugin({ assetsFactory });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.mjs': {
+                type: 'chunk',
+                isEntry: true,
+                code: 'code1'
+            }
+        }]);
+
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'iife'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true,
+                code: 'code2'
+            }
+        }]);
+        
+        expect(assetsFactory).toBeCalledWith('index.mjs', 'code1', 'es');
+        expect(assetsFactory).toBeCalledWith('index.js', 'code2', 'iife');
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head></head><body><asset/><asset/></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('sync assets factory (css)', async () => {
+        const assetsFactory = jest.fn(() => '<asset/>');
+        const pluginInstance = plugin({ assetsFactory });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head><asset/></head><body></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('sync assets factory (scss)', async () => {
+        const assetsFactory = jest.fn(() => ({ html: '<asset/>', head: false, type: 'scss' as InternalModuleFormat }));
+        const pluginInstance = plugin({ assetsFactory });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'main.scss': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head></head><body></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('async assets factory (css)', async () => {
+        const assetsFactory = jest.fn(() => Promise.resolve('<asset/>'));
+        const pluginInstance = plugin({ assetsFactory });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head><asset/></head><body></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('ignore (function)', async () => {
+        const pluginInstance = plugin({ ignore: (fileName: string) => fileName.endsWith('.css') });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head></head><body></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('ignore (RegExp)', async () => {
+        const pluginInstance = plugin({ ignore: /^.*css$/ });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head></head><body></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('ignore (boolean)', async () => {
+        const pluginInstance = plugin({ ignore: true });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head></head><body></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('ignore (number)', async () => {
+        const pluginInstance = plugin({ ignore: 123 as never as boolean });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body></body></html>',
+            type: 'asset'
+        }));
+        expect(logger).toBeCalledWith('ignore option ignored because it is not a function, RegExp or boolean', LogLevel.warn);
+    });
+
+    it('injectIntoHead (function)', async () => {
+        const assetsFactory = () => '<asset/>';
+        const pluginInstance = plugin({ assetsFactory, injectIntoHead: (fileName: string) => !fileName.endsWith('.css') });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head></head><body><asset/></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('injectIntoHead (RegExp)', async () => {
+        const assetsFactory = () => '<asset/>';
+        const pluginInstance = plugin({ assetsFactory, injectIntoHead: /^.*js$/ });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head></head><body><asset/></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('injectIntoHead (boolean)', async () => {
+        const assetsFactory = () => '<asset/>';
+        const pluginInstance = plugin({ assetsFactory, injectIntoHead: false });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head></head><body><asset/></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('injectIntoHead (number)', async () => {
+        const assetsFactory = () => '<asset/>';
+        const pluginInstance = plugin({ assetsFactory, injectIntoHead: 123 as never as boolean });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head><asset/></head><body></body></html>',
+            type: 'asset'
+        }));
+        expect(logger).toBeCalledWith('injectIntoHead option ignored because it is not a function, RegExp or boolean', LogLevel.warn);
+    });
+
+    it('outputFile', async () => {
+        const pluginInstance = plugin({ outputFile: 'main.html' });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            },
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'main.html',
+            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body><script src=\"index.js\" type=\"module\"></script></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('template', async () => {
+        const pluginInstance = plugin({ template: '<html><head>Hi!</head><body>Hello!</body></html>' });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            },
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<html><head>Hi!<link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>Hello!<script src=\"index.js\" type=\"module\"></script></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('emitFile: false', async () => {
+        const pluginInstance = plugin({ emitFile: false });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            },
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(fs.writeFile)
+            .toBeCalledWith('index.html', '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body><script src=\"index.js\" type=\"module\"></script></body></html>');
+    });
+
+    it('emitFile: auto', async () => {
+        const pluginInstance = plugin();
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{dir: 'dest'}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es', dir: 'dest2'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            },
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(fs.writeFile)
+            .toBeCalledWith('dest/index.html', '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"../dest2/main.css\" type=\"text/css\"></head><body><script src=\"../dest2/index.js\" type=\"module\"></script></body></html>');
+        expect(logger)
+            .not.toBeCalledWith('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
+    });
+
+    it('emitFile: true', async () => {
+        const pluginInstance = plugin({ emitFile: true });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{dir: 'dest'}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es', dir: 'dest2'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            },
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(fs.writeFile)
+            .toBeCalledWith('dest/index.html', '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"../dest2/main.css\" type=\"text/css\"></head><body><script src=\"../dest2/index.js\" type=\"module\"></script></body></html>');
+        expect(logger)
+            .toBeCalledWith('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
+    });
+
+    it('exception in generateBundle', async () => {
+        const pluginInstance = plugin();
+
+        (rollupContextMock.emitFile as jest.Mock).mockImplementationOnce(() => { throw new Error('test'); });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            },
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(logger).toBeCalledWith('error generating html file', LogLevel.error, expect.any(Error));
+        expect(loggerFinish).toBeCalledWith('html generation failed', LogLevel.error);
+    });
+
+    it('happy path with template file', async () => {
+        const pluginInstance = plugin({template: 'index.html'});
+
+        await (pluginInstance as any).buildStart.apply(rollupContextMock, [{}]);
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            },
+            'main.css': {
+                type: 'asset'
+            }
+        }]);        
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>File Template<script src=\"index.js\" type=\"module\"></script></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('exception with template file', async () => {
+        (oldFs.readFileSync as jest.Mock).mockImplementationOnce(() => { throw new Error('test'); });
+        plugin({template: 'index.html'});
+        expect(logger).toBeCalledWith('error reading template', LogLevel.warn, expect.any(Error));
+    });
+
+    it('exception with template file (ENOENT)', async () => {
+        (oldFs.readFileSync as jest.Mock).mockImplementationOnce(() => { throw { code: 'ENOENT' }; });
+        plugin({template: 'index.html'});
+        expect(logger).toBeCalledWith('template nor a file or string', LogLevel.warn, expect.objectContaining({ code: 'ENOENT' }));
+    });
+
+    it('exception with template file (null)', async () => {
+        (oldFs.readFileSync as jest.Mock).mockImplementationOnce(() => { throw null; });
+        plugin({template: 'index.html'});
+        expect(logger).toBeCalledWith('error reading template', LogLevel.warn, null);
+    });
+
+    it('exception with template file (on reread)', async () => {
+        const pluginInstance = plugin({template: 'index.html'});
+        (fs.readFile as jest.Mock).mockImplementationOnce(() => { throw new Error('test'); });
+
+        await (pluginInstance as any).buildStart.apply(rollupContextMock, [{}]);
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+
+        expect(logger).toBeCalledWith('error reading template', LogLevel.warn, expect.any(Error));
+    });
+
+    it('exception with template file (on reread, ENOENT)', async () => {
+        const pluginInstance = plugin({template: 'index.html'});
+        (fs.readFile as jest.Mock).mockImplementationOnce(() => { throw { code: 'ENOENT' }; });
+
+        await (pluginInstance as any).buildStart.apply(rollupContextMock, [{}]);
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+
+        expect(logger).toBeCalledWith('template nor a file or string', LogLevel.warn, expect.objectContaining({ code: 'ENOENT' }));
+    });
+    it('exception with template file (on reread, null)', async () => {
+        const pluginInstance = plugin({template: 'index.html'});
+        (fs.readFile as jest.Mock).mockImplementationOnce(() => { throw null; });
+
+        await (pluginInstance as any).buildStart.apply(rollupContextMock, [{}]);
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+
+        expect(logger).toBeCalledWith('error reading template', LogLevel.warn, null);
+    });
+
+    it('happy path with template file and watch = false', async () => {
+        const pluginInstance = plugin({template: 'index.html', watch: false });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            },
+            'main.css': {
+                type: 'asset'
+            }
+        }]);        
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>File Template<script src=\"index.js\" type=\"module\"></script></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('happy path multiple configs and tempalte file', async () => {
+        const pluginInstance = plugin({ template: 'index.html' });
+        const additionalInstance = (pluginInstance as any).api.addInstance();
+
+        await (pluginInstance as any).buildStart.apply(rollupContextMock, [{}]);
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            },
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+        await (pluginInstance as any).buildStart.apply(rollupContextMock, [{}]);
+        (additionalInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (additionalInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {}]);
+
+        expect(additionalInstance.name).toEqual('@rollup-extras/plugin-html#1');
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>File Template<script src=\"index.js\" type=\"module\"></script></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('happy path multiple configs and tempalte file ans awtch=false', async () => {
+        const pluginInstance = plugin({ template: 'index.html', watch: false });
+        const additionalInstance = (pluginInstance as any).api.addInstance();
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            },
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+        (additionalInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (additionalInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {}]);
+
+        expect(pluginInstance.buildStart).toBeUndefined();
+        expect(additionalInstance.buildStart).toBeUndefined();
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>File Template<script src=\"index.js\" type=\"module\"></script></body></html>',
+            type: 'asset'
+        }));
+    });
+
+    it('templateFactory', async () => {
+        const templateFactory = jest.fn(() => 'test');
+        const pluginInstance = plugin({ template: 'index.html', watch: false, templateFactory });
+        const additionalInstance = (pluginInstance as any).api.addInstance();
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            },
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+        (additionalInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (additionalInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {}]);
+
+        expect(templateFactory).toBeCalledWith(
+            '<!DOCTYPE html><html><head></head><body>File Template</body></html>',
+            expect.objectContaining({
+                'asset': [{'head': true, 'html': '<link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\">', 'type': 'asset'}],
+                'es': [{'head': false, 'html': expect.any(Function), 'type': 'asset'}],
+                'iife': [],
+                'umd': []
+            }),
+            expect.any(Function)
+        );
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: 'test',
+            type: 'asset'
+        }));
+    });
+
+    it('defaultTemplateFactory', async () => {
+        const templateFactory = jest.fn((template, assets, fn) => fn(template, assets));
+        const pluginInstance = plugin({ template: 'index.html', watch: false, templateFactory });
+        const additionalInstance = (pluginInstance as any).api.addInstance();
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            },
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+        (additionalInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (additionalInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {}]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>File Template<script src=\"index.js\" type=\"module\"></script></body></html>',
+            type: 'asset'
+        }));
     });
 });

@@ -8,6 +8,7 @@ import { createLogger, LogLevel } from '@niceties/logger';
 const defaultTemplate = '<!DOCTYPE html><html><head></head><body></body></html>';
 const headClosingElement = '</head>';
 const bodyClosingElement = '</body>';
+const cssExtention = '.css';
 
 export default function(options: HtmlPluginOptions = {}) {
 
@@ -16,7 +17,7 @@ export default function(options: HtmlPluginOptions = {}) {
     let templateString: string | Promise<string> = defaultTemplate, hasTemplateFile = false;
 
     if (template) {
-        if (template.indexOf(headClosingElement) >= 0 && template.indexOf(bodyClosingElement)) {
+        if (template.indexOf(headClosingElement) >= 0 && template.indexOf(bodyClosingElement) >= 0) {
             templateString = template;
         } else {
             if (watch) {
@@ -136,6 +137,7 @@ export default function(options: HtmlPluginOptions = {}) {
                     source = await Promise.resolve(templateFactory(depromisifiedTemplateString, assets, defaultTemplateFactory));
 
                 if (!emitFile || fileName.startsWith('..')) {
+                    console.log(emitFile);
                     if (emitFile && emitFile !== 'auto') {
                         logger('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
                     }
@@ -180,7 +182,7 @@ export default function(options: HtmlPluginOptions = {}) {
                         continue;
                     }
                 }
-                if (fileName.endsWith('.css')) {
+                if (fileName.endsWith(cssExtention)) {
                     const assetPath = path.relative(initialDir, relativeToRootAssetPath);
                     (assets.asset as AssetDescriptor[]).push({
                         html: getLinkElement(assetPath),
@@ -263,7 +265,7 @@ function normalizeOptions(userOptions: HtmlPluginOptions): NormilizedOptions {
             watch: userOptions.watch ?? true,
             emitFile: userOptions.emitFile ?? 'auto',
             conditionalLoading: userOptions.conditionalLoading,
-            injectIntoHead: () => false,
+            injectIntoHead: (fileName: string) => fileName.endsWith(cssExtention),
             ignore: () => false,
             assetsFactory: userOptions.assetsFactory,
             templateFactory: userOptions.templateFactory
