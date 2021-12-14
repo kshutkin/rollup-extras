@@ -124,7 +124,12 @@ Option to customize what assets should be ignored in process.
 
 Optional, function (please check type in configuration section).
 
-To process additional types of assets. If known asset processed by factory (it returned an object, string or promise) we skip default processing for this asset.
+To process additional types of assets. If known asset processed by factory (it returned an object, string or promise) plugin skips default processing for this asset.
+
+Example:
+```javascript
+
+```
 
 ### templateFactory
 
