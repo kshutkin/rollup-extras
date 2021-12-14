@@ -13,15 +13,17 @@ export type SimpleAssetDescriptor = {
     head: boolean,
     type: 'asset' | InternalModuleFormat
 };
-export type AssetFactory = (fileName: string, content: string | Uint8Array, type: 'asset' | InternalModuleFormat) => AssetDescriptor | string | undefined;
+export type AssetFactory = (fileName: string, content: string | Uint8Array, type: 'asset' | InternalModuleFormat) => AssetDescriptor | string | undefined | Promise<AssetDescriptor | string | undefined>;
 export type DefaultTemplateFactory = (initialTemplate: string, assets: Assets) => string;
-export type TemplateFactory = (initialTemplate: string, assets: Assets, defaultTemplateFactory: DefaultTemplateFactory) => string | Uint8Array;
+export type TemplateFactory = (initialTemplate: string, assets: Assets, defaultTemplateFactory: DefaultTemplateFactory) => string | Uint8Array | Promise<string | Uint8Array>;
 
 export type HtmlPluginOptions = {
     pluginName?: string;
     outputFile?: string;
     template?: string;
     watch?: boolean;
+    emitFile?: boolean;
+    conditionalLoading?: boolean;
     injectIntoHead?: boolean | AssetPredicate | RegExp; // placing asset into head
     ignore?: boolean | AssetPredicate | RegExp; // filter some of files
     assetsFactory?: AssetFactory; // add some assets from emitted chunks / assets in custom way

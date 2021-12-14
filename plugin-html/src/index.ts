@@ -2,35 +2,16 @@ import fs from 'fs/promises';
 import oldStyleFs from 'fs';
 import path from 'path';
 import { NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, PluginContext, PluginHooks } from 'rollup';
-import { AssetDescriptor, AssetFactory, AssetPredicate, Assets, HtmlPluginOptions, SimpleAssetDescriptor, TemplateFactory } from './types';
+import { AssetDescriptor, AssetFactory, AssetPredicate, Assets, AssetType, HtmlPluginOptions, SimpleAssetDescriptor, TemplateFactory } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
 
 const defaultTemplate = '<!DOCTYPE html><html><head></head><body></body></html>';
 const headClosingElement = '</head>';
 const bodyClosingElement = '</body>';
 
-// Plan
-// + 1. file name
-// + 2. template string option
-// + 3. template file name option
-// + 4. working with assets
-// + 5. watch + option
-// + 6. templateFactory option
-// + 7. logger
-/*
-    [start] collecting inputs
-    [update] collecting assets (ramaining count)
-    [update] generating html
-    [msg] cannot emit file using writeFile
-    [finish] finished
-*/
-// ???async factories???
-// 8. other options: verbose, emitFiles, conditionalLoading
-// 9. hook??? (not initial implementation)
-
 export default function(options: HtmlPluginOptions = {}) {
 
-    const { pluginName, outputFile, template, watch, logger, injectIntoHead, ignore, assetsFactory, templateFactory } = normalizeOptions(options);
+    const { pluginName, outputFile, template, watch, emitFile, conditionalLoading, logger, injectIntoHead, ignore, assetsFactory, templateFactory } = normalizeOptions(options);
 
     let templateString: string | Promise<string> = defaultTemplate, hasTemplateFile = false;
 
@@ -73,6 +54,7 @@ export default function(options: HtmlPluginOptions = {}) {
         name: pluginName,
 
         renderStart: (options: NormalizedOutputOptions) => {
+            logger('started collecting information', LogLevel.verbose);
             initialDir = options.dir || '';
             return renderStart();
         },
@@ -137,31 +119,43 @@ export default function(options: HtmlPluginOptions = {}) {
 
     async function generateBundle(this: PluginContext, options: NormalizedOutputOptions, bundle: OutputBundle) {
         --remainingOutputsCount;
-        getAssets(options, bundle);
+        await getAssets(options, bundle);
+        const statistics = Object.keys(assets)
+            .map(key => ({ key, count: (assets[key as AssetType] as AssetDescriptor[]).length }))
+            .filter(item => item.count)
+            .map(({ key, count }) => `${key}: ${count}`)
+            .join(', ');
+        logger(`assets collected: [${statistics}], remaining: ${remainingOutputsCount} outputs, ${configs.size} configs`, LogLevel.verbose);
         if (configs.size === 0 && remainingOutputsCount === 0) {
-            const dir = options.dir || '',
-                fileNameInInitialDir = path.join(initialDir, outputFile),
-                fileName = path.relative(dir, fileNameInInitialDir),
-                depromisifiedTemplateString = await Promise.resolve(templateString),
-                source = templateFactory(depromisifiedTemplateString, assets, defaultTemplateFactory);
+            logger.start('generating html', LogLevel.verbose);
+            try {
+                const dir = options.dir || '',
+                    fileNameInInitialDir = path.join(initialDir, outputFile),
+                    fileName = path.relative(dir, fileNameInInitialDir),
+                    depromisifiedTemplateString = await Promise.resolve(templateString),
+                    source = await Promise.resolve(templateFactory(depromisifiedTemplateString, assets, defaultTemplateFactory));
 
-            if (fileName.startsWith('..')) {
-                try {
+                if (!emitFile || fileName.startsWith('..')) {
+                    if (emitFile && emitFile !== 'auto') {
+                        logger('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
+                    }
                     await fs.writeFile(fileNameInInitialDir, source);
-                } catch(e) {
-                    logger('error creating html file', LogLevel.warn, e as Error);
+                } else {
+                    this.emitFile({
+                        type: 'asset',
+                        fileName,
+                        source
+                    });
                 }
-            } else {
-                this.emitFile({
-                    type: 'asset',
-                    fileName,
-                    source
-                });
-            }
+                logger.finish('html file generated');
+            } catch(e) {
+                logger('error generating html file', LogLevel.error, e as Error);
+                logger.finish('html generation failed', LogLevel.error);
+            }            
         }
     }
 
-    function getAssets(options: NormalizedOutputOptions, bundle: OutputBundle) {
+    async function getAssets(options: NormalizedOutputOptions, bundle: OutputBundle) {
         const dir = options.dir || '';
         for (const fileName of Object.keys(bundle)) {
             const relativeToRootAssetPath = path.join(dir, fileName);
@@ -170,7 +164,7 @@ export default function(options: HtmlPluginOptions = {}) {
             }
             if (bundle[fileName].type == 'asset') {
                 if (assetsFactory) {
-                    let asset = assetsFactory(fileName, (bundle[fileName] as OutputAsset).source, 'asset');
+                    let asset = await Promise.resolve(assetsFactory(fileName, (bundle[fileName] as OutputAsset).source, 'asset'));
                     if (asset) {
                         if (typeof asset === 'string') {
                             asset = {
@@ -199,7 +193,7 @@ export default function(options: HtmlPluginOptions = {}) {
                 const chunk = bundle[fileName] as OutputChunk;
                 if (chunk.isEntry) {
                     if (assetsFactory) {
-                        let asset = assetsFactory(fileName, chunk.code, options.format);
+                        let asset = await Promise.resolve(assetsFactory(fileName, chunk.code, options.format));
                         if (asset) {
                             if (typeof asset === 'string') {
                                 asset = {
@@ -219,10 +213,11 @@ export default function(options: HtmlPluginOptions = {}) {
                         const assetPath = path.relative(initialDir, relativeToRootAssetPath);
                         (assets[options.format] as AssetDescriptor[]).push({
                             html: (assets: Assets) => {
-                                const conditionalLoading = !!(((assets.iife  as AssetDescriptor[]).length 
+                                let useConditionalLoading = conditionalLoading;
+                                useConditionalLoading ??= !!(((assets.iife  as AssetDescriptor[]).length 
                                     || (assets.umd as AssetDescriptor[]).length) 
                                     && (assets.es as AssetDescriptor[]).length);
-                                return (options.format === 'iife' || options.format === 'umd') ? getNonModuleScriptElement(assetPath, conditionalLoading) : getModuleScriptElement(assetPath);
+                                return (options.format === 'iife' || options.format === 'umd') ? getNonModuleScriptElement(assetPath, useConditionalLoading as boolean) : getModuleScriptElement(assetPath);
                             },
                             head: injectIntoHead(relativeToRootAssetPath),
                             type: 'asset'
@@ -250,7 +245,9 @@ type NormilizedOptions = {
     pluginName: string,
     outputFile: string,
     template?: string,
-    watch?: boolean,
+    watch: boolean,
+    emitFile?: boolean | 'auto',
+    conditionalLoading?: boolean,
     injectIntoHead: AssetPredicate,
     ignore: AssetPredicate,
     assetsFactory?: AssetFactory,
@@ -264,6 +261,8 @@ function normalizeOptions(userOptions: HtmlPluginOptions): NormilizedOptions {
             template: userOptions.template,
             outputFile: userOptions.outputFile ?? 'index.html',
             watch: userOptions.watch ?? true,
+            emitFile: userOptions.emitFile ?? 'auto',
+            conditionalLoading: userOptions.conditionalLoading,
             injectIntoHead: () => false,
             ignore: () => false,
             assetsFactory: userOptions.assetsFactory,
