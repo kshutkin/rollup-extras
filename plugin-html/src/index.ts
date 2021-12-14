@@ -297,11 +297,11 @@ function normalizeOptions(userOptions: HtmlPluginOptions): NormilizedOptions {
             template: userOptions.template,
             outputFile: userOptions.outputFile ?? 'index.html',
             watch: userOptions.watch ?? true,
-            useEmittedTemplate: userOptions.useEmittedTemplate ?? true,
+            useEmittedTemplate: userOptions.useEmittedTemplate ?? !('template' in userOptions),
             emitFile: userOptions.emitFile ?? 'auto',
             conditionalLoading: userOptions.conditionalLoading,
             injectIntoHead: (fileName: string) => fileName.endsWith(cssExtention),
-            ignore: () => false,
+            ignore: toAssetPredicate(false),
             assetsFactory: userOptions.assetsFactory,
             templateFactory: userOptions.templateFactory
                 ?? ((template, assets, defaultTemplateFactory) => defaultTemplateFactory(template, assets)),

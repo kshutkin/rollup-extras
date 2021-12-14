@@ -944,6 +944,31 @@ describe('@rollup-extras/plugin-html', () => {
         }));
     });
 
+    it('useEmittedTemplate: default + template', async () => {
+        const pluginInstance = plugin({template: '<!DOCTYPE html><html><head></head><body>Custom Template</body></html>'});
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'index.html': {
+                type: 'asset',
+                source: '<!DOCTYPE html><html><head></head><body>Emitted Template</body></html>'
+            },
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            },
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>Custom Template<script src=\"index.js\" type=\"module\"></script></body></html>',
+            type: 'asset'
+        }));
+    });
+
     it('useEmittedTemplate: default (chunk)', async () => {
         const pluginInstance = plugin();
 
