@@ -1,6 +1,6 @@
 # Plugin Html
 
-Rollup plugin to inject file names into html template.
+Rollup plugin to inject assets names into html template.
 
 Points:
 
