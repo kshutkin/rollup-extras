@@ -140,7 +140,6 @@ Use to customize template with external libraries.
 
 - https://github.com/haifeng2013/rollup-plugin-bundle-html
 - https://github.com/rollup/plugins/tree/master/packages/html
-- https://github.com/open-wc/open-wc/tree/master/packages/building-rollup
 - https://github.com/modernweb-dev/web/tree/master/packages/rollup-plugin-html
 - https://github.com/posthtml/posthtml#rollup
 
