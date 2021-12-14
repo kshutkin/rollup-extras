@@ -12,7 +12,8 @@ const cssExtention = '.css';
 
 export default function(options: HtmlPluginOptions = {}) {
 
-    const { pluginName, outputFile, template, watch, emitFile, conditionalLoading, logger, injectIntoHead, ignore, assetsFactory, templateFactory } = normalizeOptions(options),
+    const { pluginName, outputFile, template, watch, emitFile, conditionalLoading, logger,
+            useEmittedTemplate, injectIntoHead, ignore, assetsFactory, templateFactory } = normalizeOptions(options),
         hasCustomTemplateFactory = 'templateFactory' in options;
 
     let templateString: string | Promise<string> = defaultTemplate, hasTemplateFile = false;
@@ -47,17 +48,14 @@ export default function(options: HtmlPluginOptions = {}) {
         }
     }
 
-    let remainingOutputsCount = 0;
-    let configsCount = 0;
-    const configs = new Set<number>();
-    let initialDir = '';
+    let remainingOutputsCount = 0, configsCount = 0, initialDir = '', fileNameInInitialDir: string;
 
     const assets: Assets = {
         asset: [],
         es: [],
         iife: [],
         umd: []
-    };
+    }, configs = new Set<number>();
 
     const instance = {
         name: pluginName,
@@ -65,6 +63,7 @@ export default function(options: HtmlPluginOptions = {}) {
         renderStart: (options: NormalizedOutputOptions) => {
             logger('started collecting information', LogLevel.verbose);
             initialDir = options.dir || '';
+            fileNameInInitialDir = path.join(initialDir, outputFile);
             return renderStart();
         },
 
@@ -146,19 +145,31 @@ export default function(options: HtmlPluginOptions = {}) {
             .join(', ');
         logger(`assets collected: [${statistics}], remaining: ${remainingOutputsCount} outputs, ${configs.size} configs`, LogLevel.verbose);
 
+        const dir = options.dir || '', fileName = path.relative(dir, fileNameInInitialDir);
+        if (fileName in bundle) {
+            if (useEmittedTemplate) {
+                logger(`using exiting emitted ${fileName} as an input for out templateFactory`, LogLevel.verbose);
+                const source = bundle[fileName].type === 'asset' ? (bundle[fileName] as OutputAsset).source.toString() : (bundle[fileName] as OutputChunk).code;
+                useNewTemplate(source);
+            } else {
+                logger(`removing exiting emitted ${fileName}`, LogLevel.verbose);
+            }
+            if (configs.size === 0) {
+                delete bundle[fileName];
+            }
+        }
+
         if (configs.size === 0 && remainingOutputsCount === 0) {
             logger.start('generating html', LogLevel.verbose);
             try {
-                const dir = options.dir || '',
-                    fileNameInInitialDir = path.join(initialDir, outputFile),
-                    fileName = path.relative(dir, fileNameInInitialDir),
-                    depromisifiedTemplateString = await Promise.resolve(templateString),
-                    source = await Promise.resolve(templateFactory(depromisifiedTemplateString, assets, defaultTemplateFactory));
+                const depromisifiedTemplateString = await templateString,
+                    source = await templateFactory(depromisifiedTemplateString, assets, defaultTemplateFactory);
 
                 if (!emitFile || fileName.startsWith('..')) {
                     if (emitFile && emitFile !== 'auto') {
                         logger('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
                     }
+                    await fs.mkdir(path.dirname(fileNameInInitialDir), { recursive: true });
                     await fs.writeFile(fileNameInInitialDir, source);
                 } else {
                     this.emitFile({
@@ -184,7 +195,7 @@ export default function(options: HtmlPluginOptions = {}) {
             }
             if (bundle[fileName].type == 'asset') {
                 if (assetsFactory) {
-                    let asset = await Promise.resolve(assetsFactory(fileName, (bundle[fileName] as OutputAsset).source, 'asset'));
+                    let asset = await assetsFactory(fileName, (bundle[fileName] as OutputAsset).source, 'asset');
                     if (asset) {
                         if (typeof asset === 'string') {
                             asset = {
@@ -213,7 +224,7 @@ export default function(options: HtmlPluginOptions = {}) {
                 const chunk = bundle[fileName] as OutputChunk;
                 if (chunk.isEntry) {
                     if (assetsFactory) {
-                        let asset = await Promise.resolve(assetsFactory(fileName, chunk.code, options.format));
+                        let asset = await assetsFactory(fileName, chunk.code, options.format);
                         if (asset) {
                             if (typeof asset === 'string') {
                                 asset = {
@@ -272,6 +283,7 @@ type NormilizedOptions = {
     watch: boolean,
     emitFile?: boolean | 'auto',
     conditionalLoading?: boolean,
+    useEmittedTemplate: boolean,
     injectIntoHead: AssetPredicate,
     ignore: AssetPredicate,
     assetsFactory?: AssetFactory,
@@ -285,6 +297,7 @@ function normalizeOptions(userOptions: HtmlPluginOptions): NormilizedOptions {
             template: userOptions.template,
             outputFile: userOptions.outputFile ?? 'index.html',
             watch: userOptions.watch ?? true,
+            useEmittedTemplate: userOptions.useEmittedTemplate ?? true,
             emitFile: userOptions.emitFile ?? 'auto',
             conditionalLoading: userOptions.conditionalLoading,
             injectIntoHead: (fileName: string) => fileName.endsWith(cssExtention),

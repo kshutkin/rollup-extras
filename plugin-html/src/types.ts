@@ -23,6 +23,7 @@ export type HtmlPluginOptions = {
     template?: string;
     watch?: boolean;
     emitFile?: boolean;
+    useEmittedTemplate?: boolean;
     conditionalLoading?: boolean;
     injectIntoHead?: boolean | AssetPredicate | RegExp; // placing asset into head
     ignore?: boolean | AssetPredicate | RegExp; // filter some of files

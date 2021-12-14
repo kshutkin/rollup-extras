@@ -29,7 +29,7 @@ export default [{
 
 	plugins: [
         clean({ verbose: true }),
-        copy({ src: 'assets/**/*.json', verbose: true }),
+        copy({ src: 'src/test/index.html', verbose: true }),
         htmlPluginInstance
     ],
 }, {
