@@ -49,9 +49,10 @@ export default function(options: HtmlPluginOptions = {}) {
     }
 
     let remainingOutputsCount = 0, configsCount = 0, initialDir = '', fileNameInInitialDir: string, 
-        assets: Assets = freshAssets(), processedFiles = new Set();
+        assets: Assets = freshAssets();
 
-    const configs = new Set<number>(), finalHook = useWriteBundle ? 'writeBundle' : 'generateBundle';
+    const configs = new Set<number>(), finalHook = useWriteBundle ? 'writeBundle' : 'generateBundle',
+        processedFiles = new Set();
 
     const instance = {
         name: pluginName,
