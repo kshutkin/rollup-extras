@@ -75,7 +75,7 @@ export default {
     },
 
     plugins: [copy('src/index.html'), html()],
-} 
+};
 ```
 
 ### template
@@ -120,15 +120,50 @@ Optional, RegExp | function | boolean, default: false.
 
 Option to customize what assets should be ignored in process.
 
+### verbose
+
+Optional, boolean, default: false.
+
+Option to print more debug information into console (with default appender).
+
+### useWriteBundle
+
+Optional, boolean, default: false.
+
+Option to use `writeBundle` hook instead of `generateBundle`.
+
 ### assetsFactory
 
 Optional, function (please check type in configuration section).
 
-To process additional types of assets. If known asset processed by factory (it returned an object, string or promise) plugin skips default processing for this asset.
+To process additional types of assets / enchance default behavior. If known asset processed by factory (it returned an object, string or promise) plugin skips default processing for this asset.
 
-Example:
+Example (adds integrity attribute to a css file):
 ```javascript
+import copy from '@rollup-extras/plugin-copy';
+import html from '@rollup-extras/plugin-html';
+import crypto from 'crypto';
 
+export default {
+    input: 'src/index.js',
+
+    output: {
+        format: 'es',
+        dir: 'dest'
+    },
+
+    plugins: [copy('src/test.css'), html({
+        assetsFactory: (fileName, content) => {
+            if (fileName.endsWith('.css')) {
+                const data = crypto
+                    .createHash('sha384')
+                    .update(content);
+                return `<link rel="stylesheet" href="${fileName}" integrity="sha384-${data.digest('base64')}" type="text/css">`;
+            }
+            return undefined;
+        }
+    })],
+};
 ```
 
 ### templateFactory
@@ -136,6 +171,26 @@ Example:
 Optional, function (please check type in configuration section).
 
 Use to customize template with external libraries.
+
+Example (pretty print html):
+
+```javascript
+import html from '@rollup-extras/plugin-html';
+import sb from 'simply-beautiful';
+
+export default {
+    input: 'src/index.js',
+
+    output: {
+        format: 'es',
+        dir: 'dest'
+    },
+
+    plugins: [html({
+        templateFactory: (template, assets, defaultFactory) => sb.html(defaultFactory(template, assets))
+    })],
+};
+```
 
 ## Configuration
 
