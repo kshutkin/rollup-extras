@@ -154,7 +154,7 @@ export default function(options: HtmlPluginOptions = {}) {
             } else {
                 logger(`removing exiting emitted ${fileName}`, LogLevel.verbose);
             }
-            if (configs.size === 0) {
+            if (configs.size === 0 && emitFile) {
                 delete bundle[fileName];
             }
         }
