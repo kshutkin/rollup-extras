@@ -23,6 +23,8 @@ export type HtmlPluginOptions = {
     template?: string;
     watch?: boolean;
     emitFile?: boolean;
+    verbose?: boolean;
+    useWriteBundle?: boolean;
     useEmittedTemplate?: boolean;
     conditionalLoading?: boolean;
     injectIntoHead?: boolean | AssetPredicate | RegExp; // placing asset into head

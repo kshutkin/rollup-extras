@@ -1,4 +1,4 @@
-// import "@niceties/draftlog-appender";
+import "@niceties/draftlog-appender";
 // import { appender } from "@niceties/logger";
 import clean from '@rollup-extras/plugin-clean';
 import copy from '@rollup-extras/plugin-copy';
@@ -11,7 +11,11 @@ import html from '@rollup-extras/plugin-html';
 const input = 'src/index.ts';
 
 const htmlPluginInstance = html({
-    template: 'src/index.html'
+    template: 'src/index.html',
+    verbose: true
+    // assetsFactory: (fileName, content) => {
+        
+    // }
 });
 
 export default [{
@@ -20,11 +24,11 @@ export default [{
     output: [{
         format: 'es',
         dir: 'dest',
-        entryFileNames: '[name].js'
+        entryFileNames: '[name].[hash].js'
     }, {
         format: 'es',
         dir: 'dest',
-        entryFileNames: '[name]second.js'
+        entryFileNames: '[name].[hash].second.js'
     }],
 
 	plugins: [
@@ -47,7 +51,7 @@ export default [{
     input,
     output: {
         format: 'umd',
-        dir: './dest',
+        dir: './dest4',
         entryFileNames: '[name].umd.js',
         name: 'test',
         plugins: [clean(), copy({ src: './assets/**/*.json', outputPlugin: true }), htmlPluginInstance.api.addInstance()],

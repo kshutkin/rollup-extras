@@ -12,7 +12,7 @@ const cssExtention = '.css';
 
 export default function(options: HtmlPluginOptions = {}) {
 
-    const { pluginName, outputFile, template, watch, emitFile, conditionalLoading, logger,
+    const { pluginName, outputFile, template, watch, emitFile, conditionalLoading, logger, useWriteBundle, logLevel,
             useEmittedTemplate, injectIntoHead, ignore, assetsFactory, templateFactory } = normalizeOptions(options),
         hasCustomTemplateFactory = 'templateFactory' in options;
 
@@ -48,26 +48,22 @@ export default function(options: HtmlPluginOptions = {}) {
         }
     }
 
-    let remainingOutputsCount = 0, configsCount = 0, initialDir = '', fileNameInInitialDir: string;
+    let remainingOutputsCount = 0, configsCount = 0, initialDir = '', fileNameInInitialDir: string, 
+        assets: Assets = freshAssets();
 
-    const assets: Assets = {
-        asset: [],
-        es: [],
-        iife: [],
-        umd: []
-    }, configs = new Set<number>();
+    const configs = new Set<number>(), finalHook = useWriteBundle ? 'writeBundle' : 'generateBundle';
 
     const instance = {
         name: pluginName,
 
         renderStart: (options: NormalizedOutputOptions) => {
-            logger('started collecting information', LogLevel.verbose);
+            logger('started collecting information', logLevel);
             initialDir = options.dir || '';
             fileNameInInitialDir = path.join(initialDir, outputFile);
             return renderStart();
         },
 
-        generateBundle,
+        [finalHook]: generateBundle,
 
         api: { addInstance }
     } as Partial<PluginHooks>;
@@ -84,6 +80,15 @@ export default function(options: HtmlPluginOptions = {}) {
     }
 
     return instance;
+
+    function freshAssets(): Assets {
+        return {
+            asset: [],
+            es: [],
+            iife: [],
+            umd: []
+        };
+    }
 
     function useNewTemplate(newTemplateString: string) {
         if (!isUsableByDefaultTemplateFactory(newTemplateString) && !hasCustomTemplateFactory) {
@@ -117,7 +122,7 @@ export default function(options: HtmlPluginOptions = {}) {
                 return renderStart();
             },
 
-            generateBundle
+            [finalHook]: generateBundle
         } as Partial<PluginHooks>;
 
         if (hasTemplateFile && watch) {
@@ -143,31 +148,31 @@ export default function(options: HtmlPluginOptions = {}) {
             .filter(item => item.count)
             .map(({ key, count }) => `${key}: ${count}`)
             .join(', ');
-        logger(`assets collected: [${statistics}], remaining: ${remainingOutputsCount} outputs, ${configs.size} configs`, LogLevel.verbose);
+        logger(`assets collected: [${statistics}], remaining: ${remainingOutputsCount} outputs, ${configs.size} configs`, logLevel);
 
         const dir = options.dir || '', fileName = path.relative(dir, fileNameInInitialDir);
         if (fileName in bundle) {
             if (useEmittedTemplate) {
-                logger(`using exiting emitted ${fileName} as an input for out templateFactory`, LogLevel.verbose);
+                logger(`using exiting emitted ${fileName} as an input for out templateFactory`, logLevel);
                 const source = bundle[fileName].type === 'asset' ? (bundle[fileName] as OutputAsset).source.toString() : (bundle[fileName] as OutputChunk).code;
                 useNewTemplate(source);
             } else {
-                logger(`removing exiting emitted ${fileName}`, LogLevel.verbose);
+                logger(`removing exiting emitted ${fileName}`, logLevel);
             }
-            if (configs.size === 0 && emitFile) {
+            if (configs.size === 0 && emitFile && !useWriteBundle) {
                 delete bundle[fileName];
             }
         }
 
         if (configs.size === 0 && remainingOutputsCount === 0) {
-            logger.start('generating html', LogLevel.verbose);
+            logger.start('generating html', logLevel);
             try {
                 const depromisifiedTemplateString = await templateString,
                     source = await templateFactory(depromisifiedTemplateString, assets, defaultTemplateFactory);
 
-                if (!emitFile || fileName.startsWith('..')) {
+                if (!emitFile || fileName.startsWith('..') || useWriteBundle) {
                     if (emitFile && emitFile !== 'auto') {
-                        logger('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
+                        logger('cannot emitFile because it is outside of current output.dir, using writeFile instead', logLevel);
                     }
                     await fs.mkdir(path.dirname(fileNameInInitialDir), { recursive: true });
                     await fs.writeFile(fileNameInInitialDir, source);
@@ -177,6 +182,11 @@ export default function(options: HtmlPluginOptions = {}) {
                         fileName,
                         source
                     });
+                }
+                // reset assets and configs for next iteration
+                assets = freshAssets();
+                for (let i = configsCount; i > 0; --i) {
+                    configs.add(i);
                 }
                 logger.finish('html file generated');
             } catch(e) {
@@ -281,6 +291,8 @@ type NormilizedOptions = {
     outputFile: string,
     template?: string,
     watch: boolean,
+    useWriteBundle: boolean;
+    logLevel: number,
     emitFile?: boolean | 'auto',
     conditionalLoading?: boolean,
     useEmittedTemplate: boolean,
@@ -297,8 +309,10 @@ function normalizeOptions(userOptions: HtmlPluginOptions): NormilizedOptions {
             template: userOptions.template,
             outputFile: userOptions.outputFile ?? 'index.html',
             watch: userOptions.watch ?? true,
+            useWriteBundle: userOptions.useWriteBundle ?? false,
             useEmittedTemplate: userOptions.useEmittedTemplate ?? !('template' in userOptions),
             emitFile: userOptions.emitFile ?? 'auto',
+            logLevel: userOptions.verbose ? LogLevel.info : LogLevel.verbose,
             conditionalLoading: userOptions.conditionalLoading,
             injectIntoHead: (fileName: string) => fileName.endsWith(cssExtention),
             ignore: toAssetPredicate(false),

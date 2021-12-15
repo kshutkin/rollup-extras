@@ -1018,4 +1018,27 @@ describe('@rollup-extras/plugin-html', () => {
             type: 'asset'
         }));
     });
+
+    it('useWriteBundle', () => {
+        const pluginInstance = plugin({ useWriteBundle: true });
+        expect(pluginInstance.writeBundle).toBeDefined();
+    });
+
+    it('verbose', async () => {
+        const pluginInstance = plugin({ verbose: true, emitFile: true });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{dir: 'dest'}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es', dir: 'dest2'}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true
+            },
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(logger)
+            .toBeCalledWith('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.info);
+    });
 });
