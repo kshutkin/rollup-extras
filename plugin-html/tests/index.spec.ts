@@ -366,6 +366,24 @@ describe('@rollup-extras/plugin-html', () => {
         }));
     });
 
+    it('exception in assets factory', async () => {
+        const assetsFactory = jest.fn(() => { throw new Error('test'); });
+        const pluginInstance = plugin({ assetsFactory });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body></body></html>',
+            type: 'asset'
+        }));
+    });
+
     it('ignore (function)', async () => {
         const pluginInstance = plugin({ ignore: (fileName: string) => fileName.endsWith('.css') });
 
@@ -624,7 +642,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(logger).toBeCalledWith('error generating html file', LogLevel.error, expect.any(Error));
+        expect(logger).toBeCalledWith('error generating html file\nError: test', LogLevel.error, expect.any(Error));
         expect(loggerStart).toBeCalledWith('generating html', LogLevel.verbose);
         expect(loggerFinish).toBeCalledWith('html generation failed', LogLevel.error);
     });
@@ -654,7 +672,7 @@ describe('@rollup-extras/plugin-html', () => {
     it('exception with template file', async () => {
         (oldFs.readFileSync as jest.Mock).mockImplementationOnce(() => { throw new Error('test'); });
         plugin({template: 'index.html'});
-        expect(logger).toBeCalledWith('error reading template', LogLevel.warn, expect.any(Error));
+        expect(logger).toBeCalledWith('error reading template\nError: test', LogLevel.warn, expect.any(Error));
     });
 
     it('exception with template file (ENOENT)', async () => {
@@ -666,7 +684,7 @@ describe('@rollup-extras/plugin-html', () => {
     it('exception with template file (null)', async () => {
         (oldFs.readFileSync as jest.Mock).mockImplementationOnce(() => { throw null; });
         plugin({template: 'index.html'});
-        expect(logger).toBeCalledWith('error reading template', LogLevel.warn, null);
+        expect(logger).toBeCalledWith('error reading template\nnull', LogLevel.warn, null);
     });
 
     it('exception with template file (on reread)', async () => {
@@ -676,7 +694,7 @@ describe('@rollup-extras/plugin-html', () => {
         await (pluginInstance as any).buildStart.apply(rollupContextMock, [{}]);
         (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
 
-        expect(logger).toBeCalledWith('error reading template', LogLevel.warn, expect.any(Error));
+        expect(logger).toBeCalledWith('error reading template\nError: test', LogLevel.warn, expect.any(Error));
     });
 
     it('exception with template file (on reread, ENOENT)', async () => {
@@ -695,7 +713,7 @@ describe('@rollup-extras/plugin-html', () => {
         await (pluginInstance as any).buildStart.apply(rollupContextMock, [{}]);
         (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
 
-        expect(logger).toBeCalledWith('error reading template', LogLevel.warn, null);
+        expect(logger).toBeCalledWith('error reading template\nnull', LogLevel.warn, null);
     });
 
     it('empty template from file', async () => {

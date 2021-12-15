@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import oldStyleFs from 'fs';
 import path from 'path';
-import { NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, PluginContext, PluginHooks } from 'rollup';
+import { InternalModuleFormat, NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, PluginContext, PluginHooks } from 'rollup';
 import { AssetDescriptor, AssetFactory, AssetPredicate, Assets, AssetType, HtmlPluginOptions, SimpleAssetDescriptor, TemplateFactory } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
 
@@ -102,7 +102,7 @@ export default function(options: HtmlPluginOptions = {}) {
         if ((e as NodeJS.ErrnoException)?.code === 'ENOENT') {
             logger('template nor a file or string', LogLevel.warn, e as Error);
         } else {
-            logger('error reading template', LogLevel.warn, e as Error);
+            logger(`error reading template\n${e}`, LogLevel.warn, e as Error);
         }
     }
 
@@ -191,7 +191,7 @@ export default function(options: HtmlPluginOptions = {}) {
                 processedFiles.clear();
                 logger.finish('html file generated');
             } catch(e) {
-                logger('error generating html file', LogLevel.error, e as Error);
+                logger(`error generating html file\n${e}`, LogLevel.error, e as Error);
                 logger.finish('html generation failed', LogLevel.error);
             }            
         }
@@ -206,22 +206,8 @@ export default function(options: HtmlPluginOptions = {}) {
             }
             processedFiles.add(relativeToRootAssetPath);
             if (bundle[fileName].type == 'asset') {
-                if (assetsFactory) {
-                    let asset = await assetsFactory(fileName, (bundle[fileName] as OutputAsset).source, 'asset');
-                    if (asset) {
-                        if (typeof asset === 'string') {
-                            asset = {
-                                html: asset,
-                                head: injectIntoHead(relativeToRootAssetPath),
-                                type: 'asset'
-                            };
-                        }
-                        if (!assets[asset.type]) {
-                            assets[asset.type] = [];
-                        }
-                        (assets[asset.type] as AssetDescriptor[]).push(asset);
-                        continue;
-                    }
+                if (await useAssetFactory(fileName, relativeToRootAssetPath, (bundle[fileName] as OutputAsset).source, 'asset')) {
+                    continue;
                 }
                 if (fileName.endsWith(cssExtention)) {
                     const assetPath = path.relative(initialDir, relativeToRootAssetPath);
@@ -235,22 +221,8 @@ export default function(options: HtmlPluginOptions = {}) {
             } else if (bundle[fileName].type == 'chunk') {
                 const chunk = bundle[fileName] as OutputChunk;
                 if (chunk.isEntry) {
-                    if (assetsFactory) {
-                        let asset = await assetsFactory(fileName, chunk.code, options.format);
-                        if (asset) {
-                            if (typeof asset === 'string') {
-                                asset = {
-                                    html: asset,
-                                    head: injectIntoHead(relativeToRootAssetPath),
-                                    type: options.format
-                                };
-                            }
-                            if (!assets[asset.type]) {
-                                assets[asset.type] = [];
-                            }
-                            (assets[asset.type] as AssetDescriptor[]).push(asset);
-                            continue;
-                        }
+                    if (await useAssetFactory(fileName, relativeToRootAssetPath, chunk.code, options.format)) {
+                        continue;
                     }
                     if (options.format === 'es' || options.format === 'iife' || options.format === 'umd') {
                         const assetPath = path.relative(initialDir, relativeToRootAssetPath);
@@ -269,6 +241,31 @@ export default function(options: HtmlPluginOptions = {}) {
                 }
             }
         }
+    }
+
+    async function useAssetFactory(fileName: string, relativeToRootAssetPath: string, source: string | Uint8Array, format: 'asset' | InternalModuleFormat) {
+        if (assetsFactory) {
+            try {
+                let asset = await assetsFactory(fileName, source, format);
+                if (asset) {
+                    if (typeof asset === 'string') {
+                        asset = {
+                            html: asset,
+                            head: injectIntoHead(relativeToRootAssetPath),
+                            type: format
+                        };
+                    }
+                    if (!assets[asset.type]) {
+                        assets[asset.type] = [];
+                    }
+                    (assets[asset.type] as AssetDescriptor[]).push(asset);
+                    return true;
+                }
+            } catch (e) {
+                logger(`exception in assetFactory:${e}`, LogLevel.warn, e);
+            }
+        }
+        return false;
     }
 }
 
