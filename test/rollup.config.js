@@ -4,6 +4,7 @@ import clean from '@rollup-extras/plugin-clean';
 import copy from '@rollup-extras/plugin-copy';
 import html from '@rollup-extras/plugin-html';
 import crypto from 'crypto';
+import sb from 'simply-beautiful';
 
 // appender((msg) => {
 //     console.log(msg.message);
@@ -22,7 +23,8 @@ const htmlPluginInstance = html({
             return `<link rel="stylesheet" href="${fileName}" integrity="sha384-${data.digest('base64')}" type="text/css">`;
         }
         return undefined;
-    }
+    },
+    templateFactory: (template, assets, defaultFactory) => sb.html(defaultFactory(template, assets))
 });
 
 export default [{

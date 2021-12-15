@@ -12,6 +12,7 @@
     "@niceties/draftlog-appender": "^1.0.7",
     "@rollup-extras/plugin-clean": "^1.0.1",
     "@rollup-extras/plugin-copy": "^1.0.0",
-    "@rollup-extras/plugin-html": "^1.0.0"
+    "@rollup-extras/plugin-html": "^1.0.0",
+    "simply-beautiful": "^0.2.10"
   }
 }
