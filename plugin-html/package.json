@@ -72,5 +72,6 @@
   },
   "dependencies": {
     "@niceties/logger": "^1.0.4"
-  }
+  },
+  "readme": "ERROR: No README data found!"
 }
