@@ -49,7 +49,7 @@ export default function(options: HtmlPluginOptions = {}) {
     }
 
     let remainingOutputsCount = 0, configsCount = 0, initialDir = '', fileNameInInitialDir: string, 
-        assets: Assets = freshAssets();
+        assets: Assets = freshAssets(), processedFiles = new Set();
 
     const configs = new Set<number>(), finalHook = useWriteBundle ? 'writeBundle' : 'generateBundle';
 
@@ -188,6 +188,7 @@ export default function(options: HtmlPluginOptions = {}) {
                 for (let i = configsCount; i > 0; --i) {
                     configs.add(i);
                 }
+                processedFiles.clear();
                 logger.finish('html file generated');
             } catch(e) {
                 logger('error generating html file', LogLevel.error, e as Error);
@@ -200,9 +201,10 @@ export default function(options: HtmlPluginOptions = {}) {
         const dir = options.dir || '';
         for (const fileName of Object.keys(bundle)) {
             const relativeToRootAssetPath = path.join(dir, fileName);
-            if (ignore(relativeToRootAssetPath)) {
+            if (ignore(relativeToRootAssetPath) || processedFiles.has(relativeToRootAssetPath)) {
                 continue;
             }
+            processedFiles.add(relativeToRootAssetPath);
             if (bundle[fileName].type == 'asset') {
                 if (assetsFactory) {
                     let asset = await assetsFactory(fileName, (bundle[fileName] as OutputAsset).source, 'asset');
