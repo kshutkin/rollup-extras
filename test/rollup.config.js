@@ -3,6 +3,7 @@ import "@niceties/draftlog-appender";
 import clean from '@rollup-extras/plugin-clean';
 import copy from '@rollup-extras/plugin-copy';
 import html from '@rollup-extras/plugin-html';
+import crypto from 'crypto';
 
 // appender((msg) => {
 //     console.log(msg.message);
@@ -12,10 +13,16 @@ const input = 'src/index.ts';
 
 const htmlPluginInstance = html({
     template: 'src/index.html',
-    verbose: true
-    // assetsFactory: (fileName, content) => {
-        
-    // }
+    verbose: true,
+    assetsFactory: (fileName, content) => {
+        if (fileName.endsWith('.css')) {
+            const data = crypto
+                .createHash('sha384')
+                .update(content);
+            return `<link rel="stylesheet" href="${fileName}" integrity="sha384-${data.digest('base64')}" type="text/css">`;
+        }
+        return undefined;
+    }
 });
 
 export default [{
@@ -33,7 +40,7 @@ export default [{
 
 	plugins: [
         clean({ verbose: true }),
-        copy({ src: 'src/test/index.html', verbose: true }),
+        copy({ targets: ['src/test/index.html', 'src/test.css'], verbose: true }),
         htmlPluginInstance
     ],
 }, {
