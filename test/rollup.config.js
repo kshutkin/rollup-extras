@@ -1,7 +1,10 @@
-// import "@niceties/draftlog-appender";
+import "@niceties/draftlog-appender";
 // import { appender } from "@niceties/logger";
 import clean from '@rollup-extras/plugin-clean';
 import copy from '@rollup-extras/plugin-copy';
+import html from '@rollup-extras/plugin-html';
+import crypto from 'crypto';
+import sb from 'simply-beautiful';
 
 // appender((msg) => {
 //     console.log(msg.message);
@@ -9,32 +12,39 @@ import copy from '@rollup-extras/plugin-copy';
 
 const input = 'src/index.ts';
 
+const htmlPluginInstance = html({
+    template: 'src/index.html',
+    verbose: true,
+    assetsFactory: (fileName, content) => {
+        if (fileName.endsWith('.css')) {
+            const data = crypto
+                .createHash('sha384')
+                .update(content);
+            return `<link rel="stylesheet" href="${fileName}" integrity="sha384-${data.digest('base64')}" type="text/css">`;
+        }
+        return undefined;
+    },
+    templateFactory: (template, assets, defaultFactory) => sb.html(defaultFactory(template, assets))
+});
+
 export default [{
 	input,
 
     output: [{
         format: 'es',
-        dir: './dest',
-        entryFileNames: '[name].mjs',
-        chunkFileNames: '[name].mjs'
+        dir: 'dest',
+        entryFileNames: '[name].[hash].js'
     }, {
         format: 'es',
-        dir: './dest2/',
-        entryFileNames: '[name].mjs',
-        chunkFileNames: '[name].mjs'
+        dir: 'dest',
+        entryFileNames: '[name].[hash].second.js'
     }],
 
-	plugins: [clean({
-        verbose: true
-    }), copy({
-        targets: [
-            { src: './assets/*', dest: './dest', exclude: '*.json' }
-        ],
-        flattern: false,
-        emitFiles: false,
-        outputPlugin: true,
-        verbose: true
-    })],
+	plugins: [
+        clean({ verbose: true }),
+        copy({ targets: ['src/test/index.html', 'src/test.css'], verbose: true }),
+        htmlPluginInstance
+    ],
 }, {
 	input,
 
@@ -45,7 +55,7 @@ export default [{
         chunkFileNames: '[name].cjs'
     },
 
-	plugins: [clean(), copy('./assets/**/*.json')],
+	plugins: [clean(), copy('./assets/**/*.json'), htmlPluginInstance.api.addInstance()],
 }, {
     input,
     output: {
@@ -53,7 +63,7 @@ export default [{
         dir: './dest4',
         entryFileNames: '[name].umd.js',
         name: 'test',
-        plugins: [clean(), copy({ src: './assets/**/*.json', outputPlugin: true })],
+        plugins: [clean(), copy({ src: './assets/**/*.json', outputPlugin: true }), htmlPluginInstance.api.addInstance()],
         sourcemap: true
     }
 }];

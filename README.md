@@ -7,3 +7,4 @@ Collection of rollup plugins
 
 - [plugin-clean](./plugin-clean/README.md)
 - [plugin-copy](./plugin-copy/README.md)
+- [plugin-html](./plugin-html/README.md)
