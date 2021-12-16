@@ -134,7 +134,7 @@ export default function(options: HtmlPluginOptions = {}) {
     }
 
     async function buildStart(this: PluginContext) {
-        this.addWatchFile('src/index.html');
+        this.addWatchFile(template as string);
     }
 
     function renderStart() {

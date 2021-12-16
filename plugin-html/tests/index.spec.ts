@@ -662,6 +662,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);        
 
+        expect(rollupContextMock.addWatchFile).toBeCalledWith('index.html');
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>File Template<script src=\"index.js\" type=\"module\"></script></body></html>',
