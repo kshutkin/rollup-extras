@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "test": "rollup -c"
+    "test": "rollup -cw"
   },
   "author": "Konstantin Shutkin",
   "license": "MIT",
@@ -13,6 +13,7 @@
     "@rollup-extras/plugin-clean": "^1.0.1",
     "@rollup-extras/plugin-copy": "^1.0.0",
     "@rollup-extras/plugin-html": "^1.0.0",
+    "@rollup-extras/plugin-serve": "^1.0.0",
     "simply-beautiful": "^0.2.10"
   }
 }
