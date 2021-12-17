@@ -11,15 +11,6 @@ parserOptions:
 plugins:
   - '@typescript-eslint'
 rules:
-  space-before-blocks:
-    - error
-    - always
-  object-curly-spacing:
-    - error
-    - always
-  no-trailing-spaces:
-    - error
-    - skipBlankLines: true
   indent:
     - error
     - 4

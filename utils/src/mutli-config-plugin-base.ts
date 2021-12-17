@@ -1,14 +1,10 @@
 import { NormalizedOutputOptions, OutputBundle, PluginContext, PluginHooks } from 'rollup';
-import { BaseMulticonfigPluginOptions } from './types';
 
 type ExecuteFn = (this: PluginContext, options: NormalizedOutputOptions, bundle: OutputBundle) => void;
 
-export default function(options: BaseMulticonfigPluginOptions, defaultPluginName: string, defaultUseWriteBundle: boolean, execute: ExecuteFn): [Partial<PluginHooks>, NormalizedOptions] {
+export function multiConfigPluginBase(useWriteBundle: boolean, pluginName: string, execute: ExecuteFn): Partial<PluginHooks> {
 
-    const normalizedOptions = normalizeOptions(options, defaultPluginName, defaultUseWriteBundle);
-    
-    const finalHook = normalizedOptions.useWriteBundle ? 'writeBundle' : 'generateBundle';
-    const { pluginName } = normalizedOptions;
+    const finalHook = useWriteBundle ? 'writeBundle' : 'generateBundle';
 
     let remainingOutputsCount = 0, configsCount = 0;
 
@@ -24,7 +20,7 @@ export default function(options: BaseMulticonfigPluginOptions, defaultPluginName
         api: { addInstance }
     } as Partial<PluginHooks>;
 
-    return [instance, normalizedOptions];
+    return instance;
 
     function addInstance() {
         const configId = ++configsCount;
@@ -52,26 +48,14 @@ export default function(options: BaseMulticonfigPluginOptions, defaultPluginName
         --remainingOutputsCount;
         if (configs.size === 0 && remainingOutputsCount === 0) {
             // do work
-            execute.call(this, options, bundle);
-
-            // reset configs
-            for (let i = configsCount; i > 0; --i) {
-                configs.add(i);
+            try {
+                execute.call(this, options, bundle);
+            } finally {
+                // reset configs
+                for (let i = configsCount; i > 0; --i) {
+                    configs.add(i);
+                }
             }
         }
     }
-}
-
-type NormalizedOptions = {
-    pluginName: string,
-    useWriteBundle: boolean
-}
-
-function normalizeOptions(userOptions: BaseMulticonfigPluginOptions, defaultPluginName: string, defaultUseWriteBundle: boolean): NormalizedOptions {
-    const options = {
-        pluginName: userOptions.pluginName ?? defaultPluginName,
-        useWriteBundle: userOptions.useWriteBundle ?? defaultUseWriteBundle,
-    };
-
-    return options;
 }

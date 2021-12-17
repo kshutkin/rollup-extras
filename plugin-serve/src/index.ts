@@ -1,9 +1,9 @@
 import { NormalizedInputOptions, NormalizedOutputOptions, PluginContext, PluginHooks } from 'rollup';
-import base from './base';
+import { multiConfigPluginBase } from '@rollup-extras/utils';
 import { BaseMulticonfigPluginOptions, ExtendedServePluginOptions, ServePluginOptions } from './types';
 import { AddressInfo } from 'net';
 import { Server, createServer } from 'http';
-import { createServer as createHttpsServer} from 'https';
+import { createServer as createHttpsServer } from 'https';
 import Koa from 'koa';
 import koaLogger from 'koa-logger';
 import serveStatic from 'koa-static';
@@ -12,7 +12,7 @@ import { createLogger, LogLevel } from '@niceties/logger';
 let globalServer: Server | undefined;
 
 export default function(options: ServePluginOptions = {}) {
-    const [ baseInstance, { pluginName } ] = base(options as BaseMulticonfigPluginOptions, '@rollup-extras/plugin-serve', true, serve);
+    const [ baseInstance, { pluginName } ] = multiConfigPluginBase(options as BaseMulticonfigPluginOptions, '@rollup-extras/plugin-serve', true, serve);
     const normalizedOptions = normalizeOptions(options),
         { port, host, https, useKoaLogger, customizeKoa, koaStaticOptions, customOnListen } = normalizedOptions;
     let { dirs } = normalizedOptions,
@@ -83,7 +83,7 @@ export default function(options: ServePluginOptions = {}) {
                     throw e;
                 }
             });
-        }        
+        }
     }
 
     function onListen(server: Server) {
@@ -93,7 +93,7 @@ export default function(options: ServePluginOptions = {}) {
     }
 }
 
-type NormilizedOptions = {
+type NormalizedOptions = {
     dirs?: string[],
     port: number,
     host?: string,
@@ -117,7 +117,7 @@ function linkFromAddressInfo({ address, port, family }: AddressInfo, https: bool
     return `${protocol}${serverName}:${port}`;
 }
 
-function normalizeOptions(userOptions: ServePluginOptions): NormilizedOptions {
+function normalizeOptions(userOptions: ServePluginOptions): NormalizedOptions {
     const options = {
         dirs: getDirs(userOptions),
         port: (userOptions as ExtendedServePluginOptions).port ?? 8080,

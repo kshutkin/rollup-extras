@@ -1,0 +1,1 @@
+export { multiConfigPluginBase } from './mutli-config-plugin-base';
