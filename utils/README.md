@@ -1,95 +1,56 @@
-# Plugin Clean
+# Utils
 
-Rollup plugin to clean a directory during build.
+Utils to support creation of rollup plugins.
 
-Points:
+*Disclaimer: It is not a substitute of `@rollup/pluginutils` package.*
 
-- Uses fs.rm to remove directories that shipped with nodejs and has built-in retries
-- Can be used with no configuration
-- Runs once per directory by default (good for watch mode)
-- Minimal amount of logs by default
-
-No globs support, please use [rollup-plugin-delete](https://github.com/vladshcherbin/rollup-plugin-delete) for globs.
-
-Plugin runs on `renderStart` per each output and uses output.dir as a default target.
-
-Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/README.md) to log messages, can be configured through `@niceties/logger` API.
 
 [Changlelog](./CHANGELOG.md)
 
 ## Installation
 
 ```
-npm install --save-dev @rollup-extras/plugin-clean
+npm install --save-dev @rollup-extras/utils
 ```
-
-### Examples
-
-Normal usage:
-
-```javascript
-import clean from '@rollup-extras/plugin-clean';
-
-export default {
-	input: 'src/index.js',
-
-    output: {
-        format: 'es',
-        dir: 'dest'
-    },
-
-	plugins: [clean()],
-}
-```
-
-To override / provide target directory to clean use:
-```javascript
-clean('dir')
-```
-or
-
-```javascript
-clean(['dir1', 'dir2'])
-```
-or
-
-```javascript
-clean({targets: 'dir1'})
-```
-
-or
-
-```javascript
-clean({targets: ['dir1', 'dir2']})
-```
-
-Other supporded fields in options object: `pluginName`, `deleteOnce`, `outputPlugin` and `verbose`.
-
-`pluginName` is just for debugging purpose so you can understand which instance of plugin responsible for an error.
-
-`deleteOnce` can be set to `false` if you want to clean directory every rebuild.
-
-`outputPlugin` can be set to `false` if you want plugin to trigger earlier (use with caution, you may want to define `targets` youself in this mode)
-
-`verbose` is to get more messages in console.
-
-## Configuration
+## Options Utils
 
 ```typescript
-type CleanPluginOptions = {
-    targets?: string | string[], // defaulted to output.dir per output
-    pluginName?: string, // for debugging purposes, default is `@rollup-extras/plugin-clean`
-    deleteOnce?: boolean, // default true
-    outputPlugin?: boolean, // default true
-    verbose?: boolean // default false
-} | string | string[];
+function getOptions<T extends string | string[] | undefined | Record<string, unknown>, D, F extends DefaultsFactory<Partial<{[K in C]: string[]}> & Partial<Exclude<T, SimpleOptions>>>, C extends string>(options: T | undefined, defaults: D | undefined, field: C, factory?: F);
 ```
 
-## Prior Art
+Utility function to get options object.
 
-- https://github.com/vladshcherbin/rollup-plugin-delete
-- https://github.com/saf33r/rollup-plugin-cleaner
-- https://github.com/DongShelton/rollup-plugin-clear
+- `options` - object passed to plugin, can be `string`, `string[]` or `undefined` (applied second)
+- `defaults` - defaults (applied first)
+- `factory` - additional factories (applied last)
+- `field` - `string` to set property in case options is `string` or `string[]`, if `options[field]` is `string` it will be converted to `string[]`
+
+## Multiconfig Plugin Base
+
+Utility to construct plugin that should/can be executed when multiple configs used to gather information for plugin.
+
+```typescript
+function multiConfigPluginBase(useWriteBundle: boolean, pluginName: string, execute: ExecuteFn): Partial<PluginHooks>
+```
+- `useWriteBundle` - truthy if function should be executed on last `writeBundle`, falthy if it should be executed on `generateBundle`
+- `pluginName` - plugin name
+- `execute` - function to execute
+
+Returns plugin instance.
+
+## Types
+
+```typescript
+type SimpleOptions = string | string[] | undefined;
+
+type DefaultsFactory<T extends {[key: string]: unknown}> = {
+    [key: string]: ((options: T | undefined, field: string) => unknown);
+}
+
+type Result<T extends {[key: string]: unknown}, F extends DefaultsFactory<T>> = T & {
+    [key in keyof F]: F[key] extends ((options: T | undefined, field: string) => unknown) ? ReturnType<F[key]> : unknown;
+}
+```
 
 # License
 
