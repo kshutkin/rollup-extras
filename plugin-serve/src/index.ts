@@ -1,26 +1,38 @@
-import { NormalizedInputOptions, NormalizedOutputOptions, PluginContext, PluginHooks } from 'rollup';
-import { multiConfigPluginBase } from '@rollup-extras/utils';
-import { BaseMulticonfigPluginOptions, ExtendedServePluginOptions, ServePluginOptions } from './types';
-import { AddressInfo } from 'net';
 import { Server, createServer } from 'http';
 import { createServer as createHttpsServer } from 'https';
+import { AddressInfo } from 'net';
+
+import { NormalizedInputOptions, NormalizedOutputOptions, PluginContext, PluginHooks } from 'rollup';
+
 import Koa from 'koa';
 import koaLogger from 'koa-logger';
 import serveStatic from 'koa-static';
+
 import { createLogger, LogLevel } from '@niceties/logger';
+import { getOptions } from '@rollup-extras/utils/options';
+import { multiConfigPluginBase } from '@rollup-extras/utils/mutli-config-plugin-base';
+
+import { ServePluginOptions } from './types';
+
 
 let globalServer: Server | undefined;
 
 export default function(options: ServePluginOptions = {}) {
-    const [ baseInstance, { pluginName } ] = multiConfigPluginBase(options as BaseMulticonfigPluginOptions, '@rollup-extras/plugin-serve', true, serve);
-    const normalizedOptions = normalizeOptions(options),
-        { port, host, https, useKoaLogger, customizeKoa, koaStaticOptions, customOnListen } = normalizedOptions;
+    const normalizedOptions = getOptions(options, {
+        pluginName: '@rollup-extras/plugin-serve',
+        useWriteBundle: true,
+        port: 8080
+    }, 'dirs');
+    const { pluginName, useWriteBundle, port, host, https, useKoaLogger, customizeKoa, koaStaticOptions, onListen } = normalizedOptions;
+    const instance = multiConfigPluginBase(useWriteBundle, pluginName, serve);
+    
     let { dirs } = normalizedOptions,
         collectDirs = false, started = false, watchMode = true;
 
     const logger = createLogger(pluginName);
 
-    const instance = { ...baseInstance, outputOptions };
+    instance.outputOptions = outputOptions;
+
     if (!dirs) {
         dirs = [];
         collectDirs = true;
@@ -30,7 +42,7 @@ export default function(options: ServePluginOptions = {}) {
     return instance;
 
     function renderStart(this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) {
-        (baseInstance as PluginHooks).renderStart.call(this, outputOptions, inputOptions);
+        (instance as PluginHooks).renderStart.call(this, outputOptions, inputOptions);
         if (collectDirs) {
             if (outputOptions.dir) {
                 (dirs as string[]).push(outputOptions.dir);
@@ -68,7 +80,7 @@ export default function(options: ServePluginOptions = {}) {
 
             const server = globalServer = https ? createHttpsServer(https, app.callback()) : createServer(app.callback());
 
-            const listenCb = () => onListen(server);
+            const listenCb = () => internalOnListen(server);
 
             if (host) {
                 server.listen(port, host, listenCb);
@@ -86,22 +98,11 @@ export default function(options: ServePluginOptions = {}) {
         }
     }
 
-    function onListen(server: Server) {
-        if (!customOnListen || customOnListen(server)) {
+    function internalOnListen(server: Server) {
+        if (!onListen || onListen(server)) {
             logger.finish(`listening on ${linkFromAddress(server.address(), !!https)}`, LogLevel.info);
         }
     }
-}
-
-type NormalizedOptions = {
-    dirs?: string[],
-    port: number,
-    host?: string,
-    useKoaLogger?: boolean,
-    koaStaticOptions?: serveStatic.Options,
-    https?: ExtendedServePluginOptions['https'],
-    customizeKoa?: ExtendedServePluginOptions['customizeKoa'],
-    customOnListen?: (server: Server) => void | true,
 }
 
 function linkFromAddress(address: AddressInfo | string | null, https: boolean) {
@@ -115,32 +116,4 @@ function linkFromAddressInfo({ address, port, family }: AddressInfo, https: bool
     const serverName = family === 'IPv6' ? `[${address}]` : address;
     const protocol = `http${https ? 's' : ''}://`;
     return `${protocol}${serverName}:${port}`;
-}
-
-function normalizeOptions(userOptions: ServePluginOptions): NormalizedOptions {
-    const options = {
-        dirs: getDirs(userOptions),
-        port: (userOptions as ExtendedServePluginOptions).port ?? 8080,
-        host: (userOptions as ExtendedServePluginOptions).host,
-        https: (userOptions as ExtendedServePluginOptions).https,
-        koaStaticOptions: (userOptions as ExtendedServePluginOptions).koaStaticOptions,
-        customizeKoa: (userOptions as ExtendedServePluginOptions).customizeKoa,
-        useKoaLogger: (userOptions as ExtendedServePluginOptions).useKoaLogger,
-        customOnListen: (userOptions as ExtendedServePluginOptions).onListen,
-    };
-
-    return options;
-}
-
-function getDirs(userOptions: ServePluginOptions): string[] | undefined {
-    if (typeof userOptions === 'string') {
-        return [userOptions];
-    }
-    if (Array.isArray(userOptions)) {
-        return userOptions;
-    }
-    if (typeof userOptions === 'object') {
-        return 'dirs' in userOptions ? getDirs(userOptions.dirs as string | string[]) : undefined;
-    }
-    return [];
 }

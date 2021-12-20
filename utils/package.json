@@ -15,6 +15,10 @@
     "./mutli-config-plugin-base": {
       "require": "./dist/mutli-config-plugin-base.cjs",
       "default": "./dist/mutli-config-plugin-base.mjs"
+    },
+    "./options": {
+      "require": "./dist/options.cjs",
+      "default": "./dist/options.mjs"
     }
   },
   "main": "./dist/index.cjs",
@@ -22,7 +26,8 @@
   "typings": "./dist/index.d.ts",
   "files": [
     "dist",
-    "mutli-config-plugin-base"
+    "mutli-config-plugin-base",
+    "options"
   ],
   "engines": {
     "node": ">=15"
@@ -70,7 +75,7 @@
     "semantic-release": "18.0.0",
     "semantic-release-monorepo": "7.0.5",
     "ts-jest": "27.0.7",
-    "typescript": "4.4.x",
+    "typescript": "4.5.x",
     "update-monorepo-package-json": "0.1.6"
   },
   "peerDependencies": {

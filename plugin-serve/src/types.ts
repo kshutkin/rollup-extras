@@ -2,12 +2,9 @@ import Koa from 'koa';
 import serve from 'koa-static';
 import { Server } from 'http';
 
-export type BaseMulticonfigPluginOptions = {
+export type ServePluginOptions = {
     pluginName?: string;
     useWriteBundle?: boolean;
-};
-
-export type ExtendedServePluginOptions = {
     dirs?: string | string[];
     port?: number;
     useKoaLogger?: boolean;
@@ -20,6 +17,4 @@ export type ExtendedServePluginOptions = {
     },
     customizeKoa?: (koa: Koa) => void;
     onListen?: (server: Server) => void | true;
-};
-
-export type ServePluginOptions = BaseMulticonfigPluginOptions & ExtendedServePluginOptions | string | string[];
+} | string | string[];
