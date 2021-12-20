@@ -14,7 +14,6 @@ import { multiConfigPluginBase } from '@rollup-extras/utils/mutli-config-plugin-
 
 import { ServePluginOptions } from './types';
 
-
 let globalServer: Server | undefined;
 
 export default function(options: ServePluginOptions = {}) {

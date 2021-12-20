@@ -36,6 +36,30 @@ describe('@rollup-extras/util/mutli-config-plugin-base', () => {
             expect(test3).toBe(3);
         });
 
+        it('override defaults', () => {
+            const { test } = getOptionsObject({
+                test: 1
+            } as { test: number, test3?: number }, {
+                test: 2
+            }, {
+                test2: () => 3
+            });
+
+            expect(test).toBe(1);
+        });
+
+        it('override using factory', () => {
+            const { test } = getOptionsObject({
+                test: 1
+            } as { test: number, test3?: number }, {
+                test: 2
+            }, {
+                test: () => 3
+            });
+
+            expect(test).toBe(3);
+        });
+
         it('2 args', () => {
             const { test, test2, test3 } = getOptionsObject({
                 test: 1

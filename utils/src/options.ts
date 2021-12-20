@@ -18,7 +18,7 @@ function recursiveArrayOptions<T extends string | string[] | undefined | Record<
 }
 
 export function getOptionsObject<T extends {[key: string]: unknown}, D, F extends DefaultsFactory<T>>(options: T, defaults?: D, factory?: F) {
-    const result = {...options, ...defaults} as Partial<Result<T, F>>;
+    const result = {...defaults, ...options} as Partial<Result<T, F>>;
 
     if (factory) {
         for(const [k, v] of Object.entries(factory)) {
