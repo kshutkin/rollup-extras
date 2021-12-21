@@ -1,14 +1,11 @@
-# Plugin Html
+# Plugin Serve
 
-Rollup plugin to inject assets names into html template.
+Rollup plugin for dev server.
 
 Points:
 
-- Inject file names with hashes
-- Watch on a template file and trigger rebuild if it is changed
-- Provides minimalistic template by default, so you are ready to start without configuration
-- Support mutliple rollup configs (will trigger only when last output generated)
-- Extensible through API so you can plug in something for html processing or generate new types of html elements
+- Uses `koa`, customizable through koa middleware
+- Zero config by default (works if you have output.dir defined)
 
 Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/README.md) to log messages, can be configured through `@niceties/logger` API.
 
@@ -18,13 +15,13 @@ Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/
 
 Using npm:
 ```
-npm install --save-dev @rollup-extras/plugin-html
+npm install --save-dev @rollup-extras/plugin-serve
 ```
 
 ## Usage
 
 ```javascript
-import html from '@rollup-extras/plugin-html';
+import serve from '@rollup-extras/plugin-serve';
 
 export default {
     input: 'src/index.js',
@@ -34,7 +31,7 @@ export default {
         dir: 'dest'
     },
 
-    plugins: [html()],
+    plugins: [serve()],
 } 
 ```
 
@@ -43,7 +40,7 @@ export default {
 Just pass options to the plugin function. Returned object is the plugin instance which can be passed to rollup.
 
 ```javascript
-html({option: value, option2: value2})
+serve({option: value, option2: value2})
 ```
 
 For additional plugin instances (in case of multiple configs) please use: `firstInstance.api.addInstance()`
@@ -52,156 +49,91 @@ For additional plugin instances (in case of multiple configs) please use: `first
 
 ### pluginName
 
-Optional, string.
+Optional, `string`.
 
 For debugging purposes, so many instances of a plugin can be differenciated in debugging output.
 
-### outputFile
-
-Optional, string, default: `'index.html'`.
-
-Use to override output file name. If file name with the same name exits in pipeline it will be removed or overwritten in the process but its content by default will be used as an input for this plugin. In the following example file emitted by copy plugin will be used as an input for this plugin:
-
-```javascript
-import copy from '@rollup-extras/plugin-copy';
-import html from '@rollup-extras/plugin-html';
-
-export default {
-    input: 'src/index.js',
-
-    output: {
-        format: 'es',
-        dir: 'dest'
-    },
-
-    plugins: [copy('src/index.html'), html()],
-};
-```
-
-### template
-
-Optional, string, default: `'<!DOCTYPE html><html><head></head><body></body></html>'`.
-
-Default template string or template file name. If it is a template string it should contain `</head>` and `</body>` substrings to be useful by default template factory.
-
-### watch
-
-Optional, boolean, default: true.
-
-If plugin found a template file name this option defines if plugin need to watch it or not.
-
-### emitFile
-
-Optional, boolean, default: true.
-
-Defines if plugin should use this.emitFile or should just write it to disk. Option can be ignored in setup with mutliple rollup configs.
-
-### useEmittedTemplate
-
-Optional, boolean, default: true.
-
-Defines what plugin does if it finds a file with expected file name in bundle. By default it will be used as a template. Template provided through template option should be of higher priority to the plugin.
-
-### conditionalLoading
-
-Optional, boolean, default: undefined.
-
-Defines if plugin adds `nomodule` attribute for non modular js chunks. By default it is done only if we have `es` outputs in one of the bundles processed by plugin. Also plugin values `iife` outputs higher than `umd` and if we have both filters out `umd` ones. This can be changes only by providing custom `assetFactory`.
-
-### injectIntoHead
-
-Optional, RegExp | function | boolean, default: `(fileName: string) => fileName.endsWith(cssExtention)`.
-
-Option to customize what assets should be injected into head element of a template.
-
-### ignore
-
-Optional, RegExp | function | boolean, default: false.
-
-Option to customize what assets should be ignored in process.
-
-### verbose
-
-Optional, boolean, default: false.
-
-Option to print more debug information into console (with default appender).
-
 ### useWriteBundle
 
-Optional, boolean, default: false.
+Optional, `boolean`, default: `true`.
 
 Option to use `writeBundle` hook instead of `generateBundle`.
 
-### assetsFactory
+### dirs
 
-Optional, function (please check type in configuration section).
+Optional, `string` | `string[]`, default: `output.dir`.
 
-To process additional types of assets / enchance default behavior. If known asset processed by factory (it returned an object, string or promise) plugin skips default processing for this asset.
+Defines what dir to serve using `koa-static` middleware. If you want to disable `koa-static` you can use `[]` (empty array) as `dirs`.
 
-Example (adds integrity attribute to a css file):
-```javascript
-import copy from '@rollup-extras/plugin-copy';
-import html from '@rollup-extras/plugin-html';
-import crypto from 'crypto';
+### port
 
-export default {
-    input: 'src/index.js',
+Optional, `number`, default: `8080`.
 
-    output: {
-        format: 'es',
-        dir: 'dest'
-    },
+Port to use for server.
 
-    plugins: [copy('src/test.css'), html({
-        assetsFactory: (fileName, content) => {
-            if (fileName.endsWith('.css')) {
-                const data = crypto
-                    .createHash('sha384')
-                    .update(content);
-                return `<link rel="stylesheet" href="${fileName}" integrity="sha384-${data.digest('base64')}" type="text/css">`;
-            }
-            return undefined;
-        }
-    })],
-};
-```
+### host
 
-### templateFactory
+Optional, `string`.
 
-Optional, function (please check type in configuration section).
+Host to use, by default it does not provide host to createServer and lets nodejs to decide.
 
-Use to customize template with external libraries.
+### useKoaLogger
 
-Example (pretty print html):
+Optional, `boolean`, default: `true`.
 
-```javascript
-import html from '@rollup-extras/plugin-html';
-import sb from 'simply-beautiful';
+If plugin should use koa-logger middleware.
 
-export default {
-    input: 'src/index.js',
+### koaStaticOptions
 
-    output: {
-        format: 'es',
-        dir: 'dest'
-    },
+Optional.
 
-    plugins: [html({
-        templateFactory: (template, assets, defaultFactory) => sb.html(defaultFactory(template, assets))
-    })],
-};
-```
+Please check [`koa-static`](https://github.com/koajs/static) for options.
+
+### https
+
+Optional, `{ cert: string, key: string, ca?: string; }`.
+
+Key and certificate to use for https. Best way to generate cert and key (and to install ca) is [`mkcert`](https://github.com/FiloSottile/mkcert).
+
+### customizeKoa
+
+Optional, `(koa: Koa) => void`
+
+Extention point to customize `koa`.
+
+### onListen
+
+Optional, `(server: Server) => void | true`
+
+Extention point after server is live. Please return true to suppress default banner.
 
 ## Configuration
 
-[Definition of config typings in typescript](./src/types.ts)
+```typescript
+type ServePluginOptions = {
+    pluginName?: string;
+    useWriteBundle?: boolean;
+    dirs?: string | string[];
+    port?: number;
+    useKoaLogger?: boolean;
+    koaStaticOptions?: 'koa-static'.Options;
+    host?: string;
+    https?: {
+        cert: string;
+        key: string;
+        ca?: string;
+    },
+    customizeKoa?: (koa: Koa) => void;
+    onListen?: (server: Server) => void | true;
+} | string | string[]
+```
 
 ## Prior Art
 
-- https://github.com/haifeng2013/rollup-plugin-bundle-html
-- https://github.com/rollup/plugins/tree/master/packages/html
-- https://github.com/modernweb-dev/web/tree/master/packages/rollup-plugin-html
-- https://github.com/posthtml/posthtml#rollup
+- https://github.com/thgh/rollup-plugin-serve
+- https://github.com/pearofducks/rollup-plugin-dev
+- https://github.com/modernweb-dev/web/tree/master/packages/dev-server-rollup
+- https://github.com/lukeed/sirv (and any another standalone server)
 
 # License
 

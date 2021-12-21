@@ -20,7 +20,8 @@ export default function(options: ServePluginOptions = {}) {
     const normalizedOptions = getOptions(options, {
         pluginName: '@rollup-extras/plugin-serve',
         useWriteBundle: true,
-        port: 8080
+        port: 8080,
+        useKoaLogger: true
     }, 'dirs');
     const { pluginName, useWriteBundle, port, host, https, useKoaLogger, customizeKoa, koaStaticOptions, onListen } = normalizedOptions;
     const instance = multiConfigPluginBase(useWriteBundle, pluginName, serve);
@@ -30,15 +31,15 @@ export default function(options: ServePluginOptions = {}) {
 
     const logger = createLogger(pluginName);
 
-    instance.outputOptions = outputOptions;
+    const pluginInstance = { ...instance, outputOptions };
 
     if (!dirs) {
         dirs = [];
         collectDirs = true;
-        instance.renderStart = renderStart;
+        pluginInstance.renderStart = renderStart;
     }
 
-    return instance;
+    return pluginInstance;
 
     function renderStart(this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) {
         (instance as PluginHooks).renderStart.call(this, outputOptions, inputOptions);
@@ -98,7 +99,7 @@ export default function(options: ServePluginOptions = {}) {
     }
 
     function internalOnListen(server: Server) {
-        if (!onListen || onListen(server)) {
+        if (!onListen || !onListen(server)) {
             logger.finish(`listening on ${linkFromAddress(server.address(), !!https)}`, LogLevel.info);
         }
     }
