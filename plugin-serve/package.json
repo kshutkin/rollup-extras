@@ -80,5 +80,6 @@
     "koa-logger": "^3.2.1",
     "@niceties/logger": "^1.0.4",
     "@rollup-extras/utils": "^1.0.0"
-  }
+  },
+  "description": "README.md"
 }
