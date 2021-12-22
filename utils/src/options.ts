@@ -22,7 +22,7 @@ export function getOptionsObject<T extends {[key: string]: unknown}, D, F extend
 
     if (factory) {
         for(const [k, v] of Object.entries(factory)) {
-            (result as {[key: string]: unknown})[k] = v(options, k);
+            (result as {[key: string]: unknown})[k] = v(result, k);
         }
     }
 
