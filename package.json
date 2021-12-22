@@ -1,9 +1,11 @@
 {
     "private": true,
     "workspaces": [
+        "utils",
         "plugin-clean",
         "plugin-copy",
         "plugin-html",
+        "plugin-serve",
         "test"
     ]
 }

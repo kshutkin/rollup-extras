@@ -3,8 +3,10 @@ import "@niceties/draftlog-appender";
 import clean from '@rollup-extras/plugin-clean';
 import copy from '@rollup-extras/plugin-copy';
 import html from '@rollup-extras/plugin-html';
+import serve from '@rollup-extras/plugin-serve';
 import crypto from 'crypto';
 import sb from 'simply-beautiful';
+import fs from 'fs';
 
 // appender((msg) => {
 //     console.log(msg.message);
@@ -27,6 +29,11 @@ const htmlPluginInstance = html({
     templateFactory: (template, assets, defaultFactory) => sb.html(defaultFactory(template, assets))
 });
 
+const server = serve({host: 'localhost', https: {
+    cert: fs.readFileSync('cert/cert.pem'),
+    key: fs.readFileSync('cert/key.pem'),
+}})
+
 export default [{
 	input,
 
@@ -43,7 +50,8 @@ export default [{
 	plugins: [
         clean({ verbose: true }),
         copy({ targets: ['src/test/index.html', 'src/test.css'], verbose: true }),
-        htmlPluginInstance
+        htmlPluginInstance,
+        server
     ],
 }, {
 	input,
@@ -55,7 +63,7 @@ export default [{
         chunkFileNames: '[name].cjs'
     },
 
-	plugins: [clean(), copy('./assets/**/*.json'), htmlPluginInstance.api.addInstance()],
+	plugins: [clean(), copy('./assets/**/*.json'), htmlPluginInstance.api.addInstance(), server.api.addInstance()],
 }, {
     input,
     output: {
@@ -63,7 +71,7 @@ export default [{
         dir: './dest4',
         entryFileNames: '[name].umd.js',
         name: 'test',
-        plugins: [clean(), copy({ src: './assets/**/*.json', outputPlugin: true }), htmlPluginInstance.api.addInstance()],
+        plugins: [clean(), copy({ src: './assets/**/*.json', outputPlugin: true }), htmlPluginInstance.api.addInstance(), server.api.addInstance()],
         sourcemap: true
     }
 }];
