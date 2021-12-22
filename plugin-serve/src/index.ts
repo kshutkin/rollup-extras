@@ -8,13 +8,16 @@ import Koa from 'koa';
 import koaLogger from 'koa-logger';
 import serveStatic from 'koa-static';
 
-import { createLogger, LogLevel } from '@niceties/logger';
+import { LogLevel } from '@niceties/logger';
 import { getOptions } from '@rollup-extras/utils/options';
+import logger from '@rollup-extras/utils/logger';
 import { multiConfigPluginBase } from '@rollup-extras/utils/mutli-config-plugin-base';
 
 import { ServePluginOptions } from './types';
 
 let globalServer: Server | undefined;
+
+const factories = { logger };
 
 export default function(options: ServePluginOptions = {}) {
     const normalizedOptions = getOptions(options, {
@@ -22,14 +25,12 @@ export default function(options: ServePluginOptions = {}) {
         useWriteBundle: true,
         port: 8080,
         useKoaLogger: true
-    }, 'dirs');
-    const { pluginName, useWriteBundle, port, host, https, useKoaLogger, customizeKoa, koaStaticOptions, onListen } = normalizedOptions;
+    }, 'dirs', factories);
+    const { pluginName, useWriteBundle, port, host, https, useKoaLogger, customizeKoa, koaStaticOptions, onListen, logger } = normalizedOptions;
     const instance = multiConfigPluginBase(useWriteBundle, pluginName, serve);
     
     let { dirs } = normalizedOptions,
         collectDirs = false, started = false, watchMode = true;
-
-    const logger = createLogger(pluginName);
 
     const pluginInstance = { ...instance, outputOptions };
 

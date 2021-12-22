@@ -19,6 +19,10 @@
     "./options": {
       "require": "./dist/options.cjs",
       "default": "./dist/options.mjs"
+    },
+    "./logger": {
+      "require": "./dist/logger.cjs",
+      "default": "./dist/logger.mjs"
     }
   },
   "main": "./dist/index.cjs",
@@ -27,7 +31,8 @@
   "files": [
     "dist",
     "mutli-config-plugin-base",
-    "options"
+    "options",
+    "logger"
   ],
   "engines": {
     "node": ">=15"

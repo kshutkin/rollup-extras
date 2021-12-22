@@ -123,7 +123,7 @@ const plugins = [
     typescript()
 ];
 
-const external = (id) => id.indexOf('node_modules') >= 0 || id.indexOf('@niceties') >= 0 || isBuiltinModule(id);
+const external = (id) => id.indexOf('node_modules') >= 0 || id.indexOf('@rollup-extras') >= 0 || isBuiltinModule(id);
 
 export default [{
 	input,

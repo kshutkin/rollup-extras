@@ -30,6 +30,7 @@
     "url": "https://github.com/kshutkin/rollup-extras/issues"
   },
   "homepage": "https://github.com/kshutkin/rollup-extras/plugin-clean/README.md",
+  "readme": "README.md",
   "keywords": [
     "rollup-plugin"
   ],
