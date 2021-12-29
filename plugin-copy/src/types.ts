@@ -6,7 +6,7 @@ export type SingleTargetDesc = {
 
 export type MultipleTargetsDesc = string | string[] | SingleTargetDesc | SingleTargetDesc[];
 
-export type CopyPluginOptions = {
+export type NonTargetOptions = {
     targets?: MultipleTargetsDesc,
     pluginName?: string,
     copyOnce?: boolean,
@@ -16,4 +16,6 @@ export type CopyPluginOptions = {
     exactFileNames?: boolean,
     outputPlugin?: boolean,
     emitFiles?: boolean
-} | MultipleTargetsDesc;
+};
+
+export type CopyPluginOptions = NonTargetOptions | MultipleTargetsDesc;

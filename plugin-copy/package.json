@@ -71,6 +71,7 @@
     "@niceties/logger": "^1.1.0",
     "glob": "^7.2.0",
     "glob-parent": "^6.0.2",
-    "glob-promise": "^4.2.2"
+    "glob-promise": "^4.2.2",
+    "@rollup-extras/utils": "^1.1.0"
   }
 }

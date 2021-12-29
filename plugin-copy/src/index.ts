@@ -3,10 +3,16 @@ import path from 'path';
 import glob from 'glob-promise';
 import globParent from 'glob-parent';
 import { PluginContext, PluginHooks } from 'rollup';
-import { CopyPluginOptions, MultipleTargetsDesc, SingleTargetDesc } from './types';
+import { CopyPluginOptions, SingleTargetDesc } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
+import { getOptions } from '@rollup-extras/utils/options';
+import logger from '@rollup-extras/utils/logger';
 
 type FileDesc = { dest: string[], copied: string[], timestamp: number };
+
+type Logger = ReturnType<typeof createLogger>;
+
+const factories = { targets, logger } as unknown as { targets: () => SingleTargetDesc[], logger: () => Logger };
 
 export default function(options: CopyPluginOptions) {
     const files = new Map<string, {
@@ -15,31 +21,37 @@ export default function(options: CopyPluginOptions) {
         timestamp: number
     }>();
 
-    const normilizedOptions = normalizeOptions(options);
-    const { pluginName, copyOnce, verbose, exactFileNames, targets, outputPlugin, flattern, emitFiles } = normilizedOptions;
-    let { watch } = normilizedOptions;
+    const normalizedOptions = getOptions(options, {
+        pluginName: '@rollup-extras/plugin-copy',
+        copyOnce: true,
+        flattern: false,
+        verbose: false,
+        exactFileNames: true,
+        watch: true,
+        emitFiles: true,
+        outputPlugin: false
+    }, 'targets', factories);
+
+    const { pluginName, copyOnce, verbose, exactFileNames, targets, outputPlugin, flattern, emitFiles, logger } = normalizedOptions;
+    let { watch } = normalizedOptions;
 
     const hookName = outputPlugin ? 'generateBundle' : emitFiles ? 'buildStart' : 'buildEnd';
 
-    {
-        const log = createLogger(pluginName);
+    if (!outputPlugin && !emitFiles && watch) {
+        watch = false;
+        logger('can\'t use watch with emitFiles = false and outputPlugin = false', LogLevel.verbose);
+    }
 
-        if (!outputPlugin && !emitFiles && watch) {
-            watch = false;
-            log('can\'t use watch with emitFiles = false and outputPlugin = false', LogLevel.verbose);
-        }
-
-        if (outputPlugin && watch) {
-            watch = false;
-            log('can\'t use watch with outputPlugin = true', LogLevel.verbose);
-        }
+    if (outputPlugin && watch) {
+        watch = false;
+        logger('can\'t use watch with outputPlugin = true', LogLevel.verbose);
     }
 
     return <Partial<PluginHooks>>{
         name: pluginName,
 
         async [hookName]() {
-            const results = await Promise.all(targets.map(target => glob(target.src, { ignore: target.exclude })
+            const results = await Promise.all((targets as SingleTargetDesc[]).map(target => glob(target.src, { ignore: target.exclude })
                 .then((result: string[]) => ({
                     src: result,
                     dest: target.dest ? target.dest as string: '',
@@ -70,7 +82,6 @@ export default function(options: CopyPluginOptions) {
                 }
             }
 
-            const logger = createLogger(pluginName);
             const statistics: string[] = [];
             logger.start('coping files', verbose ? LogLevel.info : LogLevel.verbose);
             for (const [fileName, fileDesc] of files) {
@@ -125,51 +136,24 @@ function normalizeSlash(dir: string): string {
     return dir;
 }
 
-type NormilizedOptions = {
-    targets: SingleTargetDesc[],
-    pluginName: string,
-    copyOnce: boolean,
-    verbose: boolean,
-    flattern: boolean,
-    exactFileNames: boolean,
-    outputPlugin: boolean,
-    watch: boolean,
-    emitFiles: boolean,
-}
-
-function normalizeOptions(userOptions: CopyPluginOptions): NormilizedOptions {
-    const options = {
-        pluginName: (userOptions as NormilizedOptions).pluginName ?? '@rollup-extras/plugin-copy',
-        copyOnce: (userOptions as NormilizedOptions).copyOnce ?? true,
-        verbose: (userOptions as NormilizedOptions).verbose ?? false,
-        flattern: (userOptions as NormilizedOptions).flattern ?? false,
-        exactFileNames: (userOptions as NormilizedOptions).exactFileNames ?? true,
-        outputPlugin: (userOptions as NormilizedOptions).outputPlugin ?? false,
-        watch: (userOptions as NormilizedOptions).watch ?? true,
-        emitFiles: (userOptions as NormilizedOptions).emitFiles ?? true,
-        targets: getTargets(userOptions)
-    };
-
-    return options;
-}
-function getTargets(userOptions: CopyPluginOptions): SingleTargetDesc[] {
-    if (typeof userOptions === 'string') {
-        return [{ src: userOptions }];
+function targets(options: CopyPluginOptions, field: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let targets: SingleTargetDesc[]  = (options as never as any)[field];
+    if (targets == null) {
+        targets = [options] as SingleTargetDesc[];
     }
-    if (Array.isArray(userOptions)) {
-        return userOptions.map((item) => {
-            if (typeof item === 'string' && item) {
-                return { src: item };
-            }
-            if (typeof item === 'object') {
-                return item;
+    if (Array.isArray(targets)) {
+        targets = targets.map((item) => {
+            if (item) {
+                if (typeof item === 'string') {
+                    return { src: item };
+                }
+                if (typeof item === 'object' && 'src' in item) {
+                    return item;
+                }
             }
             return undefined;
         }).filter(Boolean) as SingleTargetDesc[];
     }
-    if (typeof userOptions === 'object') {
-        return 'targets' in userOptions ? getTargets(userOptions.targets as MultipleTargetsDesc) : [userOptions as SingleTargetDesc];
-    }
-    return [];
+    return targets;
 }
-

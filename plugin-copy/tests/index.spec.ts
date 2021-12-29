@@ -38,7 +38,7 @@ describe('@rollup-extras/plugin-copy', () => {
             mtime: new Date(),
             isFile: () => true
         }) as unknown as ReturnType<typeof fs.stat>);
-    })
+    });
 
     it('smoke', () => {
         expect(plugin).toBeDefined();
@@ -320,23 +320,23 @@ describe('@rollup-extras/plugin-copy', () => {
     it('non verbose', async () => {
         const pluginInstance = plugin('assets/**/*.json');
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(loggerStart).toBeCalledWith(`coping files`, LogLevel.verbose);
-        expect(loggerFinish).toBeCalledWith(`copied test.json, test2.json`);
+        expect(loggerStart).toBeCalledWith('coping files', LogLevel.verbose);
+        expect(loggerFinish).toBeCalledWith('copied test.json, test2.json');
     });
 
     it('verbose', async () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json', verbose: true });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(loggerStart).toBeCalledWith(`coping files`, LogLevel.info);
-        expect(loggerFinish).toBeCalledWith(`copied test.json, test2.json`);
+        expect(loggerStart).toBeCalledWith('coping files', LogLevel.info);
+        expect(loggerFinish).toBeCalledWith('copied test.json, test2.json');
     });
 
     it('exception', async () => {
         (fs.copyFile as jest.Mock<ReturnType<typeof fs.copyFile>, Parameters<typeof fs.copyFile>>)
             .mockImplementationOnce(() => { throw { stack: '' }; });
-            const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
+        const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
         await (pluginInstance as any).buildEnd.apply(rollupContextMock);
-        expect(logger).toBeCalledWith(`error reading file assets/aFolder/test.json `, LogLevel.warn);
+        expect(logger).toBeCalledWith('error reading file assets/aFolder/test.json ', LogLevel.warn);
     });
 
     it('missing directory exception', async () => {
@@ -344,7 +344,7 @@ describe('@rollup-extras/plugin-copy', () => {
             .mockImplementationOnce(() => { throw { code: 'ENOENT', stack: '' }; });
         const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
         await (pluginInstance as any).buildEnd.apply(rollupContextMock);
-        expect(logger).toBeCalledWith(`error reading file assets/aFolder/test.json `, undefined);
+        expect(logger).toBeCalledWith('error reading file assets/aFolder/test.json ', undefined);
     });
 
     it('statistics', async () => {
@@ -352,7 +352,7 @@ describe('@rollup-extras/plugin-copy', () => {
             .mockImplementation(() => Promise.resolve(['1', '2', '3', '4', '5', '6']));
         const pluginInstance = plugin('assets/**/*.json');
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(loggerFinish).toBeCalledWith(`copied 6 files`);
+        expect(loggerFinish).toBeCalledWith('copied 6 files');
     });
 
     it('symbolic link', async () => {
