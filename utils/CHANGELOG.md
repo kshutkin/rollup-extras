@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/utils-v1.1.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/utils-v1.1.0...@rollup-extras/utils-v1.1.1) (2021-12-29)
+
+
+### Bug Fixes
+
+* allow arrays of records as options ([da5c9f0](https://github.com/kshutkin/rollup-extras/commit/da5c9f086580743302baaab3e55cb4b38a1e9a9c))
+
 # [@rollup-extras/utils-v1.1.0](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/utils-v1.0.1...@rollup-extras/utils-v1.1.0) (2021-12-29)
 
 
