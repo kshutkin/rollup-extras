@@ -92,6 +92,18 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(rmFinished).toBeTruthy();
     });
 
+    it('deleteOnce by default (check timings) + outputPlugin (do not block here)', async () => {
+        (fs.rm as jest.Mock<ReturnType<typeof fs.rm>, Parameters<typeof fs.rm>>)
+            .mockImplementation(() => new Promise((resolve) => {
+                setTimeout(resolve, 50);
+            }));
+        const pluginInstance = plugin({outputPlugin: false, targets: '/dist2'});
+        let rmFinished = false;
+        (pluginInstance as any).buildStart({dir: '/dist2'}).then(() => {rmFinished = true;});
+        await (pluginInstance as any).buildStart({dir: '/dist2'});
+        expect(rmFinished).toBeFalsy();
+    });
+
     it('deleteOnce false', async () => {
         const pluginInstance = plugin({deleteOnce: false});
         await (pluginInstance as any).renderStart({dir: '/dist2'});
@@ -126,7 +138,7 @@ describe('@rollup-extras/plugin-clean', () => {
             .mockImplementationOnce(() => { throw { stack: '' }; });
         const pluginInstance = plugin({ verbose: true });
         await (pluginInstance as any).renderStart({dir: 'dist2'});
-        expect(loggerFinish).toBeCalledWith('failed cleaning \'dist2\'\n', LogLevel.warn);
+        expect(loggerFinish).toBeCalledWith('failed cleaning \'dist2\'', LogLevel.warn, expect.objectContaining({ stack: '' }));
     });
 
     it('missing directory exception', async () => {
@@ -134,7 +146,7 @@ describe('@rollup-extras/plugin-clean', () => {
             .mockImplementationOnce(() => { throw { code: 'ENOENT', stack: '' }; });
         const pluginInstance = plugin({ verbose: true });
         await (pluginInstance as any).renderStart({dir: 'dist2'});
-        expect(loggerFinish).toBeCalledWith('failed cleaning \'dist2\'\n', undefined);
+        expect(loggerFinish).toBeCalledWith('failed cleaning \'dist2\'', undefined, expect.objectContaining({ code: 'ENOENT', stack: '' }));
     });
 
     it('outputPlugin: false', async () => {

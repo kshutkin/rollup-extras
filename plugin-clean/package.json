@@ -65,7 +65,7 @@
     "rollup": "^2.60.2"
   },
   "dependencies": {
-    "@niceties/logger": "^1.0.4",
+    "@niceties/logger": "^1.1.0",
     "@rollup-extras/utils": "^1.0.0"
   }
 }

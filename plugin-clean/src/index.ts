@@ -57,7 +57,7 @@ export default function(options: CleanPluginOptions = {}) {
     async function removeDir(dir: string) {
         const normalizedDir = normalizeSlash(path.normalize(dir));
         if (deleteOnce && deleted.has(normalizedDir)) {
-            return deleted.get(normalizedDir);
+            return outputPlugin && deleted.get(normalizedDir);
         }
         const removePromise = doRemove(normalizedDir);
         deleted.set(normalizedDir, removePromise);
@@ -72,7 +72,7 @@ export default function(options: CleanPluginOptions = {}) {
             logger.finish(`cleaned '${normalizedDir}'`);
         } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             const loglevel: number | undefined = e['code'] === 'ENOENT' ? undefined : LogLevel.warn;
-            logger.finish(`failed cleaning '${normalizedDir}'\n${e.stack}`, loglevel);
+            logger.finish(`failed cleaning '${normalizedDir}'`, loglevel, e);
         }
     }
 }
