@@ -18,7 +18,7 @@ describe('@rollup-extras/plugin-clean', () => {
     beforeEach(() => {
         (fs.rm as jest.Mock<ReturnType<typeof fs.rm>, Parameters<typeof fs.rm>>).mockClear();
         (createLogger as jest.Mock<ReturnType<typeof createLogger>, Parameters<typeof createLogger>>).mockClear();
-    })
+    });
 
     it('smoke', () => {
         expect(plugin).toBeDefined();
@@ -34,7 +34,7 @@ describe('@rollup-extras/plugin-clean', () => {
     it('unhappy path', async () => {
         const pluginInstance = plugin(123 as CleanPluginOptions);
         await (pluginInstance as any).renderStart({dir: '/dist2'});
-        expect(fs.rm).toBeCalledTimes(0);
+        expect(fs.rm).toBeCalledTimes(1);
     });
 
     it('with non default directory (string)', async () => {
@@ -110,15 +110,15 @@ describe('@rollup-extras/plugin-clean', () => {
     it('non verbose', async () => {
         const pluginInstance = plugin();
         await (pluginInstance as any).renderStart({dir: '/dist2'});
-        expect(loggerStart).toBeCalledWith(`cleaning '/dist2'`, LogLevel.verbose);
-        expect(loggerFinish).toBeCalledWith(`cleaned '/dist2'`);
+        expect(loggerStart).toBeCalledWith('cleaning \'/dist2\'', LogLevel.verbose);
+        expect(loggerFinish).toBeCalledWith('cleaned \'/dist2\'');
     });
 
     it('verbose', async () => {
         const pluginInstance = plugin({ verbose: true });
         await (pluginInstance as any).renderStart({dir: '/dist2'});
-        expect(loggerStart).toBeCalledWith(`cleaning '/dist2'`, LogLevel.info);
-        expect(loggerFinish).toBeCalledWith(`cleaned '/dist2'`);
+        expect(loggerStart).toBeCalledWith('cleaning \'/dist2\'', LogLevel.info);
+        expect(loggerFinish).toBeCalledWith('cleaned \'/dist2\'');
     });
 
     it('exception', async () => {
@@ -126,7 +126,7 @@ describe('@rollup-extras/plugin-clean', () => {
             .mockImplementationOnce(() => { throw { stack: '' }; });
         const pluginInstance = plugin({ verbose: true });
         await (pluginInstance as any).renderStart({dir: 'dist2'});
-        expect(loggerFinish).toBeCalledWith(`failed cleaning 'dist2'\n`, LogLevel.warn);
+        expect(loggerFinish).toBeCalledWith('failed cleaning \'dist2\'\n', LogLevel.warn);
     });
 
     it('missing directory exception', async () => {
@@ -134,7 +134,7 @@ describe('@rollup-extras/plugin-clean', () => {
             .mockImplementationOnce(() => { throw { code: 'ENOENT', stack: '' }; });
         const pluginInstance = plugin({ verbose: true });
         await (pluginInstance as any).renderStart({dir: 'dist2'});
-        expect(loggerFinish).toBeCalledWith(`failed cleaning 'dist2'\n`, undefined);
+        expect(loggerFinish).toBeCalledWith('failed cleaning \'dist2\'\n', undefined);
     });
 
     it('outputPlugin: false', async () => {
