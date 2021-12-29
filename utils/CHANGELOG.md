@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/utils-v1.0.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/utils-v1.0.0...@rollup-extras/utils-v1.0.1) (2021-12-29)
+
+
+### Bug Fixes
+
+* special case found in plugin-clean ([3d433a4](https://github.com/kshutkin/rollup-extras/commit/3d433a4263a271c0b249bb7018c2269209ad0e50))
+
 # @rollup-extras/utils-v1.0.0 (2021-12-22)
 
 
