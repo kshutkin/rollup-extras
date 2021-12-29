@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-copy-v1.2.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.2.0...@rollup-extras/plugin-copy-v1.2.1) (2021-12-29)
+
+
+### Bug Fixes
+
+* pass exception to logger ([5968de4](https://github.com/kshutkin/rollup-extras/commit/5968de4dff8065a7c349bcade1680f1f2f2d7af9))
+
 # [@rollup-extras/plugin-copy-v1.2.0](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.1.0...@rollup-extras/plugin-copy-v1.2.0) (2021-12-29)
 
 
