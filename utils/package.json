@@ -44,51 +44,44 @@
   "bugs": {
     "url": "https://github.com/kshutkin/rollup-extras/issues"
   },
-  "homepage": "https://github.com/kshutkin/rollup-extras/plugin-clean/README.md",
+  "homepage": "https://github.com/kshutkin/rollup-extras/utils/README.md",
   "readme": "README.md",
   "description": "Utils to support creation of rollup plugins.",
   "keywords": [
     "@rollup-extras",
-    "utils"
+    "utils",
+    "options",
+    "multiple outputs"
   ],
   "scripts": {
-    "build": "rimraf ./dist && rollup -c",
-    "dev": "rimraf ./dist && rollup -c -w",
+    "build": "pkgbld",
     "test": "jest --collectCoverage",
     "lint": "eslint ./src",
     "semantic-release": "npx semantic-release"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "21.0.1",
-    "@rollup/plugin-node-resolve": "13.0.6",
     "@semantic-release/changelog": "6.0.1",
-    "@semantic-release/commit-analyzer": "9.0.1",
+    "@semantic-release/commit-analyzer": "9.0.2",
     "@semantic-release/git": "10.0.1",
-    "@semantic-release/npm": "8.0.2",
-    "@semantic-release/release-notes-generator": "10.0.2",
-    "@types/jest": "27.0.2",
-    "@typescript-eslint/eslint-plugin": "5.3.0",
-    "@typescript-eslint/parser": "5.3.0",
+    "@semantic-release/npm": "8.0.3",
+    "@semantic-release/release-notes-generator": "10.0.3",
+    "@types/jest": "27.0.3",
+    "@typescript-eslint/eslint-plugin": "5.8.1",
+    "@typescript-eslint/parser": "5.8.1",
     "conventional-changelog-angular": "5.0.13",
-    "eslint": "8.1.0",
-    "jest": "27.3.1",
-    "lodash": "4.17.21",
-    "rimraf": "3.0.2",
-    "is-builtin-module": "3.1.0",
-    "rollup": "2.60.1",
-    "rollup-plugin-terser": "7.0.2",
-    "rollup-plugin-typescript2": "0.31.1",
-    "rollup-plugin-preprocess": "0.0.4",
-    "semantic-release": "18.0.0",
+    "eslint": "8.5.0",
+    "jest": "27.4.5",
+    "semantic-release": "18.0.1",
     "semantic-release-monorepo": "7.0.5",
-    "ts-jest": "27.0.7",
+    "ts-jest": "27.1.2",
     "typescript": "4.5.x",
-    "update-monorepo-package-json": "0.1.6"
+    "update-monorepo-package-json": "0.2.0",
+    "pkgbld": "1.1.1"
   },
   "peerDependencies": {
-    "rollup": "^2.60.2"
+    "rollup": "^2.60.1"
   },
   "dependencies": {
-    "@niceties/logger": "^1.0.4"
+    "@niceties/logger": "^1.1.0"
   }
 }
