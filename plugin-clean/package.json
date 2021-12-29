@@ -34,7 +34,8 @@
   "description": "Rollup plugin to clean a directory during build.",
   "keywords": [
     "rollup-plugin",
-    "clean"
+    "clean",
+    "delete"
   ],
   "scripts": {
     "build": "pkgbld",
@@ -44,25 +45,25 @@
   },
   "devDependencies": {
     "@semantic-release/changelog": "6.0.1",
-    "@semantic-release/commit-analyzer": "9.0.1",
+    "@semantic-release/commit-analyzer": "9.0.2",
     "@semantic-release/git": "10.0.1",
-    "@semantic-release/npm": "8.0.2",
-    "@semantic-release/release-notes-generator": "10.0.2",
-    "@types/jest": "27.0.2",
-    "@typescript-eslint/eslint-plugin": "5.3.0",
-    "@typescript-eslint/parser": "5.3.0",
+    "@semantic-release/npm": "8.0.3",
+    "@semantic-release/release-notes-generator": "10.0.3",
+    "@types/jest": "27.0.3",
+    "@typescript-eslint/eslint-plugin": "5.8.1",
+    "@typescript-eslint/parser": "5.8.1",
     "conventional-changelog-angular": "5.0.13",
-    "eslint": "8.1.0",
-    "jest": "27.3.1",
-    "semantic-release": "18.0.0",
+    "eslint": "8.5.0",
+    "jest": "27.4.5",
+    "semantic-release": "18.0.1",
     "semantic-release-monorepo": "7.0.5",
-    "ts-jest": "27.0.7",
+    "ts-jest": "27.1.2",
     "typescript": "4.5.x",
     "update-monorepo-package-json": "0.2.0",
     "pkgbld": "1.1.1"
   },
   "peerDependencies": {
-    "rollup": "^2.60.2"
+    "rollup": "^2.60.1"
   },
   "dependencies": {
     "@niceties/logger": "^1.1.0",
