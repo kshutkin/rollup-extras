@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-html-v1.1.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-html-v1.1.0...@rollup-extras/plugin-html-v1.1.1) (2021-12-29)
+
+
+### Bug Fixes
+
+* less messages in verbose mode, pass errors to logger ([db9f7dd](https://github.com/kshutkin/rollup-extras/commit/db9f7dd995c03c62031700771afa26e4e76cc475))
+
 # [@rollup-extras/plugin-html-v1.1.0](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-html-v1.0.1...@rollup-extras/plugin-html-v1.1.0) (2021-12-29)
 
 
