@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-clean-v1.0.4](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-clean-v1.0.3...@rollup-extras/plugin-clean-v1.0.4) (2021-12-29)
+
+
+### Bug Fixes
+
+* do not block in buildTime plugin mode, use newer logger API ([e369171](https://github.com/kshutkin/rollup-extras/commit/e369171bb90f3cc47fa0c19ea4c9c98a13fc837c))
+
 # [@rollup-extras/plugin-clean-v1.0.3](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-clean-v1.0.2...@rollup-extras/plugin-clean-v1.0.3) (2021-12-29)
 
 
