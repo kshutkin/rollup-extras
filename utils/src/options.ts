@@ -12,8 +12,10 @@ function recursiveArrayOptions<T extends string | string[] | undefined | Record<
     } else if (Array.isArray(options)) {
         return { [field]: options } as unknown as { [K in C]: string[] };
     } else if (typeof options === 'object') {
-        return recursiveArrayOptions((options as unknown as Record<string, unknown>)[field] as SimpleOptions, field) as undefined | { [K in C]: string[] };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return field in options ? { ...(options as unknown as any), ...recursiveArrayOptions((options as unknown as Record<string, unknown>)[field] as SimpleOptions, field) as undefined | { [K in C]: string[] }} : options;
     }
+    console.warn(`cannot process options: '${options}', reverting to defaults`);
     return undefined;
 }
 

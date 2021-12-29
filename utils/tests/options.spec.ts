@@ -318,6 +318,20 @@ describe('@rollup-extras/util/mutli-config-plugin-base', () => {
             expect(test4).toEqual(4);
         });
 
+        it('plugin-clean failed case', () => {
+            const {outputPlugin} = getOptions({
+                targets: 'dist2',
+                outputPlugin: false
+            }, {
+                pluginName: '@rollup-extras/plugin-clean',
+                deleteOnce: true,
+                verbose: false,
+                outputPlugin: true
+            }, 'targets');
+
+            expect(outputPlugin).toEqual(false);
+        });
+
         it('3 args without defaults', () => {
             const {test2, test4} = getOptions({test4: 4} as string[] | {test4: number}, {}, 'test2');
 
