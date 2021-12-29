@@ -336,7 +336,7 @@ describe('@rollup-extras/plugin-copy', () => {
             .mockImplementationOnce(() => { throw { stack: '' }; });
         const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
         await (pluginInstance as any).buildEnd.apply(rollupContextMock);
-        expect(logger).toBeCalledWith('error reading file assets/aFolder/test.json ', LogLevel.warn);
+        expect(logger).toBeCalledWith('error reading file assets/aFolder/test.json', LogLevel.warn, expect.objectContaining({ stack: '' }));
     });
 
     it('missing directory exception', async () => {
@@ -344,7 +344,7 @@ describe('@rollup-extras/plugin-copy', () => {
             .mockImplementationOnce(() => { throw { code: 'ENOENT', stack: '' }; });
         const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
         await (pluginInstance as any).buildEnd.apply(rollupContextMock);
-        expect(logger).toBeCalledWith('error reading file assets/aFolder/test.json ', undefined);
+        expect(logger).toBeCalledWith('error reading file assets/aFolder/test.json', undefined, expect.objectContaining({ code: 'ENOENT', stack: '' }));
     });
 
     it('statistics', async () => {

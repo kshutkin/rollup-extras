@@ -121,7 +121,7 @@ export default function(options: CopyPluginOptions) {
                     }
                 } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                     const loglevel: number | undefined = e['code'] === 'ENOENT' ? undefined : LogLevel.warn;
-                    logger(`error reading file ${fileName} ${e.stack}`, loglevel);
+                    logger(`error reading file ${fileName}`, loglevel, e);
                 }
             }
             logger.finish(`copied ${statistics.length > 5 ? statistics.length + ' files' : statistics.join(', ')}`);
