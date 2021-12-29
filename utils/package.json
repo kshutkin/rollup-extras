@@ -45,6 +45,8 @@
     "url": "https://github.com/kshutkin/rollup-extras/issues"
   },
   "homepage": "https://github.com/kshutkin/rollup-extras/plugin-clean/README.md",
+  "readme": "README.md",
+  "description": "Utils to support creation of rollup plugins.",
   "keywords": [
     "@rollup-extras",
     "utils"
@@ -88,6 +90,5 @@
   },
   "dependencies": {
     "@niceties/logger": "^1.0.4"
-  },
-  "readme": "ERROR: No README data found!"
+  }
 }
