@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-clean-v1.0.3](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-clean-v1.0.2...@rollup-extras/plugin-clean-v1.0.3) (2021-12-29)
+
+
+### Bug Fixes
+
+* use utils / pkgbld, handle booleans / numbers as options with warning, reverting to default values ([58cf1df](https://github.com/kshutkin/rollup-extras/commit/58cf1df6d560ccd8774d684a724d2feeda68221a))
+
 # [@rollup-extras/plugin-clean-v1.0.2](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-clean-v1.0.1...@rollup-extras/plugin-clean-v1.0.2) (2021-12-11)
 
 
