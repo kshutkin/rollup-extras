@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-copy-v1.2.0](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.1.0...@rollup-extras/plugin-copy-v1.2.0) (2021-12-29)
+
+
+### Features
+
+* use utils to parse options and construct logger ([7d2ab24](https://github.com/kshutkin/rollup-extras/commit/7d2ab24b087d7ed98790f7c76b55a072b8dc7370))
+
 # [@rollup-extras/plugin-copy-v1.1.0](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.0.1...@rollup-extras/plugin-copy-v1.1.0) (2021-12-29)
 
 
