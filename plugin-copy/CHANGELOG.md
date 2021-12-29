@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-copy-v1.1.0](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.0.1...@rollup-extras/plugin-copy-v1.1.0) (2021-12-29)
+
+
+### Features
+
+* use pkgbld, newer project template and update dependencies ([#5](https://github.com/kshutkin/rollup-extras/issues/5)) ([4b859f7](https://github.com/kshutkin/rollup-extras/commit/4b859f742269edf685548006ab6733884ad29910))
+
 # [@rollup-extras/plugin-copy-v1.0.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.0.0...@rollup-extras/plugin-copy-v1.0.1) (2021-12-11)
 
 
