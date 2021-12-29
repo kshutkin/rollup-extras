@@ -642,9 +642,8 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(logger).toBeCalledWith('error generating html file\nError: test', LogLevel.error, expect.any(Error));
         expect(loggerStart).toBeCalledWith('generating html', LogLevel.verbose);
-        expect(loggerFinish).toBeCalledWith('html generation failed', LogLevel.error);
+        expect(loggerFinish).toBeCalledWith('html generation failed', LogLevel.error, expect.any(Error));
     });
 
     it('happy path with template file', async () => {
@@ -673,7 +672,7 @@ describe('@rollup-extras/plugin-html', () => {
     it('exception with template file', async () => {
         (oldFs.readFileSync as jest.Mock).mockImplementationOnce(() => { throw new Error('test'); });
         plugin({template: 'index.html'});
-        expect(logger).toBeCalledWith('error reading template\nError: test', LogLevel.warn, expect.any(Error));
+        expect(logger).toBeCalledWith('error reading template', LogLevel.warn, expect.any(Error));
     });
 
     it('exception with template file (ENOENT)', async () => {
@@ -685,7 +684,7 @@ describe('@rollup-extras/plugin-html', () => {
     it('exception with template file (null)', async () => {
         (oldFs.readFileSync as jest.Mock).mockImplementationOnce(() => { throw null; });
         plugin({template: 'index.html'});
-        expect(logger).toBeCalledWith('error reading template\nnull', LogLevel.warn, null);
+        expect(logger).toBeCalledWith('error reading template', LogLevel.warn, null);
     });
 
     it('exception with template file (on reread)', async () => {
@@ -695,7 +694,7 @@ describe('@rollup-extras/plugin-html', () => {
         await (pluginInstance as any).buildStart.apply(rollupContextMock, [{}]);
         (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
 
-        expect(logger).toBeCalledWith('error reading template\nError: test', LogLevel.warn, expect.any(Error));
+        expect(logger).toBeCalledWith('error reading template', LogLevel.warn, expect.any(Error));
     });
 
     it('exception with template file (on reread, ENOENT)', async () => {
@@ -714,7 +713,7 @@ describe('@rollup-extras/plugin-html', () => {
         await (pluginInstance as any).buildStart.apply(rollupContextMock, [{}]);
         (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
 
-        expect(logger).toBeCalledWith('error reading template\nnull', LogLevel.warn, null);
+        expect(logger).toBeCalledWith('error reading template', LogLevel.warn, null);
     });
 
     it('empty template from file', async () => {
@@ -1058,6 +1057,8 @@ describe('@rollup-extras/plugin-html', () => {
         }]);
 
         expect(logger)
-            .toBeCalledWith('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.info);
+            .toBeCalledWith('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
+        expect(loggerStart)
+            .toBeCalledWith(expect.any(String), LogLevel.info);
     });
 });

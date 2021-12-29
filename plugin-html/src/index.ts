@@ -58,7 +58,7 @@ export default function(options: HtmlPluginOptions = {}) {
         name: pluginName,
 
         renderStart: (options: NormalizedOutputOptions) => {
-            logger('started collecting information', logLevel);
+            logger('started collecting information', LogLevel.verbose);
             initialDir = options.dir || '';
             fileNameInInitialDir = path.join(initialDir, outputFile);
             return renderStart();
@@ -101,9 +101,9 @@ export default function(options: HtmlPluginOptions = {}) {
 
     function handleTemplateReadError(e: unknown) {
         if ((e as NodeJS.ErrnoException)?.code === 'ENOENT') {
-            logger('template nor a file or string', LogLevel.warn, e as Error);
+            logger('template nor a file or string', LogLevel.warn, e);
         } else {
-            logger(`error reading template\n${e}`, LogLevel.warn, e as Error);
+            logger('error reading template', LogLevel.warn, e);
         }
     }
 
@@ -149,16 +149,16 @@ export default function(options: HtmlPluginOptions = {}) {
             .filter(item => item.count)
             .map(({ key, count }) => `${key}: ${count}`)
             .join(', ');
-        logger(`assets collected: [${statistics}], remaining: ${remainingOutputsCount} outputs, ${configs.size} configs`, logLevel);
+        logger(`assets collected: [${statistics}], remaining: ${remainingOutputsCount} outputs, ${configs.size} configs`, LogLevel.verbose);
 
         const dir = options.dir || '', fileName = path.relative(dir, fileNameInInitialDir);
         if (fileName in bundle) {
             if (useEmittedTemplate) {
-                logger(`using exiting emitted ${fileName} as an input for out templateFactory`, logLevel);
+                logger(`using exiting emitted ${fileName} as an input for out templateFactory`, LogLevel.verbose);
                 const source = bundle[fileName].type === 'asset' ? (bundle[fileName] as OutputAsset).source.toString() : (bundle[fileName] as OutputChunk).code;
                 useNewTemplate(source);
             } else {
-                logger(`removing exiting emitted ${fileName}`, logLevel);
+                logger(`removing exiting emitted ${fileName}`, LogLevel.verbose);
             }
             if (configs.size === 0 && emitFile && !useWriteBundle) {
                 delete bundle[fileName];
@@ -173,7 +173,7 @@ export default function(options: HtmlPluginOptions = {}) {
 
                 if (!emitFile || fileName.startsWith('..') || useWriteBundle) {
                     if (emitFile && emitFile !== 'auto') {
-                        logger('cannot emitFile because it is outside of current output.dir, using writeFile instead', logLevel);
+                        logger('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
                     }
                     await fs.mkdir(path.dirname(fileNameInInitialDir), { recursive: true });
                     await fs.writeFile(fileNameInInitialDir, source);
@@ -192,8 +192,7 @@ export default function(options: HtmlPluginOptions = {}) {
                 processedFiles.clear();
                 logger.finish('html file generated');
             } catch(e) {
-                logger(`error generating html file\n${e}`, LogLevel.error, e as Error);
-                logger.finish('html generation failed', LogLevel.error);
+                logger.finish('html generation failed', LogLevel.error, e);
             }            
         }
     }
@@ -263,7 +262,7 @@ export default function(options: HtmlPluginOptions = {}) {
                     return true;
                 }
             } catch (e) {
-                logger(`exception in assetFactory:${e}`, LogLevel.warn, e);
+                logger('exception in assetFactory', LogLevel.warn, e);
             }
         }
         return false;
