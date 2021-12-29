@@ -29,24 +29,21 @@
   "bugs": {
     "url": "https://github.com/kshutkin/rollup-extras/issues"
   },
-  "homepage": "https://github.com/kshutkin/rollup-extras/plugin-clean/README.md",
+  "homepage": "https://github.com/kshutkin/rollup-extras/plugin-serve/README.md",
   "readme": "README.md",
-  "description": "",
+  "description": "Rollup plugin for dev server based on koa.",
   "keywords": [
     "rollup-plugin",
     "server",
     "serve"
   ],
   "scripts": {
-    "build": "rimraf ./dist && rollup -c",
-    "dev": "rimraf ./dist && rollup -c -w",
+    "build": "pkgbld",
     "test": "jest --collectCoverage",
     "lint": "eslint ./src",
     "semantic-release": "npx semantic-release"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "21.0.1",
-    "@rollup/plugin-node-resolve": "13.0.6",
     "@semantic-release/changelog": "6.0.1",
     "@semantic-release/commit-analyzer": "9.0.1",
     "@semantic-release/git": "10.0.1",
@@ -58,21 +55,16 @@
     "conventional-changelog-angular": "5.0.13",
     "eslint": "8.1.0",
     "jest": "27.3.1",
-    "lodash": "4.17.21",
-    "rimraf": "3.0.2",
     "is-builtin-module": "3.1.0",
-    "rollup": "2.60.1",
-    "rollup-plugin-terser": "7.0.2",
-    "rollup-plugin-typescript2": "0.31.1",
-    "rollup-plugin-preprocess": "0.0.4",
     "semantic-release": "18.0.0",
     "semantic-release-monorepo": "7.0.5",
     "ts-jest": "27.0.7",
     "typescript": "4.5.x",
-    "update-monorepo-package-json": "0.1.6",
+    "update-monorepo-package-json": "0.2.0",
     "@types/koa": "^2.13.4",
     "@types/koa-logger": "^3.1.2",
-    "@types/koa-static": "^4.0.2"
+    "@types/koa-static": "^4.0.2",
+    "pkgbld": "1.1.1"
   },
   "peerDependencies": {
     "rollup": "^2.60.2"
@@ -81,7 +73,7 @@
     "koa": "^2.13.4",
     "koa-static": "^5.0.0",
     "koa-logger": "^3.2.1",
-    "@niceties/logger": "^1.0.4",
-    "@rollup-extras/utils": "^1.0.0"
+    "@niceties/logger": "^1.1.0",
+    "@rollup-extras/utils": "^1.0.1"
   }
 }
