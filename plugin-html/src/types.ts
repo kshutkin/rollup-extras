@@ -22,7 +22,7 @@ export type HtmlPluginOptions = {
     outputFile?: string;
     template?: string;
     watch?: boolean;
-    emitFile?: boolean;
+    emitFile?: boolean | 'auto';
     verbose?: boolean;
     useWriteBundle?: boolean;
     useEmittedTemplate?: boolean;

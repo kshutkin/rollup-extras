@@ -1,19 +1,41 @@
 import fs from 'fs/promises';
 import oldStyleFs from 'fs';
 import path from 'path';
-import { InternalModuleFormat, NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, PluginContext, PluginHooks } from 'rollup';
-import { AssetDescriptor, AssetFactory, AssetPredicate, Assets, AssetType, HtmlPluginOptions, SimpleAssetDescriptor, TemplateFactory } from './types';
+import { InternalModuleFormat, NormalizedInputOptions, NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, PluginContext, PluginHooks } from 'rollup';
+import { AssetDescriptor, AssetPredicate, Assets, AssetType, HtmlPluginOptions, SimpleAssetDescriptor } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
+import { getOptionsObject } from '@rollup-extras/utils/options';
+import logger from '@rollup-extras/utils/logger';
+import { multiConfigPluginBase } from '@rollup-extras/utils/mutli-config-plugin-base';
 
 const defaultTemplate = '<!DOCTYPE html><html><head></head><body></body></html>';
 const headClosingElement = '</head>';
 const bodyClosingElement = '</body>';
 const cssExtention = '.css';
 
+type Logger = ReturnType<typeof createLogger>;
+
+const defaults = {
+    pluginName: '@rollup-extras/plugin-html',
+    outputFile: 'index.html',
+    watch: true,
+    useWriteBundle: false,
+    emitFile: 'auto',
+    injectIntoHead: (fileName: string) => fileName.endsWith(cssExtention),
+    ignore: toAssetPredicate(false) as AssetPredicate,
+    templateFactory: ((template: string, assets: Assets, defaultTemplateFactory: (template: string, assets: Assets) => string) => defaultTemplateFactory(template, assets))
+};
+
+const factories = { logger, injectIntoHead: predicateFactory as () => AssetPredicate, ignore: predicateFactory as () => AssetPredicate };
+
 export default function(options: HtmlPluginOptions = {}) {
 
     const { pluginName, outputFile, template, watch, emitFile, conditionalLoading, logger, useWriteBundle, logLevel,
-            useEmittedTemplate, injectIntoHead, ignore, assetsFactory, templateFactory } = normalizeOptions(options),
+            useEmittedTemplate, injectIntoHead, ignore, assetsFactory, templateFactory } = getOptionsObject(options, {
+            ...defaults,
+            useEmittedTemplate: !('template' in options),
+            logLevel: options.verbose ? LogLevel.info : LogLevel.verbose
+        }, factories),
         hasCustomTemplateFactory = 'templateFactory' in options;
 
     let templateString: string | Promise<string> = defaultTemplate, hasTemplateFile = false;
@@ -48,29 +70,35 @@ export default function(options: HtmlPluginOptions = {}) {
         }
     }
 
-    let remainingOutputsCount = 0, configsCount = 0, initialDir = '', fileNameInInitialDir: string, 
+    let initialDir = '', fileNameInInitialDir: string, 
         assets: Assets = freshAssets();
 
-    const configs = new Set<number>(), finalHook = useWriteBundle ? 'writeBundle' : 'generateBundle',
-        processedFiles = new Set();
+    const processedFiles = new Set();
 
-    const instance = {
-        name: pluginName,
+    const instance = multiConfigPluginBase(useWriteBundle, pluginName, generateBundle, updateAssets);
 
-        renderStart: (options: NormalizedOutputOptions) => {
-            logger('started collecting information', LogLevel.verbose);
-            initialDir = options.dir || '';
-            fileNameInInitialDir = path.join(initialDir, outputFile);
-            return renderStart();
-        },
+    const baseRenderStart = (instance as Required<typeof instance>).renderStart;
+    const baseAddInstance = (instance as Required<typeof instance>).api.addInstance;
 
-        [finalHook]: generateBundle,
+    instance.renderStart = function (this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) {
+        logger('started collecting information', LogLevel.verbose);
+        initialDir = outputOptions.dir || '';
+        fileNameInInitialDir = path.join(initialDir, outputFile);
+        return baseRenderStart.call(this, outputOptions, inputOptions);
+    };
 
-        api: { addInstance }
-    } as Partial<PluginHooks>;
+    instance.api.addInstance = () => {
+        const instance = baseAddInstance();
+
+        if (hasTemplateFile && watch) {
+            (instance as never as PluginHooks).buildStart = buildStart;
+        }
+    
+        return instance;
+    };
 
     if (hasTemplateFile && watch) {
-        instance.buildStart = async function() {
+        instance.buildStart = async function(this: PluginContext) {
             try {
                 useNewTemplate(await fs.readFile(template as string, { encoding: 'utf8' }));
             } catch(e) {
@@ -81,6 +109,29 @@ export default function(options: HtmlPluginOptions = {}) {
     }
 
     return instance;
+
+    async function updateAssets(this: PluginContext, options: NormalizedOutputOptions, bundle: OutputBundle, remainingConfigsCount: number, remainingOutputsCount: number) {
+        await getAssets(options, bundle);
+        const statistics = Object.keys(assets)
+            .map(key => ({ key, count: (assets[key as AssetType] as AssetDescriptor[]).length }))
+            .filter(item => item.count)
+            .map(({ key, count }) => `${key}: ${count}`)
+            .join(', ');
+        logger(`assets collected: [${statistics}], remaining: ${remainingOutputsCount} outputs, ${remainingConfigsCount} configs`, LogLevel.verbose);
+        const dir = options.dir || '', fileName = path.relative(dir, fileNameInInitialDir);
+        if (fileName in bundle) {
+            if (useEmittedTemplate) {
+                logger(`using exiting emitted ${fileName} as an input for out templateFactory`, LogLevel.verbose);
+                const source = bundle[fileName].type === 'asset' ? (bundle[fileName] as OutputAsset).source.toString() : (bundle[fileName] as OutputChunk).code;
+                useNewTemplate(source);
+            } else {
+                logger(`removing exiting emitted ${fileName}`, LogLevel.verbose);
+            }
+            if (remainingConfigsCount === 0 && emitFile && !useWriteBundle) {
+                delete bundle[fileName];
+            }
+        }
+    }
 
     function freshAssets(): Assets {
         return {
@@ -111,89 +162,36 @@ export default function(options: HtmlPluginOptions = {}) {
         logger('template is unusable by default template factory, using default one', LogLevel.warn);
     }
 
-    function addInstance() {
-        const configId = ++configsCount;
-        configs.add(configId);
-
-        const instance = {
-            name: `${pluginName}#${configId}`,
-
-            renderStart: () => {
-                configs.delete(configId);
-                return renderStart();
-            },
-
-            [finalHook]: generateBundle
-        } as Partial<PluginHooks>;
-
-        if (hasTemplateFile && watch) {
-            instance.buildStart = buildStart;
-        }
-    
-        return instance;
-    }
-
     async function buildStart(this: PluginContext) {
         this.addWatchFile(template as string);
     }
 
-    function renderStart() {
-        ++remainingOutputsCount;
-    }
+    async function generateBundle(this: PluginContext, options: NormalizedOutputOptions) {
+        logger.start('generating html', logLevel);
+        try {
+            const dir = options.dir || '', fileName = path.relative(dir, fileNameInInitialDir);
+            const depromisifiedTemplateString = await templateString,
+                source = await templateFactory(depromisifiedTemplateString, assets, defaultTemplateFactory);
 
-    async function generateBundle(this: PluginContext, options: NormalizedOutputOptions, bundle: OutputBundle) {
-        --remainingOutputsCount;
-        await getAssets(options, bundle);
-        const statistics = Object.keys(assets)
-            .map(key => ({ key, count: (assets[key as AssetType] as AssetDescriptor[]).length }))
-            .filter(item => item.count)
-            .map(({ key, count }) => `${key}: ${count}`)
-            .join(', ');
-        logger(`assets collected: [${statistics}], remaining: ${remainingOutputsCount} outputs, ${configs.size} configs`, LogLevel.verbose);
-
-        const dir = options.dir || '', fileName = path.relative(dir, fileNameInInitialDir);
-        if (fileName in bundle) {
-            if (useEmittedTemplate) {
-                logger(`using exiting emitted ${fileName} as an input for out templateFactory`, LogLevel.verbose);
-                const source = bundle[fileName].type === 'asset' ? (bundle[fileName] as OutputAsset).source.toString() : (bundle[fileName] as OutputChunk).code;
-                useNewTemplate(source);
+            if (!emitFile || fileName.startsWith('..') || useWriteBundle) {
+                if (emitFile && emitFile !== 'auto') {
+                    logger('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
+                }
+                await fs.mkdir(path.dirname(fileNameInInitialDir), { recursive: true });
+                await fs.writeFile(fileNameInInitialDir, source);
             } else {
-                logger(`removing exiting emitted ${fileName}`, LogLevel.verbose);
+                this.emitFile({
+                    type: 'asset',
+                    fileName,
+                    source
+                });
             }
-            if (configs.size === 0 && emitFile && !useWriteBundle) {
-                delete bundle[fileName];
-            }
-        }
-
-        if (configs.size === 0 && remainingOutputsCount === 0) {
-            logger.start('generating html', logLevel);
-            try {
-                const depromisifiedTemplateString = await templateString,
-                    source = await templateFactory(depromisifiedTemplateString, assets, defaultTemplateFactory);
-
-                if (!emitFile || fileName.startsWith('..') || useWriteBundle) {
-                    if (emitFile && emitFile !== 'auto') {
-                        logger('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
-                    }
-                    await fs.mkdir(path.dirname(fileNameInInitialDir), { recursive: true });
-                    await fs.writeFile(fileNameInInitialDir, source);
-                } else {
-                    this.emitFile({
-                        type: 'asset',
-                        fileName,
-                        source
-                    });
-                }
-                // reset assets and configs for next iteration
-                assets = freshAssets();
-                for (let i = configsCount; i > 0; --i) {
-                    configs.add(i);
-                }
-                processedFiles.clear();
-                logger.finish('html file generated');
-            } catch(e) {
-                logger.finish('html generation failed', LogLevel.error, e);
-            }            
+            // reset assets and configs for next iteration
+            assets = freshAssets();
+            processedFiles.clear();
+            logger.finish('html file generated');
+        } catch(e) {
+            logger.finish('html generation failed', LogLevel.error, e);
         }
     }
 
@@ -285,62 +283,16 @@ function getModuleScriptElement(fileName: string) {
     return `<script src="${fileName}" type="module"></script>`;
 }
 
-type NormilizedOptions = {
-    pluginName: string,
-    outputFile: string,
-    template?: string,
-    watch: boolean,
-    useWriteBundle: boolean;
-    logLevel: number,
-    emitFile?: boolean | 'auto',
-    conditionalLoading?: boolean,
-    useEmittedTemplate: boolean,
-    injectIntoHead: AssetPredicate,
-    ignore: AssetPredicate,
-    assetsFactory?: AssetFactory,
-    templateFactory: TemplateFactory,
-    logger: ReturnType<typeof createLogger>
-}
-
-function normalizeOptions(userOptions: HtmlPluginOptions): NormilizedOptions {
-    const options = {
-            pluginName: userOptions.pluginName ?? '@rollup-extras/plugin-html',
-            template: userOptions.template,
-            outputFile: userOptions.outputFile ?? 'index.html',
-            watch: userOptions.watch ?? true,
-            useWriteBundle: userOptions.useWriteBundle ?? false,
-            useEmittedTemplate: userOptions.useEmittedTemplate ?? !('template' in userOptions),
-            emitFile: userOptions.emitFile ?? 'auto',
-            logLevel: userOptions.verbose ? LogLevel.info : LogLevel.verbose,
-            conditionalLoading: userOptions.conditionalLoading,
-            injectIntoHead: (fileName: string) => fileName.endsWith(cssExtention),
-            ignore: toAssetPredicate(false),
-            assetsFactory: userOptions.assetsFactory,
-            templateFactory: userOptions.templateFactory
-                ?? ((template, assets, defaultTemplateFactory) => defaultTemplateFactory(template, assets)),
-        },
-        logger = (options as never as NormilizedOptions).logger = createLogger(options.pluginName),
-        optionIgnoredText = 'option ignored because it is not a function, RegExp or boolean';
-
-    if (userOptions.injectIntoHead != null) {
-        const predicate = toAssetPredicate(userOptions.injectIntoHead);
+function predicateFactory(options: {injectIntoHead?: boolean | AssetPredicate | RegExp, ignore?: boolean | AssetPredicate | RegExp} & { logger?: Logger }, field: 'injectIntoHead' | 'ignore'): AssetPredicate {
+    if (options[field] != null) {
+        const predicate = toAssetPredicate(options[field] as boolean | AssetPredicate | RegExp);
         if (predicate) {
-            (options as never as NormilizedOptions).injectIntoHead = predicate;
+            return predicate;
         } else {
-            logger(`injectIntoHead ${optionIgnoredText}`, LogLevel.warn);
+            options.logger && options.logger(`${field} option ignored because it is not a function, RegExp or boolean`, LogLevel.warn);
         }
     }
-
-    if (userOptions.ignore != null) {
-        const predicate = toAssetPredicate(userOptions.ignore);
-        if (predicate) {
-            (options as never as NormilizedOptions).ignore = predicate;
-        } else {
-            logger(`ignore ${optionIgnoredText}`, LogLevel.warn);
-        }
-    }
-
-    return (options as never as NormilizedOptions);
+    return defaults[field];
 }
 
 function toAssetPredicate(sourceOption: boolean | AssetPredicate | RegExp): AssetPredicate | undefined {

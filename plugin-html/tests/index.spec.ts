@@ -33,7 +33,7 @@ describe('@rollup-extras/plugin-html', () => {
             emitFile: jest.fn(),
             addWatchFile: jest.fn()
         };
-    })
+    });
 
     it('smoke', () => {
         expect(plugin).toBeDefined();
@@ -41,21 +41,21 @@ describe('@rollup-extras/plugin-html', () => {
 
     it('pluginName (default)', () => {
         const pluginInstance = plugin();
-        expect((pluginInstance as {name: string}).name).toEqual('@rollup-extras/plugin-html');
+        expect((pluginInstance as unknown as {name: string}).name).toEqual('@rollup-extras/plugin-html');
         expect(createLogger).toBeCalledWith('@rollup-extras/plugin-html');
     });
 
     it('pluginName (changed)', () => {
         const pluginInstance = plugin({ pluginName: 'test' });
-        expect((pluginInstance as {name: string}).name).toEqual('test');
+        expect((pluginInstance as unknown as {name: string}).name).toEqual('test');
         expect(createLogger).toBeCalledWith('test');
     });
     
     it('happy path', async () => {
         const pluginInstance = plugin();
 
-        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
-        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+        (pluginInstance as any).renderStart.call(rollupContextMock, {});
+        await (pluginInstance as any).generateBundle.call(rollupContextMock, {format: 'es'}, {
             'index.js': {
                 type: 'chunk',
                 isEntry: true
@@ -63,11 +63,11 @@ describe('@rollup-extras/plugin-html', () => {
             'main.css': {
                 type: 'asset'
             }
-        }]);
+        });
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body><script src=\"index.js\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -93,7 +93,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body><script src=\"index.js\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -119,7 +119,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head></head><body><script src=\"index.js\" type=\"text/javascript\" nomodule></script><script src=\"index.mjs\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head></head><body><script src="index.js" type="text/javascript" nomodule></script><script src="index.mjs" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -145,7 +145,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head></head><body><script src=\"index.js\" type=\"text/javascript\" nomodule></script><script src=\"index.mjs\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head></head><body><script src="index.js" type="text/javascript" nomodule></script><script src="index.mjs" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -179,7 +179,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head></head><body><script src=\"index.js\" type=\"text/javascript\" nomodule></script><script src=\"index.mjs\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head></head><body><script src="index.js" type="text/javascript" nomodule></script><script src="index.mjs" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -205,7 +205,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head></head><body><script src=\"index.js\" type=\"text/javascript\"></script><script src=\"index.mjs\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head></head><body><script src="index.js" type="text/javascript"></script><script src="index.mjs" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -224,7 +224,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head></head><body><script src=\"index.js\" type=\"text/javascript\" nomodule></script></body></html>',
+            source: '<!DOCTYPE html><html><head></head><body><script src="index.js" type="text/javascript" nomodule></script></body></html>',
             type: 'asset'
         }));
     });
@@ -379,7 +379,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body></body></html>',
+            source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body></body></html>',
             type: 'asset'
         }));
     });
@@ -447,7 +447,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body></body></html>',
+            source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body></body></html>',
             type: 'asset'
         }));
         expect(logger).toBeCalledWith('ignore option ignored because it is not a function, RegExp or boolean', LogLevel.warn);
@@ -542,7 +542,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'main.html',
-            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body><script src=\"index.js\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -563,7 +563,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<html><head>Hi!<link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>Hello!<script src=\"index.js\" type=\"module\"></script></body></html>',
+            source: '<html><head>Hi!<link rel="stylesheet" href="main.css" type="text/css"></head><body>Hello!<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -583,7 +583,7 @@ describe('@rollup-extras/plugin-html', () => {
         }]);
 
         expect(fs.writeFile)
-            .toBeCalledWith('index.html', '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body><script src=\"index.js\" type=\"module\"></script></body></html>');
+            .toBeCalledWith('index.html', '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>');
     });
 
     it('emitFile: auto', async () => {
@@ -601,7 +601,7 @@ describe('@rollup-extras/plugin-html', () => {
         }]);
 
         expect(fs.writeFile)
-            .toBeCalledWith('dest/index.html', '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"../dest2/main.css\" type=\"text/css\"></head><body><script src=\"../dest2/index.js\" type=\"module\"></script></body></html>');
+            .toBeCalledWith('dest/index.html', '<!DOCTYPE html><html><head><link rel="stylesheet" href="../dest2/main.css" type="text/css"></head><body><script src="../dest2/index.js" type="module"></script></body></html>');
         expect(logger)
             .not.toBeCalledWith('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
     });
@@ -621,7 +621,7 @@ describe('@rollup-extras/plugin-html', () => {
         }]);
 
         expect(fs.writeFile)
-            .toBeCalledWith('dest/index.html', '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"../dest2/main.css\" type=\"text/css\"></head><body><script src=\"../dest2/index.js\" type=\"module\"></script></body></html>');
+            .toBeCalledWith('dest/index.html', '<!DOCTYPE html><html><head><link rel="stylesheet" href="../dest2/main.css" type="text/css"></head><body><script src="../dest2/index.js" type="module"></script></body></html>');
         expect(logger)
             .toBeCalledWith('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
     });
@@ -664,7 +664,7 @@ describe('@rollup-extras/plugin-html', () => {
         expect(rollupContextMock.addWatchFile).toBeCalledWith('index.html');
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>File Template<script src=\"index.js\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>File Template<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -732,7 +732,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body><script src=\"index.js\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -774,7 +774,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body><script src=\"index.js\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -817,7 +817,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>File Template<script src=\"index.js\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>File Template<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -845,7 +845,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>File Template<script src=\"index.js\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>File Template<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -872,7 +872,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>File Template<script src=\"index.js\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>File Template<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -898,7 +898,7 @@ describe('@rollup-extras/plugin-html', () => {
         expect(templateFactory).toBeCalledWith(
             '<!DOCTYPE html><html><head></head><body>File Template</body></html>',
             expect.objectContaining({
-                'asset': [{'head': true, 'html': '<link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\">', 'type': 'asset'}],
+                'asset': [{'head': true, 'html': '<link rel="stylesheet" href="main.css" type="text/css">', 'type': 'asset'}],
                 'es': [{'head': false, 'html': expect.any(Function), 'type': 'asset'}],
                 'iife': [],
                 'umd': []
@@ -932,7 +932,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>File Template<script src=\"index.js\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>File Template<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -957,7 +957,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>Emitted Template<script src=\"index.js\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>Emitted Template<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -982,7 +982,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>Custom Template<script src=\"index.js\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>Custom Template<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -1007,7 +1007,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body>Emitted Template<script src=\"index.js\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>Emitted Template<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
@@ -1032,7 +1032,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
             fileName: 'index.html',
-            source: '<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"main.css\" type=\"text/css\"></head><body><script src=\"index.js\" type=\"module\"></script></body></html>',
+            source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
             type: 'asset'
         }));
     });
