@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/utils-v1.2.0](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/utils-v1.1.1...@rollup-extras/utils-v1.2.0) (2022-01-10)
+
+
+### Features
+
+* add onFinalHook optional hook function to execute on each final hook, receives statistics ([de095ca](https://github.com/kshutkin/rollup-extras/commit/de095ca94f03d5025e4108501ccc7994ed30c351))
+
 # [@rollup-extras/utils-v1.1.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/utils-v1.1.0...@rollup-extras/utils-v1.1.1) (2021-12-29)
 
 
