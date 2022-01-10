@@ -1,8 +1,9 @@
 import { NormalizedOutputOptions, OutputBundle, PluginContext, PluginHooks } from 'rollup';
 
 type ExecuteFn = (this: PluginContext, options: NormalizedOutputOptions, bundle: OutputBundle) => void;
+type OnFinalHook = (this: PluginContext, options: NormalizedOutputOptions, bundle: OutputBundle, remainingConfigsCount: number, remainingOutputsCount: number) => void | Promise<void>;
 
-export function multiConfigPluginBase(useWriteBundle: boolean, pluginName: string, execute: ExecuteFn): Partial<PluginHooks> {
+export function multiConfigPluginBase(useWriteBundle: boolean, pluginName: string, execute: ExecuteFn, onFinalHook?: OnFinalHook): Partial<PluginHooks> & { api: { addInstance(): void } } {
 
     const finalHook = useWriteBundle ? 'writeBundle' : 'generateBundle';
 
@@ -18,7 +19,7 @@ export function multiConfigPluginBase(useWriteBundle: boolean, pluginName: strin
         [finalHook]: writeBundle,
 
         api: { addInstance }
-    } as Partial<PluginHooks>;
+    };
 
     return instance;
 
@@ -44,12 +45,15 @@ export function multiConfigPluginBase(useWriteBundle: boolean, pluginName: strin
         ++remainingOutputsCount;
     }
 
-    function writeBundle(this: PluginContext, options: NormalizedOutputOptions, bundle: OutputBundle) {
+    async function writeBundle(this: PluginContext, options: NormalizedOutputOptions, bundle: OutputBundle) {
         --remainingOutputsCount;
+        if (onFinalHook) {
+            await onFinalHook.call(this, options, bundle, configs.size, remainingOutputsCount);
+        }
         if (configs.size === 0 && remainingOutputsCount === 0) {
             // do work
             try {
-                execute.call(this, options, bundle);
+                await execute.call(this, options, bundle);
             } finally {
                 // reset configs
                 for (let i = configsCount; i > 0; --i) {

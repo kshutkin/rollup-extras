@@ -80,5 +80,26 @@ describe('@rollup-extras/util/mutli-config-plugin-base', () => {
         expect(execute).toBeCalledWith(1, 2);
         expect(execute).toBeCalledTimes(2);
     });
+
+    it('onFinalHook', async () => {
+        const execute = jest.fn(() => { throw new Error('test'); });
+        const onFinalHook = jest.fn();
+        const pluginInstance = plugin(true, 'test', execute, onFinalHook);
+        await (pluginInstance as any).renderStart();
+        try {
+            await (pluginInstance as any).writeBundle(1, 2);
+        } catch(e) {
+            // suppress
+        }
+        await (pluginInstance as any).renderStart();
+        try {
+            await (pluginInstance as any).writeBundle(1, 2);
+        } catch(e) {
+            // suppress
+        }
+        expect(execute).toBeCalledWith(1, 2);
+        expect(execute).toBeCalledTimes(2);
+        expect(onFinalHook).toBeCalledTimes(2);
+    });
 });
 
