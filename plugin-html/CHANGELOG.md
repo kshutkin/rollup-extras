@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-html-v1.2.0](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-html-v1.1.1...@rollup-extras/plugin-html-v1.2.0) (2022-01-10)
+
+
+### Features
+
+* use utils ([f12e078](https://github.com/kshutkin/rollup-extras/commit/f12e078b09d09c140a12f6a8d849976f35796485))
+
 # [@rollup-extras/plugin-html-v1.1.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-html-v1.1.0...@rollup-extras/plugin-html-v1.1.1) (2021-12-29)
 
 
