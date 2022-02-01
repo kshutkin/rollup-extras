@@ -1,0 +1,17 @@
+Nested directories
+
+1st case
+
+a) /test/test1/
+
+b) /test/
+
+wait for a before b?
+
+2nd case (easy)
+
+a) /test/
+
+b) /test/test1/
+
+return a promise instead of b?

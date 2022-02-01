@@ -6,7 +6,8 @@ import { createLogger, LogLevel } from '@niceties/logger';
 import { getOptions } from '@rollup-extras/utils/options';
 
 export default function(options: CleanPluginOptions = {}) {
-    const deleted = new Map<string, Promise<void>>();
+    const inProgress = new Map<string, Promise<void>>();
+    const hasChildrenInProgress = new Map<string, Promise<void>>();
 
     const normalizedOptions = getOptions(options, {
         pluginName: '@rollup-extras/plugin-clean',
@@ -23,9 +24,11 @@ export default function(options: CleanPluginOptions = {}) {
 
     if (outputPlugin) {
         pluginInstance.renderStart = renderStart;
+        pluginInstance.closeBundle = cleanup;
     } else {
         pluginInstance.buildStart = buildStart;
         pluginInstance.options = optionsHook;
+        pluginInstance.buildEnd = cleanup;
     }
 
     return pluginInstance;
@@ -56,11 +59,18 @@ export default function(options: CleanPluginOptions = {}) {
 
     async function removeDir(dir: string) {
         const normalizedDir = normalizeSlash(path.normalize(dir));
-        if (deleteOnce && deleted.has(normalizedDir)) {
-            return outputPlugin && deleted.get(normalizedDir);
+        if (deleteOnce && inProgress.has(normalizedDir)) {
+            return outputPlugin && inProgress.get(normalizedDir);
         }
         const removePromise = doRemove(normalizedDir);
-        deleted.set(normalizedDir, removePromise);
+        inProgress.set(normalizedDir, removePromise);
+        while(((dir = path.dirname(dir)) !== '.') && (dir !== '/')) {
+            if (!hasChildrenInProgress.has(dir)) {
+                hasChildrenInProgress.set(dir, removePromise);
+            } else {
+                hasChildrenInProgress.set(dir, Promise.all([removePromise, hasChildrenInProgress.get(dir)]) as never as Promise<void>);
+            }
+        }
         return removePromise;
     }
 
@@ -74,6 +84,11 @@ export default function(options: CleanPluginOptions = {}) {
             const loglevel: number | undefined = e['code'] === 'ENOENT' ? undefined : LogLevel.warn;
             logger.finish(`failed cleaning '${normalizedDir}'`, loglevel, e);
         }
+    }
+
+    function cleanup() {
+        inProgress.clear();
+        hasChildrenInProgress.clear();
     }
 }
 

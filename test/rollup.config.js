@@ -43,7 +43,7 @@ export default [{
         entryFileNames: '[name].[hash].js'
     }, {
         format: 'es',
-        dir: 'dest',
+        dir: 'dest/subdir',
         entryFileNames: '[name].[hash].second.js'
     }],
 
