@@ -8,6 +8,7 @@ import { getOptions } from '@rollup-extras/utils/options';
 export default function(options: CleanPluginOptions = {}) {
     const inProgress = new Map<string, Promise<void>>();
     const hasChildrenInProgress = new Map<string, Promise<void>>();
+    let deleted = false;
 
     const normalizedOptions = getOptions(options, {
         pluginName: '@rollup-extras/plugin-clean',
@@ -42,12 +43,18 @@ export default function(options: CleanPluginOptions = {}) {
     }
 
     async function buildStart() {
+        if (deleted) {
+            return;
+        }
         if (targets) {
             await Promise.all(targets.map(removeDir));
         }
     }
 
     async function renderStart(options: OutputOptions) {
+        if (deleted) {
+            return;
+        }
         if (!targets) {
             if (options.dir) {
                 await removeDir(options.dir);
@@ -59,7 +66,7 @@ export default function(options: CleanPluginOptions = {}) {
 
     async function removeDir(dir: string) {
         const normalizedDir = normalizeSlash(path.normalize(dir));
-        if (deleteOnce && inProgress.has(normalizedDir)) {
+        if (inProgress.has(normalizedDir)) {
             return outputPlugin && inProgress.get(normalizedDir);
         }
         const removePromise = doRemove(normalizedDir);
@@ -89,6 +96,7 @@ export default function(options: CleanPluginOptions = {}) {
     function cleanup() {
         inProgress.clear();
         hasChildrenInProgress.clear();
+        deleted = deleteOnce;
     }
 }
 
