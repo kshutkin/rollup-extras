@@ -24,12 +24,12 @@ export default function(options: CleanPluginOptions = {}) {
 
     if (outputPlugin) {
         pluginInstance.renderStart = renderStart;
-        pluginInstance.closeBundle = cleanup;
     } else {
         pluginInstance.buildStart = buildStart;
         pluginInstance.options = optionsHook;
-        pluginInstance.buildEnd = cleanup;
     }
+
+    pluginInstance.generateBundle = cleanup;
 
     return pluginInstance;
 
@@ -64,11 +64,11 @@ export default function(options: CleanPluginOptions = {}) {
         }
         const removePromise = doRemove(normalizedDir);
         inProgress.set(normalizedDir, removePromise);
-        while(((dir = path.dirname(dir)) !== '.') && (dir !== '/')) {
-            if (!hasChildrenInProgress.has(dir)) {
-                hasChildrenInProgress.set(dir, removePromise);
+        for(const parentDir of parentDirs(dir)) {
+            if (!hasChildrenInProgress.has(parentDir)) {
+                hasChildrenInProgress.set(parentDir, removePromise);
             } else {
-                hasChildrenInProgress.set(dir, Promise.all([removePromise, hasChildrenInProgress.get(dir)]) as never as Promise<void>);
+                hasChildrenInProgress.set(parentDir, Promise.all([removePromise, hasChildrenInProgress.get(parentDir)]) as never as Promise<void>);
             }
         }
         return removePromise;
@@ -97,4 +97,10 @@ function normalizeSlash(dir: string): string {
         return `${dir.substring(0, dir.length - 1)}`;
     }
     return dir;
+}
+
+function *parentDirs(dir: string) {
+    while(((dir = path.dirname(dir)) !== '.') && (dir !== '/')) {
+        yield dir;
+    }
 }
