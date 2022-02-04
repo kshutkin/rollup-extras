@@ -107,6 +107,7 @@ describe('@rollup-extras/plugin-clean', () => {
     it('deleteOnce false', async () => {
         const pluginInstance = plugin({deleteOnce: false});
         await (pluginInstance as any).renderStart({dir: '/dist2'});
+        await (pluginInstance as any).generateBundle();
         await (pluginInstance as any).renderStart({dir: '/dist2'});
         expect(fs.rm).toBeCalledTimes(2);
         expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
