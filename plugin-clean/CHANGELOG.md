@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-clean-v1.2.0](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-clean-v1.1.1...@rollup-extras/plugin-clean-v1.2.0) (2022-02-06)
+
+
+### Features
+
+* plugin-clean - cleanup / wait ([#6](https://github.com/kshutkin/rollup-extras/issues/6)) ([9a255e8](https://github.com/kshutkin/rollup-extras/commit/9a255e80998f78a57766147297fed1226433d39d))
+
 # [@rollup-extras/plugin-clean-v1.1.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-clean-v1.1.0...@rollup-extras/plugin-clean-v1.1.1) (2022-01-10)
 
 
