@@ -1,9 +1,10 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { PluginHooks, OutputOptions, RollupOptions } from 'rollup';
+import { NormalizedInputOptions, NormalizedOutputOptions, PluginHooks, RollupOptions } from 'rollup';
 import { CleanPluginOptions } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
 import { getOptions } from '@rollup-extras/utils/options';
+import { multiConfigPluginBase } from '@rollup-extras/utils/mutli-config-plugin-base';
 
 export default function(options: CleanPluginOptions = {}) {
     const inProgress = new Map<string, Promise<void>>();
@@ -19,20 +20,38 @@ export default function(options: CleanPluginOptions = {}) {
     const { pluginName, deleteOnce, verbose, outputPlugin } = normalizedOptions;
     let { targets } = normalizedOptions;
 
-    const pluginInstance = {
-        name: pluginName
-    } as Partial<PluginHooks>;
+    const instance = multiConfigPluginBase(false, pluginName, cleanup);
+    const baseAddInstance = (instance as Required<typeof instance>).api.addInstance;
+    const baseRenderStart = (instance as Required<typeof instance>).renderStart;
 
     if (outputPlugin) {
-        pluginInstance.renderStart = renderStart;
+        instance.renderStart = async function (options: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) {
+            baseRenderStart.call(this, options, inputOptions);
+            await renderStart(options);
+        };
     } else {
-        pluginInstance.buildStart = buildStart;
-        pluginInstance.options = optionsHook;
+        instance.buildStart = buildStart;
+        instance.options = optionsHook;
     }
 
-    pluginInstance.generateBundle = cleanup;
+    instance.api.addInstance = () => {
+        const instance = baseAddInstance() as never as PluginHooks;
+        const baseRenderStart = (instance as Required<typeof instance>).renderStart;
 
-    return pluginInstance;
+        if (outputPlugin) {
+            instance.renderStart = async function (options: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) {
+                baseRenderStart.call(this, options, inputOptions);
+                await renderStart(options);
+            };
+        } else {
+            instance.buildStart = buildStart;
+            instance.options = optionsHook;
+        }
+    
+        return instance;
+    };
+
+    return instance;
 
     async function optionsHook(config: RollupOptions) {
         if (!targets && config) {
@@ -51,7 +70,7 @@ export default function(options: CleanPluginOptions = {}) {
         }
     }
 
-    async function renderStart(options: OutputOptions) {
+    async function renderStart(options: NormalizedOutputOptions) {
         if (deleted) {
             return;
         }
@@ -69,7 +88,16 @@ export default function(options: CleanPluginOptions = {}) {
         if (inProgress.has(normalizedDir)) {
             return outputPlugin && inProgress.get(normalizedDir);
         }
-        const removePromise = doRemove(normalizedDir);
+        let removePromise: Promise<void>;
+        let parentsInProgress: string[];
+        if (hasChildrenInProgress.has(dir)) {
+            removePromise = Promise.resolve(hasChildrenInProgress.get(dir))
+                .then(() => doRemove(normalizedDir));
+        } else if ((parentsInProgress = Array.from(parentDirs(dir)).filter(item => inProgress.has(item))).length > 0) {
+            return inProgress.get(parentsInProgress[0]);
+        } else {
+            removePromise = doRemove(normalizedDir);
+        }
         inProgress.set(normalizedDir, removePromise);
         for(const parentDir of parentDirs(dir)) {
             if (!hasChildrenInProgress.has(parentDir)) {

@@ -1,6 +1,6 @@
-import "@niceties/draftlog-appender";
+// import "@niceties/draftlog-appender";
 // import { appender } from "@niceties/logger";
-import clean from '@rollup-extras/plugin-clean';
+import cleanPlugin from '@rollup-extras/plugin-clean';
 import copy from '@rollup-extras/plugin-copy';
 import html from '@rollup-extras/plugin-html';
 import serve from '@rollup-extras/plugin-serve';
@@ -34,6 +34,8 @@ const server = serve({host: 'localhost', https: {
     key: fs.readFileSync('cert/key.pem'),
 }})
 
+const clean = cleanPlugin({verbose: true, deleteOnce: true});
+
 export default [{
 	input,
 
@@ -48,7 +50,7 @@ export default [{
     }],
 
 	plugins: [
-        clean({ verbose: true }),
+        clean,
         copy({ targets: ['src/test/index.html', 'src/test.css'], verbose: true }),
         htmlPluginInstance,
         server
@@ -63,7 +65,7 @@ export default [{
         chunkFileNames: '[name].cjs'
     },
 
-	plugins: [clean(), copy('./assets/**/*.json'), htmlPluginInstance.api.addInstance(), server.api.addInstance()],
+	plugins: [clean.api.addInstance(), copy('./assets/**/*.json'), htmlPluginInstance.api.addInstance(), server.api.addInstance()],
 }, {
     input,
     output: {
@@ -71,7 +73,7 @@ export default [{
         dir: './dest4',
         entryFileNames: '[name].umd.js',
         name: 'test',
-        plugins: [clean(), copy({ src: './assets/**/*.json', outputPlugin: true }), htmlPluginInstance.api.addInstance(), server.api.addInstance()],
+        plugins: [clean.api.addInstance(), copy({ src: './assets/**/*.json', outputPlugin: true }), htmlPluginInstance.api.addInstance(), server.api.addInstance()],
         sourcemap: true
     }
 }];
