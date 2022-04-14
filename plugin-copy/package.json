@@ -68,7 +68,7 @@
   "dependencies": {
     "@types/glob": "^7.2.0",
     "@types/glob-parent": "^5.1.1",
-    "@niceties/logger": "^1.1.0",
+    "@niceties/logger": "^1.1.3",
     "glob": "^7.2.0",
     "glob-parent": "^6.0.2",
     "glob-promise": "^4.2.2",
