@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-serve-v1.1.2](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-serve-v1.1.1...@rollup-extras/plugin-serve-v1.1.2) (2022-04-23)
+
+
+### Bug Fixes
+
+* upgrade @niceties/logger from 1.1.1 to 1.1.3 ([#10](https://github.com/kshutkin/rollup-extras/issues/10)) ([8244686](https://github.com/kshutkin/rollup-extras/commit/824468686bfecc53124a0da3f9450d875055db84))
+
 # [@rollup-extras/plugin-serve-v1.1.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-serve-v1.1.0...@rollup-extras/plugin-serve-v1.1.1) (2022-01-10)
 
 
