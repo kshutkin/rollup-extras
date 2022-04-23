@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-copy-v1.2.3](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.2.2...@rollup-extras/plugin-copy-v1.2.3) (2022-04-23)
+
+
+### Bug Fixes
+
+* upgrade @niceties/logger from 1.1.1 to 1.1.3 ([#11](https://github.com/kshutkin/rollup-extras/issues/11)) ([e1dca1a](https://github.com/kshutkin/rollup-extras/commit/e1dca1aad32a63c8c8b82f06b87b0a59c49be307))
+
 # [@rollup-extras/plugin-copy-v1.2.2](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.2.1...@rollup-extras/plugin-copy-v1.2.2) (2022-01-10)
 
 
