@@ -29,7 +29,7 @@
   "bugs": {
     "url": "https://github.com/kshutkin/rollup-extras/issues"
   },
-  "homepage": "https://github.com/kshutkin/rollup-extras/plugin-html/README.md",
+  "homepage": "https://github.com/kshutkin/rollup-extras/blob/main/plugin-html/README.md",
   "readme": "README.md",
   "description": "Rollup plugin to inject assets names into html template.",
   "keywords": [

@@ -44,7 +44,7 @@
   "bugs": {
     "url": "https://github.com/kshutkin/rollup-extras/issues"
   },
-  "homepage": "https://github.com/kshutkin/rollup-extras/utils/README.md",
+  "homepage": "https://github.com/kshutkin/rollup-extras/blob/main/utils/README.md",
   "readme": "README.md",
   "description": "Utils to support creation of rollup plugins.",
   "keywords": [
