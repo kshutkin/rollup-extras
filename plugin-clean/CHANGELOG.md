@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-clean-v1.2.2](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-clean-v1.2.1...@rollup-extras/plugin-clean-v1.2.2) (2022-05-16)
+
+
+### Bug Fixes
+
+* homepage url ([4b8b847](https://github.com/kshutkin/rollup-extras/commit/4b8b847e162318d293e01a2c0c10cc32d6743c73))
+
 # [@rollup-extras/plugin-clean-v1.2.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-clean-v1.2.0...@rollup-extras/plugin-clean-v1.2.1) (2022-04-23)
 
 
