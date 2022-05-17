@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/utils-v1.2.2](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/utils-v1.2.1...@rollup-extras/utils-v1.2.2) (2022-05-16)
+
+
+### Bug Fixes
+
+* homepage link ([155615e](https://github.com/kshutkin/rollup-extras/commit/155615e0129e6247d45925589bd8133b56fc088d))
+
 # [@rollup-extras/utils-v1.2.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/utils-v1.2.0...@rollup-extras/utils-v1.2.1) (2022-04-23)
 
 
