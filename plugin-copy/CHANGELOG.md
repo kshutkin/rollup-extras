@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-copy-v1.2.7](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.2.6...@rollup-extras/plugin-copy-v1.2.7) (2022-06-09)
+
+
+### Bug Fixes
+
+* upgrade glob from 7.2.2 to 7.2.3 ([#29](https://github.com/kshutkin/rollup-extras/issues/29)) ([5ce1a1e](https://github.com/kshutkin/rollup-extras/commit/5ce1a1e68f43478999d57f8f9b813ffa23bddc75))
+
 # [@rollup-extras/plugin-copy-v1.2.6](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.2.5...@rollup-extras/plugin-copy-v1.2.6) (2022-06-04)
 
 
