@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-copy-v1.2.8](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.2.7...@rollup-extras/plugin-copy-v1.2.8) (2022-06-26)
+
+
+### Bug Fixes
+
+* **docs:** fixed outputPlugin option description ([cf8688b](https://github.com/kshutkin/rollup-extras/commit/cf8688bd1052cb50f92b2dc4aa5e4cfdb6b35f7d))
+
 # [@rollup-extras/plugin-copy-v1.2.7](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.2.6...@rollup-extras/plugin-copy-v1.2.7) (2022-06-09)
 
 
