@@ -10,3 +10,4 @@ Collection of rollup plugins
 - [plugin-copy](./plugin-copy)
 - [plugin-html](./plugin-html)
 - [plugin-serve](./plugin-serve)
+- [plugin-binify](./plugin-binify)
