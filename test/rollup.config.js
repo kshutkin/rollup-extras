@@ -4,6 +4,7 @@ import cleanPlugin from '@rollup-extras/plugin-clean';
 import copy from '@rollup-extras/plugin-copy';
 import html from '@rollup-extras/plugin-html';
 import serve from '@rollup-extras/plugin-serve';
+import binify from '@rollup-extras/plugin-binify';
 import crypto from 'crypto';
 import sb from 'simply-beautiful';
 import fs from 'fs';
@@ -74,6 +75,16 @@ export default [{
         entryFileNames: '[name].umd.js',
         name: 'test',
         plugins: [clean.api.addInstance(), copy({ src: './assets/**/*.json', outputPlugin: true }), htmlPluginInstance.api.addInstance(), server.api.addInstance()],
+        sourcemap: true
+    }
+}, {
+    input,
+    output: {
+        format: 'cjs',
+        dir: './dest5',
+        entryFileNames: '[name].js',
+        chunkFileNames: '[name].cjs',
+        plugins: [clean.api.addInstance(), copy({ src: './assets/**/*.json', outputPlugin: true }), htmlPluginInstance.api.addInstance(), server.api.addInstance(), binify({verbose: true})],
         sourcemap: true
     }
 }];
