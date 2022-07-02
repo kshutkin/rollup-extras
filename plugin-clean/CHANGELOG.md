@@ -1,5 +1,26 @@
 Changelog
 
+# [@rollup-extras/plugin-clean-v1.2.3](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-clean-v1.2.2...@rollup-extras/plugin-clean-v1.2.3) (2022-05-17)
+
+
+### Bug Fixes
+
+* Update dependencies ([#14](https://github.com/kshutkin/rollup-extras/issues/14)) ([2a27db0](https://github.com/kshutkin/rollup-extras/commit/2a27db04bb31c73d4480a6d0a42006b588f8c19d))
+
+# [@rollup-extras/plugin-clean-v1.2.2](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-clean-v1.2.1...@rollup-extras/plugin-clean-v1.2.2) (2022-05-16)
+
+
+### Bug Fixes
+
+* homepage url ([4b8b847](https://github.com/kshutkin/rollup-extras/commit/4b8b847e162318d293e01a2c0c10cc32d6743c73))
+
+# [@rollup-extras/plugin-clean-v1.2.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-clean-v1.2.0...@rollup-extras/plugin-clean-v1.2.1) (2022-04-23)
+
+
+### Bug Fixes
+
+* upgrade @niceties/logger from 1.1.1 to 1.1.3 ([#8](https://github.com/kshutkin/rollup-extras/issues/8)) ([04a67c0](https://github.com/kshutkin/rollup-extras/commit/04a67c065622a10132663a00cffa2d11e0621305))
+
 # [@rollup-extras/plugin-clean-v1.2.0](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-clean-v1.1.1...@rollup-extras/plugin-clean-v1.2.0) (2022-02-06)
 
 

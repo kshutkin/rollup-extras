@@ -118,14 +118,14 @@ copy({ src: 'assets/*', exactFileNames: false })
 copy({ targets: ['assets/*'], exactFileNames: false })
 ```
 
-To work as output plugin use `outputPlugin` = `false` option (watch mode will be disabled because of `rollup` limitations):
+To work as output plugin use `outputPlugin` = `true` option (watch mode will be disabled because of `rollup` limitations):
 
 ```javascript
-copy({ src: 'assets/*', outputPlugin: false })
+copy({ src: 'assets/*', outputPlugin: true })
 
 // or
 
-copy({ targets: ['assets/*'], outputPlugin: false })
+copy({ targets: ['assets/*'], outputPlugin: true })
 ```
 
 To stop files being emitted through rollup pipeline use can use `emitFiles` = `false`. Please note that you need to specify `dest` and it will not be relative to output directory, also file will not be copied into each output directory.

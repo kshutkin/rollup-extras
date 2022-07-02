@@ -1,5 +1,26 @@
 Changelog
 
+# [@rollup-extras/plugin-html-v1.2.3](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-html-v1.2.2...@rollup-extras/plugin-html-v1.2.3) (2022-05-17)
+
+
+### Bug Fixes
+
+* Update dependencies ([#14](https://github.com/kshutkin/rollup-extras/issues/14)) ([2a27db0](https://github.com/kshutkin/rollup-extras/commit/2a27db04bb31c73d4480a6d0a42006b588f8c19d))
+
+# [@rollup-extras/plugin-html-v1.2.2](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-html-v1.2.1...@rollup-extras/plugin-html-v1.2.2) (2022-05-16)
+
+
+### Bug Fixes
+
+* homepage link ([155615e](https://github.com/kshutkin/rollup-extras/commit/155615e0129e6247d45925589bd8133b56fc088d))
+
+# [@rollup-extras/plugin-html-v1.2.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-html-v1.2.0...@rollup-extras/plugin-html-v1.2.1) (2022-04-23)
+
+
+### Bug Fixes
+
+* upgrade @niceties/logger from 1.1.1 to 1.1.3 ([#12](https://github.com/kshutkin/rollup-extras/issues/12)) ([f891527](https://github.com/kshutkin/rollup-extras/commit/f8915271fcdd3269f1b1b7336ec1128e37c6ad1b))
+
 # [@rollup-extras/plugin-html-v1.2.0](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-html-v1.1.1...@rollup-extras/plugin-html-v1.2.0) (2022-01-10)
 
 
