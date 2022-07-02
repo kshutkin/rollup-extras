@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-copy-v1.2.9](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.2.8...@rollup-extras/plugin-copy-v1.2.9) (2022-07-02)
+
+
+### Bug Fixes
+
+* remove funding ([950fc9e](https://github.com/kshutkin/rollup-extras/commit/950fc9e7a3d0c0dc264f7dbe593294aec9717cf1))
+
 # [@rollup-extras/plugin-copy-v1.2.8](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.2.7...@rollup-extras/plugin-copy-v1.2.8) (2022-06-26)
 
 
