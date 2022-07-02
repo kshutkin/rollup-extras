@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-html-v1.2.4](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-html-v1.2.3...@rollup-extras/plugin-html-v1.2.4) (2022-07-02)
+
+
+### Bug Fixes
+
+* remove funding ([950fc9e](https://github.com/kshutkin/rollup-extras/commit/950fc9e7a3d0c0dc264f7dbe593294aec9717cf1))
+
 # [@rollup-extras/plugin-html-v1.2.3](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-html-v1.2.2...@rollup-extras/plugin-html-v1.2.3) (2022-05-17)
 
 
