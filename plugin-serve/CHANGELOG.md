@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-serve-v1.1.5](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-serve-v1.1.4...@rollup-extras/plugin-serve-v1.1.5) (2022-07-02)
+
+
+### Bug Fixes
+
+* remove funding ([950fc9e](https://github.com/kshutkin/rollup-extras/commit/950fc9e7a3d0c0dc264f7dbe593294aec9717cf1))
+
 # [@rollup-extras/plugin-serve-v1.1.4](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-serve-v1.1.3...@rollup-extras/plugin-serve-v1.1.4) (2022-05-17)
 
 
