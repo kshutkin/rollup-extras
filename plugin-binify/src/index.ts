@@ -17,22 +17,24 @@ export default function(options: BinifyPluginOptions = {}) {
         pluginName: '@rollup-extras/plugin-binify',
         verbose: false,
         shebang: '#!/usr/bin/env node',
-        executableFlag: 0o755,
+        executableFlag: process.platform === 'win32' ? false : 0o755,
         filter: (item: OutputAsset | OutputChunk) => item.type === 'chunk' && item.isEntry
     }, factories);
 
-    let initialDir = '';
+    let initialDir = '', countFiles: number;
 
     return <Partial<PluginHooks>>{
         name: pluginName,
         renderStart(this: PluginContext, outputOptions: NormalizedOutputOptions) {
             initialDir = outputOptions.dir || '';
+            countFiles = 0;
             logger.start(`using ${initialDir} as output directory for ${pluginName}`, verbose ? LogLevel.info : LogLevel.verbose);
         },
         generateBundle(this: PluginContext, _options: NormalizedOutputOptions, bundle: OutputBundle) {
             for (const key in bundle) {
                 const item: OutputAsset | OutputChunk = bundle[key];
                 if (filter(item)) {
+                    ++countFiles;
                     if (item.type === 'chunk') {
                         if (item.map) {
                             item.map.mappings = ''.padEnd(count(shebang, '\n'), ';') + item.map.mappings;
@@ -43,18 +45,27 @@ export default function(options: BinifyPluginOptions = {}) {
                     }
                     logger.update(`${item.fileName} added shebang`);
                 }
+                if (typeof executableFlag !== 'number') {
+                    logger.finish('added shebangs');
+                }
             }
         },
         async writeBundle(this: PluginContext, _options: NormalizedOutputOptions, bundle: OutputBundle) {
-            for (const key in bundle) {
-                const item: OutputAsset | OutputChunk = bundle[key];
-                if (filter(item)) {
-                    const fileName = path.join(initialDir, item.fileName);
-                    try {
-                        await fs.chmod(fileName, executableFlag);
-                        logger.finish(`${item.fileName} made executable`);
-                    } catch (e) {
-                        logger.finish(`fs failed setting executable flag on ${fileName}`, LogLevel.error, e);
+            if (executableFlag !== false) {
+                for (const key in bundle) {
+                    const item: OutputAsset | OutputChunk = bundle[key];
+                    if (filter(item)) {
+                        --countFiles;
+                        const fileName = path.join(initialDir, item.fileName);
+                        try {
+                            await fs.chmod(fileName, executableFlag);
+                            logger.update(`${item.fileName} made executable`);
+                        } catch (e) {
+                            logger(`fs failed setting executable flag on ${fileName}`, LogLevel.error, e);
+                        }
+                        if (countFiles === 0) {
+                            logger.finish('binify completed');
+                        }
                     }
                 }
             }

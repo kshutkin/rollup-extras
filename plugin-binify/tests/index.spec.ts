@@ -2,21 +2,33 @@ import fs from 'fs/promises';
 import { createLogger, LogLevel } from '@niceties/logger';
 import plugin from '../src';
 
-let loggerStart: jest.Mock, loggerFinish: jest.Mock, loggerUpdate: jest.Mock;
+let loggerStart: jest.Mock, loggerFinish: jest.Mock, loggerUpdate: jest.Mock, log: jest.Mock;
 
 jest.mock('fs/promises');
 jest.mock('@niceties/logger', () => ({
-    createLogger: jest.fn(() => ({
+    createLogger: jest.fn(() => (Object.assign(log = jest.fn(), {
         start: (loggerStart = jest.fn()),
         finish: (loggerFinish = jest.fn()),
         update: (loggerUpdate = jest.fn())
-    }))
+    })))
 }));
+
+const realPlatform = process.platform;
 
 describe('@rollup-extras/plugin-binify', () => {
     beforeEach(() => {
+        jest.resetModules();
+        Object.defineProperty(process, 'platform', {
+            value: 'linux'
+        });
         (fs.chmod as jest.Mock<ReturnType<typeof fs.rm>, Parameters<typeof fs.rm>>).mockClear();
         (createLogger as jest.Mock<ReturnType<typeof createLogger>, Parameters<typeof createLogger>>).mockClear();
+    });
+
+    afterAll(() => {
+        Object.defineProperty(process, 'platform', {
+            value: realPlatform
+        });
     });
 
     it('smoke', () => {
@@ -49,7 +61,68 @@ describe('@rollup-extras/plugin-binify', () => {
         expect(loggerStart).toHaveBeenCalledTimes(1);
         expect(loggerStart).toBeCalledWith(expect.any(String), LogLevel.verbose);
         expect(loggerFinish).toHaveBeenCalledTimes(1);
-        expect(loggerUpdate).toHaveBeenCalledTimes(1);
+        expect(loggerUpdate).toHaveBeenCalledTimes(2);
+        expect(chunk.map.mappings).toEqual(';;');
+        expect(chunk.code).toEqual('#!/usr/bin/env node\nconst test = 1;');
+    });
+
+    it('executableFlag: false', async () => {
+        const pluginInstance = plugin({ executableFlag: false });
+        const chunk = {
+            type: 'chunk',
+            isEntry: true,
+            code: 'const test = 1;',
+            map: {
+                mappings: ';'
+            }
+        };
+        await (pluginInstance as any).renderStart({ dir: '/dist2' });
+        await (pluginInstance as any).generateBundle({}, {
+            'index.js': chunk
+        });
+        await (pluginInstance as any).writeBundle({}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true,
+                fileName: 'index.js'
+            }
+        });
+        expect(fs.chmod).toBeCalledTimes(0);
+        expect(loggerStart).toHaveBeenCalledTimes(1);
+        expect(loggerStart).toBeCalledWith(expect.any(String), LogLevel.verbose);
+        expect(loggerFinish).toHaveBeenCalledTimes(1);
+        expect(chunk.map.mappings).toEqual(';;');
+        expect(chunk.code).toEqual('#!/usr/bin/env node\nconst test = 1;');
+    });
+
+    it('win32', async () => {
+        Object.defineProperty(process, 'platform', {
+            value: 'win32'
+        });
+        const pluginInstance = plugin();
+        const chunk = {
+            type: 'chunk',
+            isEntry: true,
+            code: 'const test = 1;',
+            map: {
+                mappings: ';'
+            }
+        };
+        await (pluginInstance as any).renderStart({ dir: '/dist2' });
+        await (pluginInstance as any).generateBundle({}, {
+            'index.js': chunk
+        });
+        await (pluginInstance as any).writeBundle({}, {
+            'index.js': {
+                type: 'chunk',
+                isEntry: true,
+                fileName: 'index.js'
+            }
+        });
+        expect(fs.chmod).toBeCalledTimes(0);
+        expect(loggerStart).toHaveBeenCalledTimes(1);
+        expect(loggerStart).toBeCalledWith(expect.any(String), LogLevel.verbose);
+        expect(loggerFinish).toHaveBeenCalledTimes(1);
         expect(chunk.map.mappings).toEqual(';;');
         expect(chunk.code).toEqual('#!/usr/bin/env node\nconst test = 1;');
     });
@@ -259,6 +332,6 @@ describe('@rollup-extras/plugin-binify', () => {
                 fileName: 'index.js'
             }
         });
-        expect(loggerFinish).toBeCalledWith(expect.any(String), LogLevel.error, error);
+        expect(log).toBeCalledWith(expect.any(String), LogLevel.error, error);
     });
 });
