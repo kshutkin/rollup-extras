@@ -5,7 +5,6 @@
   "author": {
     "name": "Konstantin Shutkin"
   },
-  "funding": "https://www.donationalerts.com/r/excitingcode",
   "type": "module",
   "exports": {
     ".": {
