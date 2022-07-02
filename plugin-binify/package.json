@@ -2,13 +2,16 @@
   "version": "1.0.0",
   "license": "MIT",
   "name": "@rollup-extras/plugin-binify",
-  "author": "Konstantin Shutkin",
+  "author": {
+    "name": "Konstantin Shutkin"
+  },
   "type": "module",
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
       "default": "./dist/index.mjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
