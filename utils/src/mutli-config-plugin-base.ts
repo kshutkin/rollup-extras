@@ -1,6 +1,6 @@
 import { NormalizedOutputOptions, OutputBundle, PluginContext, PluginHooks } from 'rollup';
 
-type ExecuteFn = (this: PluginContext, options: NormalizedOutputOptions, bundle: OutputBundle) => void;
+type ExecuteFn = (this: PluginContext, options: NormalizedOutputOptions, bundle: OutputBundle) => void | Promise<void>;
 type OnFinalHook = (this: PluginContext, options: NormalizedOutputOptions, bundle: OutputBundle, remainingConfigsCount: number, remainingOutputsCount: number) => void | Promise<void>;
 
 export function multiConfigPluginBase(useWriteBundle: boolean, pluginName: string, execute: ExecuteFn, onFinalHook?: OnFinalHook): Partial<PluginHooks> & { api: { addInstance(): void } } {
@@ -27,7 +27,7 @@ export function multiConfigPluginBase(useWriteBundle: boolean, pluginName: strin
         const configId = ++configsCount;
         configs.add(configId);
 
-        const instance = {
+        return {
             name: `${pluginName}#${configId}`,
 
             renderStart: () => {
@@ -37,8 +37,6 @@ export function multiConfigPluginBase(useWriteBundle: boolean, pluginName: strin
 
             [finalHook]: writeBundle
         } as Partial<PluginHooks>;
-    
-        return instance;
     }
 
     function renderStart() {
