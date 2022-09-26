@@ -52,7 +52,7 @@ export default [{
 
 	plugins: [
         clean,
-        copy({ targets: ['src/test/index.html', 'src/test.css'], verbose: true }),
+        copy({ targets: ['src/test/index.html', 'src/test.css'], verbose: 'list-filenames' }),
         htmlPluginInstance,
         server
     ],

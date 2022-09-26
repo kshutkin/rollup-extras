@@ -3,7 +3,7 @@ import path from 'path';
 import glob from 'glob-promise';
 import globParent from 'glob-parent';
 import { PluginContext, PluginHooks } from 'rollup';
-import { CopyPluginOptions, SingleTargetDesc } from './types';
+import { CopyPluginOptions, NonTargetOptions, SingleTargetDesc } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
 import { getOptions } from '@rollup-extras/utils/options';
 import logger from '@rollup-extras/utils/logger';
@@ -13,6 +13,8 @@ type FileDesc = { dest: string[], copied: string[], timestamp: number };
 type Logger = ReturnType<typeof createLogger>;
 
 const factories = { targets, logger } as unknown as { targets: () => SingleTargetDesc[], logger: () => Logger };
+
+const listFilenames = 'list-filenames';
 
 export default function(options: CopyPluginOptions) {
     const files = new Map<string, {
@@ -25,7 +27,7 @@ export default function(options: CopyPluginOptions) {
         pluginName: '@rollup-extras/plugin-copy',
         copyOnce: true,
         flattern: false,
-        verbose: false,
+        verbose: false as NonTargetOptions['verbose'],
         exactFileNames: true,
         watch: true,
         emitFiles: true,
@@ -54,7 +56,7 @@ export default function(options: CopyPluginOptions) {
             const results = await Promise.all((targets as SingleTargetDesc[]).map(target => glob(target.src, { ignore: target.exclude })
                 .then((result: string[]) => ({
                     src: result,
-                    dest: target.dest ? target.dest as string: '',
+                    dest: target.dest ? target.dest : '',
                     parent: globParent(target.src)
                 }))));
 
@@ -82,9 +84,10 @@ export default function(options: CopyPluginOptions) {
                 }
             }
 
-            const statistics: string[] = [];
+            const statisticsCollector = statistics(verbose);
             logger.start('coping files', verbose ? LogLevel.info : LogLevel.verbose);
             for (const [fileName, fileDesc] of files) {
+                let source: Buffer | undefined;
                 try {
                     const fileStat = await fs.stat(fileName);
                     if (!fileStat.isFile() && !fileStat.isSymbolicLink()) {
@@ -95,17 +98,22 @@ export default function(options: CopyPluginOptions) {
                         fileDesc.timestamp = timestamp;
                         fileDesc.copied = [];
                     }
-                    let source: Buffer | undefined;
                     if (emitFiles) {
                         source = await fs.readFile(fileName);
                     }
-                    for (const dest of fileDesc.dest) {
-                        if (copyOnce && fileDesc.copied.includes(dest)) {
-                            continue;
-                        }
-                        const baseName = path.basename(fileName);
-                        // path.join removes ./ from the beginning, that's needed for rollup name/fileName fields
-                        const destFileName = path.join(dest, baseName);
+                } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+                    const loglevel: number | undefined = e['code'] === 'ENOENT' ? undefined : LogLevel.warn;
+                    logger(`error reading file ${fileName}`, loglevel, e);
+                    continue;
+                }
+                for (const dest of fileDesc.dest) {
+                    if (copyOnce && fileDesc.copied.includes(dest)) {
+                        continue;
+                    }
+                    const baseName = path.basename(fileName);
+                    // path.join removes ./ from the beginning, that's needed for rollup name/fileName fields
+                    const destFileName = path.join(dest, baseName);
+                    try {
                         if (emitFiles) {
                             (this as unknown as PluginContext).emitFile({
                                 type: 'asset',
@@ -116,16 +124,36 @@ export default function(options: CopyPluginOptions) {
                             await fs.mkdir(path.dirname(destFileName), { recursive: true });
                             await fs.copyFile(fileName, destFileName);
                         }
-                        statistics.push(baseName);
+                        if (verbose === listFilenames) {
+                            logger(`\t${fileName} → ${destFileName}`, LogLevel.info);
+                        }
+                        statisticsCollector(baseName);
                         fileDesc.copied.push(dest);
+                    } catch (e) {
+                        logger(`error copying file ${fileName} → ${destFileName}`, LogLevel.warn, e);
                     }
-                } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-                    const loglevel: number | undefined = e['code'] === 'ENOENT' ? undefined : LogLevel.warn;
-                    logger(`error reading file ${fileName}`, loglevel, e);
                 }
             }
-            logger.finish(`copied ${statistics.length > 5 ? statistics.length + ' files' : statistics.join(', ')}`);
+            logger.finish(statisticsCollector() as string);
         }
+    };
+}
+
+function statistics(verbosity: NonTargetOptions['verbose']) {
+    let count = 0, names: string[] | null = verbosity === listFilenames ? null : [];
+    return (name?: string): undefined | string => {
+        if (name != null) {
+            count ++;
+            if (names) {
+                if (count > 5) {
+                    names = null;
+                } else {
+                    names.push(name);
+                }
+            }
+            return;
+        }
+        return `copied ${!names ? count + ' files' : names.join(', ')}`;
     };
 }
 

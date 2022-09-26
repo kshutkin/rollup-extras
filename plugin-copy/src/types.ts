@@ -11,7 +11,7 @@ export type NonTargetOptions = {
     pluginName?: string,
     copyOnce?: boolean,
     watch?: boolean,
-    verbose?: boolean,
+    verbose?: boolean | 'list-filenames',
     flattern?: boolean,
     exactFileNames?: boolean,
     outputPlugin?: boolean,

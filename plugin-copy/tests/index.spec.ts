@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import fs from 'fs/promises';
 import glob from 'glob-promise';
 import globParent from 'glob-parent';
@@ -11,7 +12,7 @@ jest.mock('fs/promises');
 jest.mock('glob-promise');
 jest.mock('glob-parent');
 jest.mock('@niceties/logger', () => ({
-    createLogger: jest.fn(() => Object.assign((logger =jest.fn()), {
+    createLogger: jest.fn(() => Object.assign((logger = jest.fn()), {
         start: (loggerStart = jest.fn()),
         finish: (loggerFinish = jest.fn())
     }))
@@ -331,12 +332,37 @@ describe('@rollup-extras/plugin-copy', () => {
         expect(loggerFinish).toBeCalledWith('copied test.json, test2.json');
     });
 
+    it('verbose: list-filenames', async () => {
+        const pluginInstance = plugin({ src: 'assets/**/*.json', verbose: 'list-filenames' });
+        await (pluginInstance as any).buildStart.apply(rollupContextMock);
+        expect(loggerStart).toBeCalledWith('coping files', LogLevel.info);
+        expect(logger).toBeCalledWith('\tassets/aFolder/test.json → aFolder/test.json', LogLevel.info);
+        expect(logger).toBeCalledWith('\tassets/aFolder/test2.json → aFolder/test2.json', LogLevel.info);
+        expect(loggerFinish).toBeCalledWith('copied 2 files');
+    });
+
+    it('readFile exception', async () => {
+        (fs.readFile as jest.Mock<ReturnType<typeof fs.readFile>, Parameters<typeof fs.readFile>>)
+            .mockImplementationOnce(() => { throw { stack: '' }; });
+        const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: true });
+        await (pluginInstance as any).buildStart.apply(rollupContextMock);
+        expect(logger).toBeCalledWith('error reading file assets/aFolder/test.json', LogLevel.warn, expect.objectContaining({ stack: '' }));
+    });
+
+    it('missing file exception', async () => {
+        (fs.readFile as jest.Mock<ReturnType<typeof fs.readFile>, Parameters<typeof fs.readFile>>)
+            .mockImplementationOnce(() => { throw { code: 'ENOENT', stack: '' }; });
+        const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: true });
+        await (pluginInstance as any).buildStart.apply(rollupContextMock);
+        expect(logger).toBeCalledWith('error reading file assets/aFolder/test.json', undefined, expect.objectContaining({ code: 'ENOENT', stack: '' }));
+    });
+
     it('exception', async () => {
         (fs.copyFile as jest.Mock<ReturnType<typeof fs.copyFile>, Parameters<typeof fs.copyFile>>)
             .mockImplementationOnce(() => { throw { stack: '' }; });
         const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
         await (pluginInstance as any).buildEnd.apply(rollupContextMock);
-        expect(logger).toBeCalledWith('error reading file assets/aFolder/test.json', LogLevel.warn, expect.objectContaining({ stack: '' }));
+        expect(logger).toBeCalledWith('error copying file assets/aFolder/test.json → aFolder/test.json', LogLevel.warn, expect.objectContaining({ stack: '' }));
     });
 
     it('missing directory exception', async () => {
@@ -344,7 +370,7 @@ describe('@rollup-extras/plugin-copy', () => {
             .mockImplementationOnce(() => { throw { code: 'ENOENT', stack: '' }; });
         const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
         await (pluginInstance as any).buildEnd.apply(rollupContextMock);
-        expect(logger).toBeCalledWith('error reading file assets/aFolder/test.json', undefined, expect.objectContaining({ code: 'ENOENT', stack: '' }));
+        expect(logger).toBeCalledWith('error copying file assets/aFolder/test.json → aFolder/test.json', LogLevel.warn, expect.objectContaining({ code: 'ENOENT', stack: '' }));
     });
 
     it('statistics', async () => {

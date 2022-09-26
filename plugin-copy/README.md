@@ -168,7 +168,7 @@ type CopyPluginOptions = {
     pluginName?: string, // defaults to '@rollup-extras/plugin-copy'
     copyOnce?: boolean, // true by default
     watch?: boolean, // true by default
-    verbose?: boolean, // false by default
+    verbose?: boolean | 'list-filenames', // false by default
     flattern?: boolean, // false by default
     exactFileNames?: boolean, // true by default
     outputPlugin?: boolean, // false by default
