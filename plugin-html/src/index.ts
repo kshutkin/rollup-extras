@@ -84,7 +84,7 @@ export default function(options: HtmlPluginOptions = {}) {
         logger('started collecting information', LogLevel.verbose);
         initialDir = outputOptions.dir || '';
         fileNameInInitialDir = path.join(initialDir, outputFile);
-        return baseRenderStart.call(this, outputOptions, inputOptions);
+        return (baseRenderStart as (this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) => void | Promise<void>).call(this, outputOptions, inputOptions);
     };
 
     instance.api.addInstance = () => {
@@ -230,7 +230,7 @@ export default function(options: HtmlPluginOptions = {}) {
                                 useConditionalLoading ??= !!(((assets.iife  as AssetDescriptor[]).length 
                                     || (assets.umd as AssetDescriptor[]).length) 
                                     && (assets.es as AssetDescriptor[]).length);
-                                return (options.format === 'iife' || options.format === 'umd') ? getNonModuleScriptElement(assetPath, useConditionalLoading as boolean) : getModuleScriptElement(assetPath);
+                                return (options.format === 'iife' || options.format === 'umd') ? getNonModuleScriptElement(assetPath, !!useConditionalLoading) : getModuleScriptElement(assetPath);
                             },
                             head: injectIntoHead(relativeToRootAssetPath),
                             type: 'asset'
@@ -297,11 +297,11 @@ function predicateFactory(options: {injectIntoHead?: boolean | AssetPredicate | 
 
 function toAssetPredicate(sourceOption: boolean | AssetPredicate | RegExp): AssetPredicate | undefined {
     if (typeof sourceOption === 'boolean') {
-        return () => sourceOption as boolean;
+        return () => sourceOption;
     } else if (typeof sourceOption === 'function') {
-        return sourceOption as AssetPredicate;
+        return sourceOption;
     } else if (sourceOption instanceof RegExp) {
-        return (fileName: string) => (sourceOption as RegExp).test(fileName);
+        return (fileName: string) => sourceOption.test(fileName);
     }
     return undefined;
 }

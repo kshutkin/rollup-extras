@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { NormalizedInputOptions, NormalizedOutputOptions, PluginHooks, RollupOptions } from 'rollup';
+import { NormalizedInputOptions, NormalizedOutputOptions, PluginContext, PluginHooks, RollupOptions } from 'rollup';
 import { CleanPluginOptions } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
 import { getOptions } from '@rollup-extras/utils/options';
@@ -26,7 +26,7 @@ export default function(options: CleanPluginOptions = {}) {
 
     if (outputPlugin) {
         instance.renderStart = async function (options: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) {
-            baseRenderStart.call(this, options, inputOptions);
+            (baseRenderStart as (this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) => void | Promise<void>).call(this, options, inputOptions);
             await renderStart(options);
         };
     } else {
@@ -40,7 +40,7 @@ export default function(options: CleanPluginOptions = {}) {
 
         if (outputPlugin) {
             instance.renderStart = async function (options: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) {
-                baseRenderStart.call(this, options, inputOptions);
+                (baseRenderStart as (this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) => void | Promise<void>).call(this, options, inputOptions);
                 await renderStart(options);
             };
         } else {

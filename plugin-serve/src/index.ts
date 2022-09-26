@@ -43,7 +43,7 @@ export default function(options: ServePluginOptions = {}) {
     return pluginInstance;
 
     function renderStart(this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) {
-        (instance as Required<typeof instance>).renderStart.call(this, outputOptions, inputOptions);
+        ((instance as Required<typeof instance>).renderStart as (this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) => void | Promise<void>).call(this, outputOptions, inputOptions);
         if (collectDirs) {
             if (outputOptions.dir) {
                 (dirs as string[]).push(outputOptions.dir);
