@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-copy-v1.4.0](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.3.1...@rollup-extras/plugin-copy-v1.4.0) (2022-09-26)
+
+
+### Features
+
+* list filenames (for some ci scenarios) ([ec88a5c](https://github.com/kshutkin/rollup-extras/commit/ec88a5cd3179be476a8d0a4946eb4b08af7762dd))
+
 # [@rollup-extras/plugin-copy-v1.3.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.3.0...@rollup-extras/plugin-copy-v1.3.1) (2022-08-19)
 
 
