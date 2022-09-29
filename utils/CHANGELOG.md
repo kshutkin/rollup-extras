@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/utils-v1.2.5](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/utils-v1.2.4...@rollup-extras/utils-v1.2.5) (2022-09-26)
+
+
+### Bug Fixes
+
+* execute function type ([c4138f6](https://github.com/kshutkin/rollup-extras/commit/c4138f605c78b157417146176e98fb9e4b426bef))
+
 # [@rollup-extras/utils-v1.2.4](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/utils-v1.2.3...@rollup-extras/utils-v1.2.4) (2022-07-02)
 
 
