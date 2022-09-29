@@ -7,6 +7,7 @@
     "plugin-html",
     "plugin-serve",
     "test",
-    "plugin-binify"
+    "plugin-binify",
+    "plugin-externals"
   ]
 }

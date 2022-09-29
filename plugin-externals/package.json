@@ -1,0 +1,70 @@
+{
+  "version": "1.0.0",
+  "license": "MIT",
+  "name": "@rollup-extras/plugin-externals",
+  "author": "Konstantin Shutkin",
+  "type": "module",
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "typings": "./dist/index.d.ts",
+  "unpkg": "./dist/index.umd.js",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=15"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kshutkin/rollup-extras.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kshutkin/rollup-extras/issues"
+  },
+  "homepage": "https://github.com/kshutkin/rollup-extras/plugin-externals/README.md",
+  "readme": "README.md",
+  "description": "Rollup plugin to declare dependencies external with reasonable defaults and customizable logic.",
+  "keywords": [
+    "rollup-plugin",
+    "external",
+    "node"
+  ],
+  "scripts": {
+    "build": "pkgbld",
+    "test": "jest --collectCoverage",
+    "lint": "eslint ./src",
+    "semantic-release": "npx semantic-release"
+  },
+  "devDependencies": {
+    "@semantic-release/changelog": "6.0.1",
+    "@semantic-release/commit-analyzer": "9.0.2",
+    "@semantic-release/git": "10.0.1",
+    "@semantic-release/npm": "9.0.1",
+    "@semantic-release/release-notes-generator": "10.0.3",
+    "@types/jest": "27.5.1",
+    "@typescript-eslint/eslint-plugin": "5.24.0",
+    "@typescript-eslint/parser": "5.24.0",
+    "conventional-changelog-angular": "5.0.13",
+    "eslint": "8.15.0",
+    "jest": "28.1.0",
+    "semantic-release": "19.0.3",
+    "semantic-release-monorepo": "7.0.5",
+    "ts-jest": "28.0.2",
+    "typescript": "4.6.x",
+    "update-monorepo-package-json": "0.2.0",
+    "pkgbld": "1.2.12"
+  },
+  "peerDependencies": {
+    "rollup": "^2.60.1"
+  },
+  "dependencies": {
+    "is-builtin-module": "^3.2.0"
+  }
+}
