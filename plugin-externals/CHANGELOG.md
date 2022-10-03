@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-externals-v1.0.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-externals-v1.0.0...@rollup-extras/plugin-externals-v1.0.1) (2022-10-03)
+
+
+### Bug Fixes
+
+* use includes ([8d9876a](https://github.com/kshutkin/rollup-extras/commit/8d9876af3b9531fa756a61471de157a9bd461a4e))
+
 # @rollup-extras/plugin-externals-v1.0.0 (2022-09-29)
 
 
