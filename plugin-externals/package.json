@@ -14,7 +14,6 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "typings": "./dist/index.d.ts",
-  "unpkg": "./dist/index.umd.js",
   "files": [
     "dist"
   ],
