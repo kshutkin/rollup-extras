@@ -18,7 +18,7 @@ export default function(options: ExternalsPluginOptions = {}) {
     return <Partial<PluginHooks>>{
         name: pluginName,
         resolveId(this: PluginContext, id: string) {
-            let isExternal = id.indexOf('node_modules') >= 0 || isBuiltinModule(id);
+            let isExternal = id.includes('node_modules') || isBuiltinModule(id);
             if (external) {
                 isExternal = external(id, isExternal);
             }
