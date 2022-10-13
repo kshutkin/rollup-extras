@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-serve-v1.2.0](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-serve-v1.1.5...@rollup-extras/plugin-serve-v1.2.0) (2022-10-13)
+
+
+### Features
+
+* support rollup 3.x ([b5b6fa0](https://github.com/kshutkin/rollup-extras/commit/b5b6fa08bc7ed6846b8d1404d14d96365a8cab02))
+
 # [@rollup-extras/plugin-serve-v1.1.5](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-serve-v1.1.4...@rollup-extras/plugin-serve-v1.1.5) (2022-07-02)
 
 
