@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-clean-v1.3.0](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-clean-v1.2.4...@rollup-extras/plugin-clean-v1.3.0) (2022-10-13)
+
+
+### Features
+
+* support rollup 3.x ([b5b6fa0](https://github.com/kshutkin/rollup-extras/commit/b5b6fa08bc7ed6846b8d1404d14d96365a8cab02))
+
 # [@rollup-extras/plugin-clean-v1.2.4](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-clean-v1.2.3...@rollup-extras/plugin-clean-v1.2.4) (2022-07-02)
 
 
