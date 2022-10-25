@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-serve-v1.2.2](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-serve-v1.2.1...@rollup-extras/plugin-serve-v1.2.2) (2022-10-25)
+
+
+### Bug Fixes
+
+* correctly bundle externals (utils) ([92d57e8](https://github.com/kshutkin/rollup-extras/commit/92d57e89added20a06c7d46b7e29f5bda6d2c869))
+
 # [@rollup-extras/plugin-serve-v1.2.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-serve-v1.2.0...@rollup-extras/plugin-serve-v1.2.1) (2022-10-25)
 
 
