@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-html-v1.3.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-html-v1.3.0...@rollup-extras/plugin-html-v1.3.1) (2022-10-25)
+
+
+### Bug Fixes
+
+* subpackages (exports) using pkgbld-internal ([8018c82](https://github.com/kshutkin/rollup-extras/commit/8018c82fd23aceaf64ea18ea7e6ce46a932a1508))
+
 # [@rollup-extras/plugin-html-v1.3.0](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-html-v1.2.4...@rollup-extras/plugin-html-v1.3.0) (2022-10-13)
 
 
