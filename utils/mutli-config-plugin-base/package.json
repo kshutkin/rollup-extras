@@ -1,3 +1,5 @@
 {
-  "types": "../dist/mutli-config-plugin-base.d.ts"
+  "type": "module",
+  "types": "../dist/mutli-config-plugin-base.d.ts",
+  "main": "../dist/mutli-config-plugin-base.mjs"
 }

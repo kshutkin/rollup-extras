@@ -38,7 +38,7 @@
     "node"
   ],
   "scripts": {
-    "build": "pkgbld",
+    "build": "pkgbld-internal",
     "test": "jest --collectCoverage",
     "lint": "eslint ./src",
     "semantic-release": "npx semantic-release"
@@ -60,7 +60,7 @@
     "ts-jest": "28.0.2",
     "typescript": "4.6.x",
     "update-monorepo-package-json": "0.2.0",
-    "pkgbld": "1.2.12"
+    "pkgbld-internal": "1.0.2"
   },
   "peerDependencies": {
     "rollup": "^2.60.1 || ^3.0.0"
