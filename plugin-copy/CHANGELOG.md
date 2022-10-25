@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-copy-v1.5.2](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.5.1...@rollup-extras/plugin-copy-v1.5.2) (2022-10-25)
+
+
+### Bug Fixes
+
+* correctly bundle externals (utils) ([92d57e8](https://github.com/kshutkin/rollup-extras/commit/92d57e89added20a06c7d46b7e29f5bda6d2c869))
+
 # [@rollup-extras/plugin-copy-v1.5.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.5.0...@rollup-extras/plugin-copy-v1.5.1) (2022-10-25)
 
 
