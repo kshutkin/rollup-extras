@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-externals-v1.1.2](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-externals-v1.1.1...@rollup-extras/plugin-externals-v1.1.2) (2022-10-25)
+
+
+### Bug Fixes
+
+* consider files outside working dir external ([e21522d](https://github.com/kshutkin/rollup-extras/commit/e21522d4601e75522ec6231693968e211e578246))
+
 # [@rollup-extras/plugin-externals-v1.1.1](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-externals-v1.1.0...@rollup-extras/plugin-externals-v1.1.1) (2022-10-25)
 
 
