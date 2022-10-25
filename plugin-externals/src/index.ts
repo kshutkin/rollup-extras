@@ -1,3 +1,4 @@
+import path from 'path';
 import { PluginContext, PluginHooks } from 'rollup';
 import isBuiltinModule from 'is-builtin-module';
 import { getOptionsObject } from '@rollup-extras/utils/options';
@@ -18,7 +19,7 @@ export default function(options: ExternalsPluginOptions = {}) {
     return <Partial<PluginHooks>>{
         name: pluginName,
         resolveId(this: PluginContext, id: string) {
-            let isExternal = id.includes('node_modules') || isBuiltinModule(id);
+            let isExternal = id.includes('node_modules') || isBuiltinModule(id) || path.relative('.', id).startsWith('..');
             if (external) {
                 isExternal = external(id, isExternal);
             }

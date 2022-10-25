@@ -1,4 +1,5 @@
 import { createLogger, LogLevel } from '@niceties/logger';
+import path from 'path';
 import plugin from '../src';
 
 let log: jest.Mock;
@@ -30,6 +31,18 @@ describe('@rollup-extras/plugin-externals', () => {
         const result = (pluginInstance as any).resolveId('node_modules/test');
         expect(result).toBe(false);
         expect(log).toBeCalledWith('\'node_modules/test\' is external', LogLevel.verbose);
+    });
+
+    it('external linked module', () => {
+        const pluginInstance = plugin();
+        const result = (pluginInstance as any).resolveId(path.resolve('../../some-module/src/test'));
+        expect(result).toBe(false);
+    });
+
+    it('internal module', () => {
+        const pluginInstance = plugin();
+        const result = (pluginInstance as any).resolveId(path.resolve('./test'));
+        expect(result).toBe(null);
     });
 
     it('external built in', () => {
