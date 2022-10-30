@@ -32,6 +32,11 @@
   "homepage": "https://github.com/kshutkin/rollup-extras/plugin-binify/README.md",
   "readme": "README.md",
   "description": "plugin to create cli packages during rollup build",
+  "keywords": [
+    "@rollup-extras",
+    "rollup-plugin",
+    "binify"
+  ],
   "scripts": {
     "build": "pkgbld-internal",
     "test": "jest --collectCoverage",
