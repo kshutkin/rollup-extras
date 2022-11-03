@@ -2,7 +2,7 @@ import { Server, createServer } from 'http';
 import { createServer as createHttpsServer } from 'https';
 import { AddressInfo } from 'net';
 
-import { NormalizedInputOptions, NormalizedOutputOptions, PluginContext } from 'rollup';
+import { NormalizedInputOptions, NormalizedOutputOptions, Plugin, PluginContext } from 'rollup';
 
 import Koa from 'koa';
 import koaLogger from 'koa-logger';
@@ -40,7 +40,7 @@ export default function(options: ServePluginOptions = {}) {
         pluginInstance.renderStart = renderStart;
     }
 
-    return pluginInstance;
+    return pluginInstance as Plugin;
 
     function renderStart(this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) {
         ((instance as Required<typeof instance>).renderStart as (this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) => void | Promise<void>).call(this, outputOptions, inputOptions);

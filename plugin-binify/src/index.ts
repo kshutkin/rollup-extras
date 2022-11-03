@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, PluginContext, PluginHooks } from 'rollup';
+import { NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, Plugin, PluginContext } from 'rollup';
 import { BinifyPluginOptions } from './types';
 import { getOptionsObject } from '@rollup-extras/utils/options';
 import { createLogger, LogLevel } from '@niceties/logger';
@@ -23,7 +23,7 @@ export default function(options: BinifyPluginOptions = {}) {
 
     let initialDir = '', countFiles: number;
 
-    return <Partial<PluginHooks>>{
+    return <Plugin>{
         name: pluginName,
         renderStart(this: PluginContext, outputOptions: NormalizedOutputOptions) {
             initialDir = outputOptions.dir || '';
