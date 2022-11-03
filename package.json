@@ -9,5 +9,9 @@
     "test",
     "plugin-binify",
     "plugin-externals"
-  ]
+  ],
+  "devDependencies": {
+    "nx": "15.0.7",
+    "@nrwl/nx-cloud": "latest"
+  }
 }
