@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import oldStyleFs from 'fs';
 import path from 'path';
-import { InternalModuleFormat, NormalizedInputOptions, NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, PluginContext, PluginHooks } from 'rollup';
+import { InternalModuleFormat, NormalizedInputOptions, NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, Plugin, PluginContext, PluginHooks } from 'rollup';
 import { AssetDescriptor, AssetPredicate, Assets, AssetType, HtmlPluginOptions, SimpleAssetDescriptor } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
 import { getOptionsObject } from '@rollup-extras/utils/options';
@@ -78,7 +78,7 @@ export default function(options: HtmlPluginOptions = {}) {
     const instance = multiConfigPluginBase(useWriteBundle, pluginName, generateBundle, updateAssets);
 
     const baseRenderStart = (instance as Required<typeof instance>).renderStart;
-    const baseAddInstance = (instance as Required<typeof instance>).api.addInstance;
+    const baseAddInstance = instance.api.addInstance as () => Plugin;
 
     instance.renderStart = function (this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) {
         logger('started collecting information', LogLevel.verbose);

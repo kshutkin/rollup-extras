@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import glob from 'glob-promise';
 import globParent from 'glob-parent';
-import { PluginContext, PluginHooks } from 'rollup';
+import { PluginContext, Plugin } from 'rollup';
 import { CopyPluginOptions, NonTargetOptions, SingleTargetDesc } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
 import { getOptions } from '@rollup-extras/utils/options';
@@ -49,7 +49,7 @@ export default function(options: CopyPluginOptions) {
         logger('can\'t use watch with outputPlugin = true', LogLevel.verbose);
     }
 
-    return <Partial<PluginHooks>>{
+    return <Plugin>{
         name: pluginName,
 
         async [hookName]() {

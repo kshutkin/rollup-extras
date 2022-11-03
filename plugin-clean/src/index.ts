@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { NormalizedInputOptions, NormalizedOutputOptions, PluginContext, PluginHooks, RollupOptions } from 'rollup';
+import { NormalizedInputOptions, NormalizedOutputOptions, Plugin, PluginContext, RollupOptions } from 'rollup';
 import { CleanPluginOptions } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
 import { getOptions } from '@rollup-extras/utils/options';
@@ -21,7 +21,7 @@ export default function(options: CleanPluginOptions = {}) {
     let { targets } = normalizedOptions;
 
     const instance = multiConfigPluginBase(false, pluginName, cleanup);
-    const baseAddInstance = (instance as Required<typeof instance>).api.addInstance;
+    const baseAddInstance = instance.api.addInstance as () => Plugin;
     const baseRenderStart = (instance as Required<typeof instance>).renderStart;
 
     if (outputPlugin) {
@@ -35,7 +35,7 @@ export default function(options: CleanPluginOptions = {}) {
     }
 
     instance.api.addInstance = () => {
-        const instance = baseAddInstance() as never as PluginHooks;
+        const instance = baseAddInstance();
         const baseRenderStart = (instance as Required<typeof instance>).renderStart;
 
         if (outputPlugin) {

@@ -1,5 +1,5 @@
 import path from 'path';
-import { PluginContext, PluginHooks } from 'rollup';
+import { Plugin, PluginContext } from 'rollup';
 import isBuiltinModule from 'is-builtin-module';
 import { getOptionsObject } from '@rollup-extras/utils/options';
 import { LogLevel } from '@niceties/logger';
@@ -16,7 +16,7 @@ export default function(options: ExternalsPluginOptions = {}) {
 
     const logLevel = verbose ? LogLevel.info : LogLevel.verbose;
 
-    return <Partial<PluginHooks>>{
+    return <Plugin>{
         name: pluginName,
         resolveId(this: PluginContext, id: string) {
             let isExternal = id.includes('node_modules') || isBuiltinModule(id) || path.relative('.', id).startsWith('..');
