@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-html-v1.3.3](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-html-v1.3.2...@rollup-extras/plugin-html-v1.3.3) (2022-11-03)
+
+
+### Bug Fixes
+
+* use Plugin type ([#48](https://github.com/kshutkin/rollup-extras/issues/48)) ([604c603](https://github.com/kshutkin/rollup-extras/commit/604c60320bc1713a7cab229b9b66e372f7f1f922))
+
 # [@rollup-extras/plugin-html-v1.3.2](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-html-v1.3.1...@rollup-extras/plugin-html-v1.3.2) (2022-10-25)
 
 
