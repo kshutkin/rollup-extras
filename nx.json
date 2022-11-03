@@ -15,6 +15,9 @@
   },
   "targetDefaults": {
     "build": {
+      "inputs": [
+        { "runtime": "node -v" }
+      ],
       "dependsOn": [
         "^build"
       ],
@@ -24,7 +27,7 @@
     },
     "test": {
       "dependsOn": [
-        "^test"
+        "^test", "build"
       ],
       "outputs": [
         "{projectRoot}/coverage"

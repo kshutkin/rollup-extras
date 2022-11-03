@@ -38,9 +38,8 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm ci
-      - run: npx nx run-many --target=lint
-      - run: npx nx run-many --target=build --skip-nx-cache
-      - run: npx nx run-many --target=test --skip-nx-cache
+      - run: npx nx affected --target=lint
+      - run: npx nx affected --target=test
 
   publish:
 
