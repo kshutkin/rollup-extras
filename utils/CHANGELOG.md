@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/utils-v1.3.4](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/utils-v1.3.3...@rollup-extras/utils-v1.3.4) (2022-11-23)
+
+
+### Bug Fixes
+
+* upgrade @niceties/logger from 1.1.3 to 1.1.5 ([4a82bf3](https://github.com/kshutkin/rollup-extras/commit/4a82bf308c3537b9fdc2880421591c80a602d4cb))
+
 # [@rollup-extras/utils-v1.3.3](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/utils-v1.3.2...@rollup-extras/utils-v1.3.3) (2022-11-03)
 
 
