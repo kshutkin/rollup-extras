@@ -40,6 +40,7 @@ jobs:
       - run: npm ci
       - run: npx nx run-many --target=lint
       - run: npx nx run-many --target=test
+      - run: npx nx run-many --target=build
 
   publish:
 

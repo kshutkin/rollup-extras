@@ -1,23 +1,18 @@
 {
   "tasksRunnerOptions": {
     "default": {
-      "runner": "@nrwl/nx-cloud",
+      "runner": "nx/tasks-runners/default",
       "options": {
         "cacheableOperations": [
           "build",
           "test",
-          "lint",
-          "semantic-release"
-        ],
-        "accessToken": "MzFhNzYxYjUtYWRjYi00MTIyLWExNWItZjNjMmFlNTYzNzg3fHJlYWQtd3JpdGU="
+          "lint"
+        ]
       }
     }
   },
   "targetDefaults": {
     "build": {
-      "inputs": [
-        { "runtime": "node -v" }
-      ],
       "dependsOn": [
         "^build"
       ],
@@ -27,15 +22,10 @@
     },
     "test": {
       "dependsOn": [
-        "^test", "build"
+        "^test"
       ],
       "outputs": [
         "{projectRoot}/coverage"
-      ]
-    },
-    "lint": {
-      "dependsOn": [
-        "^lint"
       ]
     },
     "semantic-release": {
