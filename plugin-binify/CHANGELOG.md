@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-binify-v1.1.5](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-binify-v1.1.4...@rollup-extras/plugin-binify-v1.1.5) (2022-12-17)
+
+
+### Bug Fixes
+
+* license and link to readme ([91314e7](https://github.com/kshutkin/rollup-extras/commit/91314e7d26a60fc9ff7898e19434b1061016ab40))
+
 # [@rollup-extras/plugin-binify-v1.1.4](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-binify-v1.1.3...@rollup-extras/plugin-binify-v1.1.4) (2022-11-03)
 
 
