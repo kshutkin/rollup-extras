@@ -17,7 +17,8 @@
   "module": "./dist/index.mjs",
   "typings": "./dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=15"

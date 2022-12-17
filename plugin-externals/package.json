@@ -17,7 +17,8 @@
   "module": "./dist/index.mjs",
   "typings": "./dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=15"
@@ -29,7 +30,7 @@
   "bugs": {
     "url": "https://github.com/kshutkin/rollup-extras/issues"
   },
-  "homepage": "https://github.com/kshutkin/rollup-extras/plugin-externals/README.md",
+  "homepage": "https://github.com/kshutkin/rollup-extras/blob/main/plugin-externals/README.md",
   "readme": "README.md",
   "description": "Rollup plugin to declare dependencies external with reasonable defaults and customizable logic.",
   "keywords": [

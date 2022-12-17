@@ -32,7 +32,8 @@
     "dist",
     "mutli-config-plugin-base",
     "options",
-    "logger"
+    "logger",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=15"
