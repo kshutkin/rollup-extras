@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-externals-v1.1.7](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-externals-v1.1.6...@rollup-extras/plugin-externals-v1.1.7) (2023-01-14)
+
+
+### Bug Fixes
+
+* 🐛 provide importer to predicate and fix docs ([cee599a](https://github.com/kshutkin/rollup-extras/commit/cee599a3e7357c234c2e5273fede09e5effde52e))
+
 # [@rollup-extras/plugin-externals-v1.1.6](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-externals-v1.1.5...@rollup-extras/plugin-externals-v1.1.6) (2023-01-14)
 
 
