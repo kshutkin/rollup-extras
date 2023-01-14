@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-serve-v1.2.5](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-serve-v1.2.4...@rollup-extras/plugin-serve-v1.2.5) (2023-01-14)
+
+
+### Bug Fixes
+
+* upgrade koa from 2.13.4 to 2.14.0 ([add6b3f](https://github.com/kshutkin/rollup-extras/commit/add6b3fab829508830c7931057f2bbc2f288de52))
+
 # [@rollup-extras/plugin-serve-v1.2.4](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-serve-v1.2.3...@rollup-extras/plugin-serve-v1.2.4) (2022-12-17)
 
 
