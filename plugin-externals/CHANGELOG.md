@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-externals-v1.1.6](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-externals-v1.1.5...@rollup-extras/plugin-externals-v1.1.6) (2023-01-14)
+
+
+### Bug Fixes
+
+* 🐛 incorrect external result when importing inside project ([2e5ed4d](https://github.com/kshutkin/rollup-extras/commit/2e5ed4d92b37ffbbeb8db46469c168fa5836acf5))
+
 # [@rollup-extras/plugin-externals-v1.1.5](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-externals-v1.1.4...@rollup-extras/plugin-externals-v1.1.5) (2022-12-17)
 
 
