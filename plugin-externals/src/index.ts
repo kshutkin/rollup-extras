@@ -27,7 +27,7 @@ export default function(options: ExternalsPluginOptions = {}) {
             const importingFileName = path.resolve(path.dirname(importer || ''), id);
             let isExternal = id.includes('node_modules') || isBuiltinModule(id) || path.relative(pkgDir, importingFileName).startsWith('..');
             if (external) {
-                isExternal = external(id, isExternal);
+                isExternal = external(id, isExternal, importer);
             }
             logger(`'${id}' is ${isExternal ? '' : 'not '}external`, logLevel);
             return isExternal ? false : null;

@@ -84,10 +84,10 @@ describe('@rollup-extras/plugin-externals', () => {
     it('custom predicate', async () => {
         const external = jest.fn(() => true);
         const pluginInstance = plugin({ external });
-        const result = await (pluginInstance as any).resolveId('test');
+        const result = await (pluginInstance as any).resolveId('test', 'importer');
         expect(result).toBe(false);
         expect(log).toBeCalledWith('\'test\' is external', LogLevel.verbose);
-        expect(external).toBeCalledWith('test', false);
+        expect(external).toBeCalledWith('test', false, 'importer');
     });
 
     it('different plugin name (for debug)', () => {

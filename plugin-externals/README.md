@@ -50,7 +50,7 @@ Bumps loglevel so more messages goes through default logger filter.
 
 Optional, `(id: string, external: boolean) => boolean`.
 
-Default: `id.includes('node_modules') || isBuiltinModule(id)`
+Default: `id.includes('node_modules') || isBuiltinModule(id) || isOutsideProjectDirectory(id, importer)`
 
 Receives in `external` argument result of default function.
 
