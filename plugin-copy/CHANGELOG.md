@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-copy-v1.6.0](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.5.4...@rollup-extras/plugin-copy-v1.6.0) (2023-01-14)
+
+
+### Features
+
+* upgrade glob-promise from 5.0.0 to 6.0.0 ([9410f68](https://github.com/kshutkin/rollup-extras/commit/9410f68bd9365230d9a7c8455a1e35686b7a1e51))
+
 # [@rollup-extras/plugin-copy-v1.5.4](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-copy-v1.5.3...@rollup-extras/plugin-copy-v1.5.4) (2022-12-17)
 
 
