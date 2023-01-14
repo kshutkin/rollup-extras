@@ -1,19 +1,20 @@
 // import "@niceties/draftlog-appender";
-// import { appender } from "@niceties/logger";
+import { appender } from "@niceties/logger";
 import cleanPlugin from '@rollup-extras/plugin-clean';
 import copy from '@rollup-extras/plugin-copy';
 import html from '@rollup-extras/plugin-html';
 import serve from '@rollup-extras/plugin-serve';
 import binify from '@rollup-extras/plugin-binify';
+import externals from '@rollup-extras/plugin-externals';
 import crypto from 'crypto';
 import sb from 'simply-beautiful';
 import fs from 'fs';
 
-// appender((msg) => {
-//     console.log(msg.message);
-// });
+appender((msg) => {
+    console.log(msg.message);
+});
 
-const input = 'src/index.ts';
+const input = 'src/index.js';
 
 const htmlPluginInstance = html({
     template: 'src/index.html',
@@ -52,6 +53,7 @@ export default [{
 
 	plugins: [
         clean,
+        externals(),
         copy({ targets: ['src/test/index.html', 'src/test.css'], verbose: 'list-filenames' }),
         htmlPluginInstance,
         server
