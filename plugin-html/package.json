@@ -51,6 +51,7 @@
     "@semantic-release/npm": "9.0.1",
     "@semantic-release/release-notes-generator": "10.0.3",
     "@types/jest": "27.5.1",
+    "@types/node": "18.13.0",
     "@typescript-eslint/eslint-plugin": "5.24.0",
     "@typescript-eslint/parser": "5.24.0",
     "conventional-changelog-angular": "5.0.13",

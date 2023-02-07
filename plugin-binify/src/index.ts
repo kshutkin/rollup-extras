@@ -1,4 +1,4 @@
-import fs from 'fs/promises';
+import fs from 'node:fs/promises';
 import path from 'path';
 import { NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, Plugin, PluginContext } from 'rollup';
 import { BinifyPluginOptions } from './types';

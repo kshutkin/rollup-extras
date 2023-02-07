@@ -1,6 +1,6 @@
-import { Server, createServer } from 'http';
-import { createServer as createHttpsServer } from 'https';
-import { AddressInfo } from 'net';
+import { Server, createServer } from 'node:http';
+import { createServer as createHttpsServer } from 'node:https';
+import { AddressInfo } from 'node:net';
 
 import { NormalizedInputOptions, NormalizedOutputOptions, Plugin, PluginContext } from 'rollup';
 

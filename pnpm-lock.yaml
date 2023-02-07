@@ -15,6 +15,7 @@ importers:
       '@semantic-release/npm': 9.0.1
       '@semantic-release/release-notes-generator': 10.0.3
       '@types/jest': 27.5.1
+      '@types/node': 18.13.0
       '@typescript-eslint/eslint-plugin': 5.24.0
       '@typescript-eslint/parser': 5.24.0
       conventional-changelog-angular: 5.0.13
@@ -38,11 +39,12 @@ importers:
       '@semantic-release/npm': 9.0.1_semantic-release@19.0.3
       '@semantic-release/release-notes-generator': 10.0.3_semantic-release@19.0.3
       '@types/jest': 27.5.1
+      '@types/node': 18.13.0
       '@typescript-eslint/eslint-plugin': 5.24.0_w4ec7awddsetq6k5phhi6huiuu
       '@typescript-eslint/parser': 5.24.0_hcfsmds2fshutdssjqluwm76uu
       conventional-changelog-angular: 5.0.13
       eslint: 8.15.0
-      jest: 28.1.0
+      jest: 28.1.0_@types+node@18.13.0
       pkgbld-internal: 1.0.9
       semantic-release: 19.0.3
       semantic-release-monorepo: 7.0.5_semantic-release@19.0.3
@@ -60,6 +62,7 @@ importers:
       '@semantic-release/npm': 9.0.1
       '@semantic-release/release-notes-generator': 10.0.3
       '@types/jest': 27.5.1
+      '@types/node': 18.13.0
       '@typescript-eslint/eslint-plugin': 5.24.0
       '@typescript-eslint/parser': 5.24.0
       conventional-changelog-angular: 5.0.13
@@ -83,11 +86,12 @@ importers:
       '@semantic-release/npm': 9.0.1_semantic-release@19.0.3
       '@semantic-release/release-notes-generator': 10.0.3_semantic-release@19.0.3
       '@types/jest': 27.5.1
+      '@types/node': 18.13.0
       '@typescript-eslint/eslint-plugin': 5.24.0_w4ec7awddsetq6k5phhi6huiuu
       '@typescript-eslint/parser': 5.24.0_hcfsmds2fshutdssjqluwm76uu
       conventional-changelog-angular: 5.0.13
       eslint: 8.15.0
-      jest: 28.1.0
+      jest: 28.1.0_@types+node@18.13.0
       pkgbld-internal: 1.0.9
       semantic-release: 19.0.3
       semantic-release-monorepo: 7.0.5_semantic-release@19.0.3
@@ -107,6 +111,7 @@ importers:
       '@types/glob': ^8.0.0
       '@types/glob-parent': ^5.1.1
       '@types/jest': 27.5.1
+      '@types/node': 18.13.0
       '@typescript-eslint/eslint-plugin': 5.24.0
       '@typescript-eslint/parser': 5.24.0
       conventional-changelog-angular: 5.0.13
@@ -138,11 +143,12 @@ importers:
       '@semantic-release/npm': 9.0.1_semantic-release@19.0.3
       '@semantic-release/release-notes-generator': 10.0.3_semantic-release@19.0.3
       '@types/jest': 27.5.1
+      '@types/node': 18.13.0
       '@typescript-eslint/eslint-plugin': 5.24.0_w4ec7awddsetq6k5phhi6huiuu
       '@typescript-eslint/parser': 5.24.0_hcfsmds2fshutdssjqluwm76uu
       conventional-changelog-angular: 5.0.13
       eslint: 8.15.0
-      jest: 28.1.0
+      jest: 28.1.0_@types+node@18.13.0
       pkgbld-internal: 1.0.9
       semantic-release: 19.0.3
       semantic-release-monorepo: 7.0.5_semantic-release@19.0.3
@@ -211,6 +217,7 @@ importers:
       '@semantic-release/npm': 9.0.1
       '@semantic-release/release-notes-generator': 10.0.3
       '@types/jest': 27.5.1
+      '@types/node': 18.13.0
       '@typescript-eslint/eslint-plugin': 5.24.0
       '@typescript-eslint/parser': 5.24.0
       conventional-changelog-angular: 5.0.13
@@ -234,11 +241,12 @@ importers:
       '@semantic-release/npm': 9.0.1_semantic-release@19.0.3
       '@semantic-release/release-notes-generator': 10.0.3_semantic-release@19.0.3
       '@types/jest': 27.5.1
+      '@types/node': 18.13.0
       '@typescript-eslint/eslint-plugin': 5.24.0_w4ec7awddsetq6k5phhi6huiuu
       '@typescript-eslint/parser': 5.24.0_hcfsmds2fshutdssjqluwm76uu
       conventional-changelog-angular: 5.0.13
       eslint: 8.15.0
-      jest: 28.1.0
+      jest: 28.1.0_@types+node@18.13.0
       pkgbld-internal: 1.0.9
       semantic-release: 19.0.3
       semantic-release-monorepo: 7.0.5_semantic-release@19.0.3
@@ -259,6 +267,7 @@ importers:
       '@types/koa': ^2.13.4
       '@types/koa-logger': ^3.1.2
       '@types/koa-static': ^4.0.2
+      '@types/node': 18.13.0
       '@typescript-eslint/eslint-plugin': 5.24.0
       '@typescript-eslint/parser': 5.24.0
       conventional-changelog-angular: 5.0.13
@@ -291,11 +300,12 @@ importers:
       '@types/koa': 2.13.5
       '@types/koa-logger': 3.1.2
       '@types/koa-static': 4.0.2
+      '@types/node': 18.13.0
       '@typescript-eslint/eslint-plugin': 5.24.0_w4ec7awddsetq6k5phhi6huiuu
       '@typescript-eslint/parser': 5.24.0_hcfsmds2fshutdssjqluwm76uu
       conventional-changelog-angular: 5.0.13
       eslint: 8.15.0
-      jest: 28.1.0
+      jest: 28.1.0_@types+node@18.13.0
       pkgbld-internal: 1.0.9
       semantic-release: 19.0.3
       semantic-release-monorepo: 7.0.5_semantic-release@19.0.3
@@ -332,6 +342,7 @@ importers:
       '@semantic-release/npm': 9.0.1
       '@semantic-release/release-notes-generator': 10.0.3
       '@types/jest': 27.5.1
+      '@types/node': 18.13.0
       '@typescript-eslint/eslint-plugin': 5.24.0
       '@typescript-eslint/parser': 5.24.0
       conventional-changelog-angular: 5.0.13
@@ -354,11 +365,12 @@ importers:
       '@semantic-release/npm': 9.0.1_semantic-release@19.0.3
       '@semantic-release/release-notes-generator': 10.0.3_semantic-release@19.0.3
       '@types/jest': 27.5.1
+      '@types/node': 18.13.0
       '@typescript-eslint/eslint-plugin': 5.24.0_w4ec7awddsetq6k5phhi6huiuu
       '@typescript-eslint/parser': 5.24.0_hcfsmds2fshutdssjqluwm76uu
       conventional-changelog-angular: 5.0.13
       eslint: 8.15.0
-      jest: 28.1.0
+      jest: 28.1.0_@types+node@18.13.0
       pkgbld-internal: 1.0.9
       semantic-release: 19.0.3
       semantic-release-monorepo: 7.0.5_semantic-release@19.0.3
@@ -3351,34 +3363,6 @@ packages:
       - supports-color
     dev: true
 
-  /jest-cli/28.1.3:
-    resolution: {integrity: sha512-roY3kvrv57Azn1yPgdTebPAXvdR2xfezaKKYzVxZ6It/5NCxzJym6tUI5P1zkdWhfUYkxEI9uZWcQdaFLo8mJQ==}
-    engines: {node: ^12.13.0 || ^14.15.0 || ^16.10.0 || >=17.0.0}
-    hasBin: true
-    peerDependencies:
-      node-notifier: ^8.0.1 || ^9.0.0 || ^10.0.0
-    peerDependenciesMeta:
-      node-notifier:
-        optional: true
-    dependencies:
-      '@jest/core': 28.1.3
-      '@jest/test-result': 28.1.3
-      '@jest/types': 28.1.3
-      chalk: 4.1.2
-      exit: 0.1.2
-      graceful-fs: 4.2.10
-      import-local: 3.1.0
-      jest-config: 28.1.3
-      jest-util: 28.1.3
-      jest-validate: 28.1.3
-      prompts: 2.4.2
-      yargs: 17.6.2
-    transitivePeerDependencies:
-      - '@types/node'
-      - supports-color
-      - ts-node
-    dev: true
-
   /jest-cli/28.1.3_@types+node@18.13.0:
     resolution: {integrity: sha512-roY3kvrv57Azn1yPgdTebPAXvdR2xfezaKKYzVxZ6It/5NCxzJym6tUI5P1zkdWhfUYkxEI9uZWcQdaFLo8mJQ==}
     engines: {node: ^12.13.0 || ^14.15.0 || ^16.10.0 || >=17.0.0}
@@ -3405,44 +3389,6 @@ packages:
       - '@types/node'
       - supports-color
       - ts-node
-    dev: true
-
-  /jest-config/28.1.3:
-    resolution: {integrity: sha512-MG3INjByJ0J4AsNBm7T3hsuxKQqFIiRo/AUqb1q9LRKI5UU6Aar9JHbr9Ivn1TVwfUD9KirRoM/T6u8XlcQPHQ==}
-    engines: {node: ^12.13.0 || ^14.15.0 || ^16.10.0 || >=17.0.0}
-    peerDependencies:
-      '@types/node': '*'
-      ts-node: '>=9.0.0'
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
-      ts-node:
-        optional: true
-    dependencies:
-      '@babel/core': 7.20.12
-      '@jest/test-sequencer': 28.1.3
-      '@jest/types': 28.1.3
-      babel-jest: 28.1.3_@babel+core@7.20.12
-      chalk: 4.1.2
-      ci-info: 3.7.1
-      deepmerge: 4.3.0
-      glob: 7.2.3
-      graceful-fs: 4.2.10
-      jest-circus: 28.1.3
-      jest-environment-node: 28.1.3
-      jest-get-type: 28.0.2
-      jest-regex-util: 28.0.2
-      jest-resolve: 28.1.3
-      jest-runner: 28.1.3
-      jest-util: 28.1.3
-      jest-validate: 28.1.3
-      micromatch: 4.0.5
-      parse-json: 5.2.0
-      pretty-format: 28.1.3
-      slash: 3.0.0
-      strip-json-comments: 3.1.1
-    transitivePeerDependencies:
-      - supports-color
     dev: true
 
   /jest-config/28.1.3_@types+node@18.13.0:
@@ -3791,25 +3737,6 @@ packages:
       '@types/node': 18.13.0
       merge-stream: 2.0.0
       supports-color: 8.1.1
-    dev: true
-
-  /jest/28.1.0:
-    resolution: {integrity: sha512-TZR+tHxopPhzw3c3560IJXZWLNHgpcz1Zh0w5A65vynLGNcg/5pZ+VildAd7+XGOu6jd58XMY/HNn0IkZIXVXg==}
-    engines: {node: ^12.13.0 || ^14.15.0 || ^16.10.0 || >=17.0.0}
-    hasBin: true
-    peerDependencies:
-      node-notifier: ^8.0.1 || ^9.0.0 || ^10.0.0
-    peerDependenciesMeta:
-      node-notifier:
-        optional: true
-    dependencies:
-      '@jest/core': 28.1.3
-      import-local: 3.1.0
-      jest-cli: 28.1.3
-    transitivePeerDependencies:
-      - '@types/node'
-      - supports-color
-      - ts-node
     dev: true
 
   /jest/28.1.0_@types+node@18.13.0:
@@ -5445,7 +5372,7 @@ packages:
       '@types/jest': 27.5.1
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
-      jest: 28.1.0
+      jest: 28.1.0_@types+node@18.13.0
       jest-util: 28.1.3
       json5: 2.2.3
       lodash.memoize: 4.1.2
