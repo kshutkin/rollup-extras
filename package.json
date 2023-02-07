@@ -4,6 +4,6 @@
     "build": "pnpm --aggregate-output --stream -r build",
     "test": "pnpm --aggregate-output --stream -r test",
     "lint": "pnpm --aggregate-output --stream -r lint",
-    "release": "pnpm -r release"
+    "release": "pnpm -r semantic-release"
   }
 }
