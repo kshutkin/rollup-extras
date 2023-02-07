@@ -1,5 +1,12 @@
 Changelog
 
+# [@rollup-extras/plugin-externals-v1.1.8](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-externals-v1.1.7...@rollup-extras/plugin-externals-v1.1.8) (2023-02-07)
+
+
+### Bug Fixes
+
+* added @niceties/logger to dependencies ([4deac84](https://github.com/kshutkin/rollup-extras/commit/4deac843a099a895b802cd7890a3b8f59b0017e6))
+
 # [@rollup-extras/plugin-externals-v1.1.7](https://github.com/kshutkin/rollup-extras/compare/@rollup-extras/plugin-externals-v1.1.6...@rollup-extras/plugin-externals-v1.1.7) (2023-01-14)
 
 
