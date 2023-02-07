@@ -33,14 +33,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 7
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      - run: npm ci
-      - run: npx nx run-many --target=lint
-      - run: npx nx run-many --target=build
-      - run: npx nx run-many --target=test      
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile --prefer-offline --reporter=append-only
+      - run: pnpm run lint
+      - run: pnpm run build
+      - run: pnpm test
 
   publish:
 
@@ -50,15 +54,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 7
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18.x'
           registry-url: 'https://registry.npmjs.org'
           scope: '@rollup-extras'
-      - run: npm ci
-      - run: npx nx run-many --target=build
-      - run: npm run semantic-release --workspaces --if-present
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile --prefer-offline --reporter=append-only
+      - run: pnpm run build
+      - run: pnpm run release
         env:
             NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

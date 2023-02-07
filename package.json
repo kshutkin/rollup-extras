@@ -1,16 +1,9 @@
 {
   "private": true,
-  "workspaces": [
-    "utils",
-    "plugin-clean",
-    "plugin-copy",
-    "plugin-html",
-    "plugin-serve",
-    "test",
-    "plugin-binify",
-    "plugin-externals"
-  ],
-  "devDependencies": {
-    "nx": "15.0.13"
+  "scripts": {
+    "build": "pnpm --aggregate-output --stream -r build",
+    "test": "pnpm --aggregate-output --stream -r test",
+    "lint": "pnpm --aggregate-output --stream -r lint",
+    "release": "pnpm -r release"
   }
 }
