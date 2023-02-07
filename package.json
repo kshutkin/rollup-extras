@@ -1,9 +1,9 @@
 {
   "private": true,
   "scripts": {
-    "build": "pnpm --aggregate-output --stream -r build",
-    "test": "pnpm --aggregate-output --stream -r test",
-    "lint": "pnpm --aggregate-output --stream -r lint",
-    "release": "pnpm -r semantic-release"
+    "build": "pnpm --aggregate-output --reporter=append-only --stream -r build",
+    "test": "pnpm --aggregate-output --reporter=append-only --stream --parallel -r test",
+    "lint": "pnpm --aggregate-output --reporter=append-only --stream --parallel -r lint",
+    "release": "pnpm -r --workspace-concurrency=1 --reporter=append-only semantic-release"
   }
 }

@@ -1,9 +1,4 @@
 packages:
   - "utils"
-  - "plugin-clean"
-  - "plugin-copy"
-  - "plugin-html"
-  - "plugin-serve"
+  - "plugin-*"
   - "test"
-  - "plugin-binify"
-  - "plugin-externals"
