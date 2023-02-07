@@ -319,6 +319,7 @@ importers:
       '@rollup-extras/plugin-binify': ^1.0.0
       '@rollup-extras/plugin-clean': ^1.0.1
       '@rollup-extras/plugin-copy': ^1.0.0
+      '@rollup-extras/plugin-externals': ^1.0.0
       '@rollup-extras/plugin-html': ^1.0.0
       '@rollup-extras/plugin-serve': ^1.0.0
       rollup: 2.63.0
@@ -328,6 +329,7 @@ importers:
       '@rollup-extras/plugin-binify': link:../plugin-binify
       '@rollup-extras/plugin-clean': link:../plugin-clean
       '@rollup-extras/plugin-copy': link:../plugin-copy
+      '@rollup-extras/plugin-externals': link:../plugin-externals
       '@rollup-extras/plugin-html': link:../plugin-html
       '@rollup-extras/plugin-serve': link:../plugin-serve
       rollup: 2.63.0

@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import path from 'path';
+import path from 'node:path';
 import { NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, Plugin, PluginContext } from 'rollup';
 import { BinifyPluginOptions } from './types';
 import { getOptionsObject } from '@rollup-extras/utils/options';

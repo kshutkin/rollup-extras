@@ -1,5 +1,5 @@
-import { createServer } from 'http';
-import { createServer as createHttpsServer } from 'https';
+import { createServer } from 'node:http';
+import { createServer as createHttpsServer } from 'node:https';
 
 import 'koa';
 import koaLogger from 'koa-logger';
@@ -10,7 +10,7 @@ import plugin from '../src';
 
 let listenArgs: any[], errorCb: (error: unknown) => void;
 
-jest.mock('http', () => ({
+jest.mock('node:http', () => ({
     createServer: jest.fn(() => ({
         listen(...args: any[]) { listenArgs = args.slice(); args.pop()(this); },
         on(_event: string, cb: (error: unknown) => void) { errorCb = cb; },
@@ -24,7 +24,7 @@ jest.mock('http', () => ({
         close(cb: () => void) { cb(); }
     }))
 }));
-jest.mock('https', () => ({
+jest.mock('node:https', () => ({
     createServer: jest.fn(() => ({
         listen(...args: any[]) { listenArgs = args.slice(); args.pop()(this); },
         on(_event: string, cb: (error: unknown) => void) { errorCb = cb; },
