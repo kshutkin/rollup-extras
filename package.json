@@ -18,6 +18,6 @@
     "eslint": "8.15.0",
     "jest": "28.1.0",
     "pkgbld-internal": "1.0.9",
-    "ts-jest": "28.0.2"
+    "ts-jest": "28.0.8"
   }
 }
