@@ -5,6 +5,7 @@
   "scripts": {
     "test": "rollup -c"
   },
+  "private": "true",
   "author": "Konstantin Shutkin",
   "license": "MIT",
   "dependencies": {
