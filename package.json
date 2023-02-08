@@ -1,9 +1,26 @@
 {
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kshutkin/rollup-extras.git"
+  },
   "scripts": {
     "build": "pnpm --aggregate-output --reporter=append-only --stream -r build",
     "test": "pnpm --aggregate-output --reporter=append-only --stream --parallel -r test",
     "lint": "pnpm --aggregate-output --reporter=append-only --stream --parallel -r lint",
-    "release": "pnpm -r --workspace-concurrency=1 --reporter=append-only semantic-release"
+    "ci:publish": "pnpm publish -r",
+    "bc": "beachball change"
+  },
+  "devDependencies": {
+    "@changesets/cli": "2.26.0",
+    "@types/jest": "27.5.1",
+    "@types/node": "18.13.0",
+    "@typescript-eslint/eslint-plugin": "5.24.0",
+    "@typescript-eslint/parser": "5.24.0",
+    "beachball": "2.31.7",
+    "eslint": "8.15.0",
+    "jest": "28.1.0",
+    "pkgbld-internal": "1.0.9",
+    "ts-jest": "28.0.2"
   }
 }
