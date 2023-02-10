@@ -11,4 +11,4 @@ Collection of rollup plugins
 - [plugin-html](./plugin-html) - plugin to inject assets in html file, optionally provide API to plug in minification, buitification and more
 - [plugin-serve](./plugin-serve) - plugin to serve build directory using koa with extensible API
 - [plugin-binify](./plugin-binify) - plugin to make your output file executable (using shebang and file attributes)
-- [plugin-externals](./plugin-externals/README.md) - plugin to declare dependencies external with reasonable defaults and customizable logic
+- [plugin-externals](./plugin-externals) - plugin to declare dependencies external with reasonable defaults and customizable logic
