@@ -54,4 +54,4 @@ type Result<T extends {[key: string]: unknown}, F extends DefaultsFactory<T>> = 
 
 # License
 
-[MIT](./LICENSE)
+[MIT](https://github.com/kshutkin/rollup-extras/blob/main/LICENSE)

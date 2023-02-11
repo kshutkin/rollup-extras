@@ -205,4 +205,4 @@ export default {
 
 # License
 
-[MIT](./LICENSE)
+[MIT](https://github.com/kshutkin/rollup-extras/blob/main/LICENSE)
