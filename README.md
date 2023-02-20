@@ -5,13 +5,13 @@ Collection of rollup plugins
 
 ## Packages
 
-- [utils](./utils) - utils package used by other plugins, mainly handlel options and multi output builds
-- [plugin-clean](./plugin-clean) - plugin to clean build directory (lightweight, reliable and fast)
-- [plugin-copy](./plugin-copy) - plugin to copy files: watch mode, minimalistic config, globs
-- [plugin-html](./plugin-html) - plugin to inject assets in html file, optionally provide API to plug in minification, buitification and more
-- [plugin-serve](./plugin-serve) - plugin to serve build directory using koa with extensible API
-- [plugin-binify](./plugin-binify) - plugin to make your output file executable (using shebang and file attributes)
-- [plugin-externals](./plugin-externals) - plugin to declare dependencies external with reasonable defaults and customizable logic
+- [utils](./utils) - utilities for other plugins, including options and multi-output handling.
+- [plugin-clean](./plugin-clean) - lightweight, reliable cleaning of build directory.
+- [plugin-copy](./plugin-copy) - files copying with minimalistic config, watch mode and glob support.
+- [plugin-html](./plugin-html) - asset injection into HTML files with optional minification, beautification, and more.
+- [plugin-serve](./plugin-serve) - [Koa-based](https://koajs.com/) dev-server with an extensible API.
+- [plugin-binify](./plugin-binify) - makes an output file executable with shebang and file attributes.
+- [plugin-externals](./plugin-externals) - declares external dependencies with reasonable defaults and customizable logic.
 
 # License
 [MIT](./LICENSE)
