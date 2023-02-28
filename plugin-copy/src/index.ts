@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import glob from 'glob-promise';
+import { glob } from 'glob';
 import globParent from 'glob-parent';
 import { PluginContext, Plugin } from 'rollup';
 import { CopyPluginOptions, NonTargetOptions, SingleTargetDesc } from './types';
@@ -54,7 +54,7 @@ export default function(options: CopyPluginOptions) {
 
         async [hookName]() {
             const results = await Promise.all((targets as SingleTargetDesc[]).map(target => glob(target.src, { ignore: target.exclude })
-                .then((result: string[]) => ({
+                .then(result => ({
                     src: result,
                     dest: target.dest ? target.dest : '',
                     parent: globParent(target.src)
