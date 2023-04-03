@@ -1,10 +1,10 @@
-import fs from 'node:fs/promises';
+import fs from 'fs/promises';
 import { createLogger, LogLevel } from '@niceties/logger';
 import plugin from '../src';
 
 let loggerStart: jest.Mock, loggerFinish: jest.Mock, loggerUpdate: jest.Mock, log: jest.Mock;
 
-jest.mock('node:fs/promises');
+jest.mock('fs/promises');
 jest.mock('@niceties/logger', () => ({
     createLogger: jest.fn(() => (Object.assign(log = jest.fn(), {
         start: (loggerStart = jest.fn()),

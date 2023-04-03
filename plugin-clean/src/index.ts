@@ -1,5 +1,5 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import fs from 'fs/promises';
+import path from 'path';
 import { NormalizedInputOptions, NormalizedOutputOptions, Plugin, PluginContext, RollupOptions } from 'rollup';
 import { CleanPluginOptions } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';

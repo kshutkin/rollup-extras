@@ -1,6 +1,6 @@
 import Koa from 'koa';
 import serve from 'koa-static';
-import { Server } from 'node:http';
+import { Server } from 'http';
 
 export type ServePluginOptions = {
     pluginName?: string;

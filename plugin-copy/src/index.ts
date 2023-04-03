@@ -1,5 +1,5 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import fs from 'fs/promises';
+import path from 'path';
 import { glob } from 'glob';
 import globParent from 'glob-parent';
 import { PluginContext, Plugin } from 'rollup';

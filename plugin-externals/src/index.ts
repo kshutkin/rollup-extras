@@ -1,4 +1,4 @@
-import path from 'node:path';
+import path from 'path';
 import { Plugin, PluginContext } from 'rollup';
 import isBuiltinModule from 'is-builtin-module';
 import { getOptionsObject } from '@rollup-extras/utils/options';

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import fs from 'node:fs/promises';
+import fs from 'fs/promises';
 import glob from 'glob';
 import globParent from 'glob-parent';
 import { createLogger, LogLevel } from '@niceties/logger';
@@ -8,7 +8,7 @@ import { PluginContext } from 'rollup';
 
 let loggerStart: jest.Mock, loggerFinish: jest.Mock, logger: jest.Mock;
 
-jest.mock('node:fs/promises');
+jest.mock('fs/promises');
 jest.mock('glob');
 jest.mock('glob-parent');
 jest.mock('@niceties/logger', () => ({

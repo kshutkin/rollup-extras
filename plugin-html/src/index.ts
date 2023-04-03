@@ -1,6 +1,6 @@
-import fs from 'node:fs/promises';
-import oldStyleFs from 'node:fs';
-import path from 'node:path';
+import fs from 'fs/promises';
+import oldStyleFs from 'fs';
+import path from 'path';
 import { InternalModuleFormat, NormalizedInputOptions, NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, Plugin, PluginContext, PluginHooks } from 'rollup';
 import { AssetDescriptor, AssetPredicate, Assets, AssetType, HtmlPluginOptions, SimpleAssetDescriptor } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
