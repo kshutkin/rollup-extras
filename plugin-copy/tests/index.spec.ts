@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import fs from 'fs/promises';
-import glob from 'glob';
+import { glob } from 'glob';
 import globParent from 'glob-parent';
 import { createLogger, LogLevel } from '@niceties/logger';
 import plugin from '../src';
