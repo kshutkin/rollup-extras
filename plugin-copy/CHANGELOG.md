@@ -1,5 +1,11 @@
 Changelog
 
+## 1.7.1
+
+### Patch Changes
+
+- 0d7ab41: fix(deps): update dependency glob to v10
+
 ## 1.7.0
 
 ### Minor Changes
