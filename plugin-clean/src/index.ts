@@ -94,7 +94,7 @@ export default function(options: CleanPluginOptions = {}) {
             removePromise = Promise.resolve(hasChildrenInProgress.get(dir))
                 .then(() => doRemove(normalizedDir));
         } else if ((parentsInProgress = Array.from(parentDirs(dir)).filter(item => inProgress.has(item))).length > 0) {
-            return inProgress.get(parentsInProgress[0]);
+            return inProgress.get(parentsInProgress[0] as string);
         } else {
             removePromise = doRemove(normalizedDir);
         }

@@ -122,7 +122,7 @@ export default function(options: HtmlPluginOptions = {}) {
         if (fileName in bundle) {
             if (useEmittedTemplate) {
                 logger(`using exiting emitted ${fileName} as an input for out templateFactory`, LogLevel.verbose);
-                const source = bundle[fileName].type === 'asset' ? (bundle[fileName] as OutputAsset).source.toString() : (bundle[fileName] as OutputChunk).code;
+                const source = (bundle[fileName] as OutputAsset | OutputChunk).type === 'asset' ? (bundle[fileName] as OutputAsset).source.toString() : (bundle[fileName] as OutputChunk).code;
                 useNewTemplate(source);
             } else {
                 logger(`removing exiting emitted ${fileName}`, LogLevel.verbose);
@@ -203,7 +203,7 @@ export default function(options: HtmlPluginOptions = {}) {
                 continue;
             }
             processedFiles.add(relativeToRootAssetPath);
-            if (bundle[fileName].type == 'asset') {
+            if ((bundle[fileName] as OutputAsset | OutputChunk).type === 'asset') {
                 if (await useAssetFactory(fileName, relativeToRootAssetPath, (bundle[fileName] as OutputAsset).source, 'asset')) {
                     continue;
                 }
@@ -216,7 +216,7 @@ export default function(options: HtmlPluginOptions = {}) {
                     });
                     continue;
                 }
-            } else if (bundle[fileName].type == 'chunk') {
+            } else if ((bundle[fileName] as OutputAsset | OutputChunk).type === 'chunk') {
                 const chunk = bundle[fileName] as OutputChunk;
                 if (chunk.isEntry) {
                     if (await useAssetFactory(fileName, relativeToRootAssetPath, chunk.code, options.format)) {

@@ -32,7 +32,7 @@ export default function(options: BinifyPluginOptions = {}) {
         },
         generateBundle(this: PluginContext, _options: NormalizedOutputOptions, bundle: OutputBundle) {
             for (const key in bundle) {
-                const item: OutputAsset | OutputChunk = bundle[key];
+                const item = bundle[key] as OutputAsset | OutputChunk;
                 if (filter(item)) {
                     ++countFiles;
                     if (item.type === 'chunk') {
@@ -53,7 +53,7 @@ export default function(options: BinifyPluginOptions = {}) {
         async writeBundle(this: PluginContext, _options: NormalizedOutputOptions, bundle: OutputBundle) {
             if (executableFlag !== false) {
                 for (const key in bundle) {
-                    const item: OutputAsset | OutputChunk = bundle[key];
+                    const item = bundle[key] as OutputAsset | OutputChunk;
                     if (filter(item)) {
                         --countFiles;
                         const fileName = path.join(initialDir, item.fileName);
