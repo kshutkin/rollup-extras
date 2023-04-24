@@ -93,7 +93,7 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(createHttpsServer).not.toBeCalled();
         expect(koaLogger).toBeCalled();
         expect(serveStatic).toBeCalledWith('dist', undefined);
-        expect(loggerFinish).toBeCalledWith('listening on http://[::]:8080', LogLevel.info);
+        expect(loggerFinish).toBeCalledWith('listening on http://localhost:8080', LogLevel.info);
     });
 
     it('happy path (two configs)', async () => {
@@ -109,7 +109,7 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(createHttpsServer).not.toBeCalled();
         expect(koaLogger).toBeCalled();
         expect(serveStatic).toBeCalledWith('dist', undefined);
-        expect(loggerFinish).toBeCalledWith('listening on http://[::]:8080', LogLevel.info);
+        expect(loggerFinish).toBeCalledWith('listening on http://localhost:8080', LogLevel.info);
     });
 
     it('useKoaLogger: false', async () => {
@@ -122,7 +122,7 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(createHttpsServer).not.toBeCalled();
         expect(koaLogger).not.toBeCalled();
         expect(serveStatic).toBeCalledWith('dist', undefined);
-        expect(loggerFinish).toBeCalledWith('listening on http://[::]:8080', LogLevel.info);
+        expect(loggerFinish).toBeCalledWith('listening on http://localhost:8080', LogLevel.info);
     });
 
     it('customizeKoa', async () => {
@@ -147,7 +147,7 @@ describe('@rollup-extras/plugin-serve', () => {
         await (pluginInstance as any).writeBundle();
 
         expect(createHttpsServer).toBeCalledTimes(1);
-        expect(loggerFinish).toBeCalledWith('listening on https://[::]:8080', LogLevel.info);
+        expect(loggerFinish).toBeCalledWith('listening on https://localhost:8080', LogLevel.info);
     });
 
     it('host', async () => {
@@ -204,7 +204,7 @@ describe('@rollup-extras/plugin-serve', () => {
             listen: expect.any(Function),
             on: expect.any(Function)
         }));
-        expect(loggerFinish).toBeCalledWith('listening on http://[::]:8080', LogLevel.info);
+        expect(loggerFinish).toBeCalledWith('listening on http://localhost:8080', LogLevel.info);
     });
 
     it('onListen => truthy', async () => {

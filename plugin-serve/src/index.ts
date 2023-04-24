@@ -114,7 +114,10 @@ function linkFromAddress(address: AddressInfo | string | null, https: boolean) {
 }
 
 function linkFromAddressInfo({ address, port, family }: AddressInfo, https: boolean) {
-    const serverName = family === 'IPv6' ? `[${address}]` : address;
+    let serverName = family === 'IPv6' ? `[${address}]` : address;
+    if (serverName === '[::]') {
+        serverName = 'localhost';
+    }
     const protocol = `http${https ? 's' : ''}://`;
     return `${protocol}${serverName}:${port}`;
 }
