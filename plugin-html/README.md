@@ -106,7 +106,7 @@ Defines what plugin does if it finds a file with expected file name in bundle. B
 
 Optional, boolean, default: undefined.
 
-Defines if plugin adds `nomodule` attribute for non modular js chunks. By default it is done only if we have `es` outputs in one of the bundles processed by plugin. Also plugin values `iife` outputs higher than `umd` and if we have both filters out `umd` ones. This can be changes only by providing custom `assetFactory`.
+Defines if plugin adds `nomodule` attribute for non modular js chunks. By default it is done only if we have `es` outputs in one of the bundles processed by plugin. Also plugin values `iife` outputs higher than `umd` and if we have both filters out `umd` ones. This can be changed only by providing custom `assetFactory`.
 
 ### injectIntoHead
 
