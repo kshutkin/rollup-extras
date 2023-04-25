@@ -1,5 +1,11 @@
 Changelog
 
+## 0.1.0
+
+### Minor Changes
+
+- 95b5031: feat: initial implementation
+
 ## 1.7.1
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 Changelog
 
+## 1.7.2
+
+### Patch Changes
+
+- 7cbeaf0: fix: move types to devDependencies
+
 ## 1.7.1
 
 ### Patch Changes

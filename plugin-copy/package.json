@@ -1,5 +1,5 @@
 {
-  "version": "1.7.1",
+  "version": "1.7.2",
   "license": "MIT",
   "name": "@rollup-extras/plugin-copy",
   "author": {
@@ -50,7 +50,7 @@
     "@types/glob": "^8.1.0",
     "@types/glob-parent": "^5.1.1"
   },
-  "dependencies": {    
+  "dependencies": {
     "@niceties/logger": "^1.1.4",
     "glob": "^10.0.0",
     "glob-parent": "^6.0.2",
