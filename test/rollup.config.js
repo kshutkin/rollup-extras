@@ -6,6 +6,7 @@ import html from '@rollup-extras/plugin-html';
 import serve from '@rollup-extras/plugin-serve';
 import binify from '@rollup-extras/plugin-binify';
 import externals from '@rollup-extras/plugin-externals';
+import templateCache from '@rollup-extras/plugin-angularjs-template-cache';
 import crypto from 'crypto';
 import sb from 'simply-beautiful';
 import fs from 'fs';
@@ -53,6 +54,7 @@ export default [{
 
 	plugins: [
         clean,
+        templateCache({ templates: './src/**/*.html', rootDir: './src'}),
         externals(),
         copy({ targets: ['src/test/index.html', 'src/test.css'], verbose: 'list-filenames' }),
         htmlPluginInstance,

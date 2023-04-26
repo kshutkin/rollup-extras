@@ -17,12 +17,14 @@ npm install --save-dev @rollup-extras/plugin-angularjs-template-cache
 type AngularTemplatesCachePluginOptions = {
     templates?: string, // defaults to ./**/*.html
     exclude?: string, // defaults to empty string
+    rootDir?: string, // default to '.', relative to this directory will be resolved template url
+    processHtml?: (html: string) => string, // function to process html templates
     pluginName?: string, // defaults to '@rollup-extras/plugin-angularjs-template-cache'
     angularModule?: string, // 'templates' by default
     module?: string, // 'templates' by default
     watch?: boolean, // true by default
     verbose?: boolean | 'list-filenames' // false by default
-} | string;
+} | string | string[];
 ```
 
 ## Prior Art

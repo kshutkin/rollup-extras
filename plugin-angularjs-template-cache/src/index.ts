@@ -23,14 +23,16 @@ export default function(options: AngularTemplatesCachePluginOptions) {
         pluginName: '@rollup-extras/plugin-angularjs-template-cache',
         templates: './**/*.html',
         exclude: '',
+        processHtml: (html: string) => html,
         angularModule: 'templates',
         module: 'templates',
+        rootDir: '.',
         standalone: true,
         watch: true,
         verbose: false as AngularTemplatesCachePluginOptionsFull['verbose']
     }, 'templates', factories);
 
-    const { pluginName, templates, exclude: ignore, angularModule, module: module, standalone, verbose, logger, watch } = normalizedOptions;
+    const { pluginName, templates, exclude: ignore, processHtml, angularModule, module: module, standalone, verbose, logger, watch, rootDir } = normalizedOptions;
 
     return <Plugin>{
         name: pluginName,
@@ -51,7 +53,10 @@ export default function(options: AngularTemplatesCachePluginOptions) {
                     if (!fileStat.isFile() && !fileStat.isSymbolicLink()) {
                         continue;
                     }
-                    templatesMap.set('fileName', escapeString(await fs.readFile(fileName)));
+                    templatesMap.set(
+                        path.relative(rootDir, fileName.replaceAll('\\', '/')), 
+                        escapeString(processHtml((await fs.readFile(fileName)).toString()))
+                    );
                 } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                     const loglevel: number | undefined = e['code'] === 'ENOENT' ? undefined : LogLevel.warn;
                     logger(`error reading file ${fileName}`, loglevel, e);
@@ -78,12 +83,14 @@ export default function(options: AngularTemplatesCachePluginOptions) {
       
                 if (idNoPrefix === module) {
                     return `
-                        angular.module("${angularModule}", ${standalone ? ', []' : ''}).run([
-                            $templateCache,
+                        import angular from "angular";
+                        angular.module("${angularModule}"${standalone ? ', []' : ''}).run([
+                            "$templateCache",
                             function ($templateCache) {
                                 ${Array.from(templatesMap).map(entry => '$templateCache.put("' + entry[0] +'", "' + entry[1] + '");').join('\n')}
                             }
                         ]);
+                        export default "${angularModule}";
                     `;
                 }
             }
