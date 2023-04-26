@@ -1,5 +1,11 @@
 Changelog
 
+## 0.2.0
+
+### Minor Changes
+
+- 2e474cc: Fixed template generation. Added rootDir and processHtml options.
+
 ## 0.1.0
 
 ### Minor Changes
