@@ -1,5 +1,21 @@
 Changelog
 
+## 1.8.0
+
+### Minor Changes
+
+- a5f7f39: Rename flattern option to flatten
+- a5f7f39: Move statistics collector to utils package
+
+### Patch Changes
+
+- 78047dc: make rollup dependency optional
+- a5f7f39: Improve readme
+- Updated dependencies [a5f7f39]
+- Updated dependencies [78047dc]
+- Updated dependencies [a5f7f39]
+  - @rollup-extras/utils@1.4.0
+
 ## 1.7.2
 
 ### Patch Changes
