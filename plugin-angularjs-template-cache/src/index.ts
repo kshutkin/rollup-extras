@@ -54,7 +54,7 @@ export default function(options: AngularTemplatesCachePluginOptions) {
                         continue;
                     }
                     templatesMap.set(
-                        path.relative(rootDir, fileName.replaceAll('\\', '/')), 
+                        path.relative(rootDir, fileName).replaceAll('\\', '/'), 
                         escapeString(processHtml((await fs.readFile(fileName)).toString()))
                     );
                 } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
