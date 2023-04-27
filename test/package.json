@@ -10,6 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "rollup": "^3.21.0",
+    "@niceties/logger": "^1.1.10",
     "@niceties/draftlog-appender": "^1.1.0",
     "@rollup-extras/plugin-clean": "^1.0.1",
     "@rollup-extras/plugin-copy": "^1.0.0",
