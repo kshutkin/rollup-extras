@@ -23,6 +23,10 @@
       "require": "./dist/logger.cjs",
       "default": "./dist/logger.mjs"
     },
+    "./statistics": {
+      "require": "./dist/statistics.cjs",
+      "default": "./dist/statistics.mjs"
+    },
     "./package.json": "./package.json"
   },
   "main": "./dist/index.cjs",
@@ -33,7 +37,8 @@
     "mutli-config-plugin-base",
     "options",
     "logger",
-    "LICENSE"
+    "LICENSE",
+    "statistics"
   ],
   "engines": {
     "node": ">=15"

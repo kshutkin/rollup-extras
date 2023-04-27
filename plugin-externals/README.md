@@ -2,9 +2,9 @@
 
 Rollup plugin to declare dependencies external with reasonable defaults and customizable logic.
 
-Uses [is-builtin-module](https://www.npmjs.com/package/is-builtin-module) to check for buildin modules.
+Uses [is-builtin-module](https://www.npmjs.com/package/is-builtin-module) to check for builtin modules.
 
-[Changlelog](./CHANGELOG.md)
+[Changelog](./CHANGELOG.md)
 
 ## Installation
 
@@ -38,13 +38,13 @@ export default {
 
 Optional, `string`.
 
-For debugging purposes, so many instances of a plugin can be differenciated in debugging output.
+For debugging purposes, so many instances of a plugin can be differentiated in debugging output.
 
 ### verbose
 
 Optional, `boolean`.
 
-Bumps loglevel so more messages goes through default logger filter.
+Bumps loglevel so more messages go through the default logger filter.
 
 ### external
 

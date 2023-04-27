@@ -4,6 +4,7 @@ import { glob } from 'glob';
 import { PluginContext, Plugin } from 'rollup';
 import { Logger, LogLevel } from '@niceties/logger';
 import { getOptions } from '@rollup-extras/utils/options';
+import statistics from '@rollup-extras/utils/statistics';
 import logger from '@rollup-extras/utils/logger';
 import type { AngularTemplatesCachePluginOptions, AngularTemplatesCachePluginOptionsFull } from './types';
 import escapeString from 'js-string-escape';
@@ -42,7 +43,10 @@ export default function(options: AngularTemplatesCachePluginOptions) {
 
             const results = await glob(templates, { ignore });
 
-            const statisticsCollector = statistics(verbose);
+            const statisticsCollector = statistics(
+                verbose === listFilenames,
+                (result: number | string[]) => `inlined ${typeof result == 'number' ? result + ' templates' : result.join(', ')}`
+            );
             logger.start('inlining templates', verbose ? LogLevel.info : LogLevel.verbose);
             for (const fileName of results) {
                 if (watch) {
@@ -97,24 +101,5 @@ export default function(options: AngularTemplatesCachePluginOptions) {
       
             return null;
         }
-    };
-}
-
-// TODO move to utils
-function statistics(verbosity: AngularTemplatesCachePluginOptionsFull['verbose']) {
-    let count = 0, names: string[] | null = verbosity === listFilenames ? null : [];
-    return (name?: string): undefined | string => {
-        if (name != null) {
-            count ++;
-            if (names) {
-                if (count > 5) {
-                    names = null;
-                } else {
-                    names.push(name);
-                }
-            }
-            return;
-        }
-        return `inlined ${!names ? count + ' templates' : names.join(', ')}`;
     };
 }

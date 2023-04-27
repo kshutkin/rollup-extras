@@ -8,14 +8,14 @@ Points:
 - Minimal configuration
 - Runs once per file by default
 - Support hashes (uses `assetFileNames` from rollup)
-- Watch on files so when they changed thay can be copied again (but only if timestamp is changed)
+- Watch on files so when they changed that can be copied again (but only if timestamp is changed)
 - Minimal amount of logs by default
 - Supports globs (check ['glob'](https://github.com/isaacs/node-glob) for syntax)
 - Can be run both as output or build plugin (build plugin by default for watch)
 
 Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/README.md) to log messages, can be configured through `@niceties/logger` API.
 
-[Changlelog](./CHANGELOG.md)
+[Changelog](./CHANGELOG.md)
 
 ## Installation
 
@@ -98,17 +98,17 @@ copy({ src: 'assets/*', verbose: true })
 copy({ targets: ['assets/*'], verbose: true })
 ```
 
-By default plugin uses `glob-parent` to preserve directory structure of assets (relative to glob parent path). To flattern files in assets directory use `flattern` = `true`:
+By default plugin uses `glob-parent` to preserve directory structure of assets (relative to glob parent path). To flatten files in assets directory use `flatten` = `true`:
 
 ```javascript
-copy({ src: 'assets/*', flattern: true })
+copy({ src: 'assets/*', flatten: true })
 
 // or
 
 copy({ targets: ['assets/*'], flattern: true })
 ```
 
-To add hashes to file names use `exactFileNames` = `false`, tweek `assetFileNames` option in rollup config if needed. Files with same content will be deduplicated by `rollup` in this mode.
+To add hashes to file names use `exactFileNames` = `false`, tweak `assetFileNames` option in rollup config if needed. Files with the same content will be deduplicated by `rollup` in this mode.
 
 ```javascript
 copy({ src: 'assets/*', exactFileNames: false })
@@ -128,7 +128,7 @@ copy({ src: 'assets/*', outputPlugin: true })
 copy({ targets: ['assets/*'], outputPlugin: true })
 ```
 
-To stop files being emitted through rollup pipeline use can use `emitFiles` = `false`. Please note that you need to specify `dest` and it will not be relative to output directory, also file will not be copied into each output directory.
+To stop files being emitted through rollup pipeline use can use `emitFiles` = `false`. Please note that you need to specify `dest` and it will not be relative to the output directory, also the file will not be copied into each output directory.
 
 ```javascript
 copy({ src: 'assets/*', dest: 'public', emitFiles: false })
@@ -140,7 +140,7 @@ copy({ targets: [{ src: 'assets/*', dest: 'public' }], emitFiles: false })
 
 ### `dest` and `exclude`
 
-Use `dest` option to put assets into subfolder in assets directory. As an example if we have `assets` as a directory for assets and `public` as an output directory and we specify `'dest'` = `'fonts'` assets will be copied into `public/assets/fonts` preserving assets directory structure.
+Use the `dest` option to put assets into the subfolder in the assets directory. As an example if we have `assets` as a directory for assets and `public` as an output directory and we specify `'dest'` = `'fonts'` assets will be copied into `public/assets/fonts` preserving assets directory structure.
 
 Use `exclude` option to filter out files in assets (passed to ignore option of glob options). For example `*.json` will filter out json files.
 

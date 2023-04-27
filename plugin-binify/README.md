@@ -9,7 +9,7 @@ Points:
 - changes permissions of the file(s)
 - configurable
 
-[Changlelog](./CHANGELOG.md)
+[Changelog](./CHANGELOG.md)
 
 ## Installation
 
@@ -48,13 +48,13 @@ export default {
 
 Optional, `string`.
 
-For debugging purposes, so many instances of a plugin can be differenciated in debugging output.
+For debugging purposes, so many instances of a plugin can be differentiated in debugging output.
 
 ### verbose
 
 Optional, `boolean`.
 
-Bumps loglevel so more messages goes through default logger filter.
+Bumps loglevel so more messages go through the default logger filter.
 
 ### shebang
 
@@ -70,8 +70,8 @@ Optional, `number | false`.
 
 Default: `0o755`
 
-Number / string means try to set permissions on file using fs.chmod.
-`false` (falsy values not work) disables permissions setting.
+Number / string means try to set permissions on a file using fs.chmod.
+`false` (falsy values not working) disables permissions settings.
 
 ### filter
 

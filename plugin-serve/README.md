@@ -9,7 +9,7 @@ Points:
 
 Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/README.md) to log messages, can be configured through `@niceties/logger` API.
 
-[Changlelog](./CHANGELOG.md)
+[Changelog](./CHANGELOG.md)
 
 ## Installation
 
@@ -51,7 +51,7 @@ For additional plugin instances (in case of multiple configs) please use: `first
 
 Optional, `string`.
 
-For debugging purposes, so many instances of a plugin can be differenciated in debugging output.
+For debugging purposes, so many instances of a plugin can be differentiated in debugging output.
 
 ### useWriteBundle
 
@@ -75,7 +75,7 @@ Port to use for server.
 
 Optional, `string`.
 
-Host to use, by default it does not provide host to createServer and lets nodejs to decide.
+Host to use, by default it does not provide host to createServer and lets nodejs decide.
 
 ### useKoaLogger
 
@@ -99,13 +99,13 @@ Key and certificate to use for https. Best way to generate cert and key (and to 
 
 Optional, `(koa: Koa) => void`
 
-Extention point to customize `koa`.
+Extension point to customize `koa`.
 
 ### onListen
 
 Optional, `(server: Server) => void | true`
 
-Extention point after server is live. Please return true to suppress default banner.
+Extension point after server is live. Please return true to suppress the default banner.
 
 ## Configuration
 

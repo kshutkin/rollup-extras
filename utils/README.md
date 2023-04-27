@@ -2,10 +2,10 @@
 
 Utils to support creation of rollup plugins.
 
-*Disclaimer: It is not a substitute of `@rollup/pluginutils` package.*
+*Disclaimer: It is not a substitute for the `@rollup/pluginutils` package.*
 
 
-[Changlelog](./CHANGELOG.md)
+[Changelog](./CHANGELOG.md)
 
 ## Installation
 
@@ -27,7 +27,7 @@ Utility function to get options object.
 
 ## Multiconfig Plugin Base
 
-Utility to construct plugin that should/can be executed when multiple configs used to gather information for plugin.
+Utility to construct plugins that should/can be executed when multiple configs used to gather information for plugin.
 
 ```typescript
 function multiConfigPluginBase(useWriteBundle: boolean, pluginName: string, execute: ExecuteFn): Partial<PluginHooks>
@@ -36,7 +36,17 @@ function multiConfigPluginBase(useWriteBundle: boolean, pluginName: string, exec
 - `pluginName` - plugin name
 - `execute` - function to execute
 
-Returns plugin instance.
+Returns a plugin instance.
+
+## Statistics
+
+Utility to construct a collector of data that reports count if verbose / more than 5 items. Assumption than in case of verbose an external logger will take care about reporting. It is very niche and probably you don't need it. Main idea for this is that in case we report thousands of files we are not holding data in memory but discarding it / writing it to log.
+
+```typescript
+function statistics(verbose: boolean, messageFactory: (result: number | string[]) => string): (name?: string) => undefined | string
+```
+
+Returns a collector that accepts new data if you pass a non null / non undefined parameter or constructs a message using message factory.
 
 ## Types
 

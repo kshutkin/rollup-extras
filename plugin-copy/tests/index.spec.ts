@@ -226,7 +226,7 @@ describe('@rollup-extras/plugin-copy', () => {
     });
 
     it('falttern', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', flattern: true });
+        const pluginInstance = plugin({ src: 'assets/**/*.json', flatten: true });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
         expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
         expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
@@ -244,7 +244,7 @@ describe('@rollup-extras/plugin-copy', () => {
     it('dest with slash and flattern', async () => {
         const pluginInstance = plugin({
             targets: [{ src: 'assets/**/*.json', dest: 'folder' }, { src: 'assets/**/*.json', dest: 'folder/' }],
-            flattern: true
+            flatten: true
         });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
         expect(rollupContextMock.emitFile).toBeCalledTimes(2);

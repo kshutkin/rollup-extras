@@ -7,6 +7,7 @@ import { CopyPluginOptions, NonTargetOptions, SingleTargetDesc } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
 import { getOptions } from '@rollup-extras/utils/options';
 import logger from '@rollup-extras/utils/logger';
+import statistics from '@rollup-extras/utils/statistics';
 
 type FileDesc = { dest: string[], copied: string[], timestamp: number };
 
@@ -26,7 +27,7 @@ export default function(options: CopyPluginOptions) {
     const normalizedOptions = getOptions(options, {
         pluginName: '@rollup-extras/plugin-copy',
         copyOnce: true,
-        flattern: false,
+        flatten: false,
         verbose: false as NonTargetOptions['verbose'],
         exactFileNames: true,
         watch: true,
@@ -34,7 +35,7 @@ export default function(options: CopyPluginOptions) {
         outputPlugin: false
     }, 'targets', factories);
 
-    const { pluginName, copyOnce, verbose, exactFileNames, targets, outputPlugin, flattern, emitFiles, logger } = normalizedOptions;
+    const { pluginName, copyOnce, verbose, exactFileNames, targets, outputPlugin, flatten, emitFiles, logger } = normalizedOptions;
     let { watch } = normalizedOptions;
 
     const hookName = outputPlugin ? 'generateBundle' : emitFiles ? 'buildStart' : 'buildEnd';
@@ -73,7 +74,7 @@ export default function(options: CopyPluginOptions) {
                         };
                         files.set(file, fileDesc);
                     }
-                    const dest = flattern ? normalizeSlash(result.dest) : path.join(result.dest, path.relative(result.parent, path.dirname(file)));
+                    const dest = flatten ? normalizeSlash(result.dest) : path.join(result.dest, path.relative(result.parent, path.dirname(file)));
                     if (!fileDesc.dest.includes(dest)) {
                         fileDesc.dest.push(dest);
                     }
@@ -84,7 +85,10 @@ export default function(options: CopyPluginOptions) {
                 }
             }
 
-            const statisticsCollector = statistics(verbose);
+            const statisticsCollector = statistics(
+                verbose === listFilenames,
+                (result: number | string[]) => `copied ${typeof result == 'number' ? result + ' files' : result.join(', ')}`
+            );
             logger.start('coping files', verbose ? LogLevel.info : LogLevel.verbose);
             for (const [fileName, fileDesc] of files) {
                 let source: Buffer | undefined;
@@ -136,24 +140,6 @@ export default function(options: CopyPluginOptions) {
             }
             logger.finish(statisticsCollector() as string);
         }
-    };
-}
-
-function statistics(verbosity: NonTargetOptions['verbose']) {
-    let count = 0, names: string[] | null = verbosity === listFilenames ? null : [];
-    return (name?: string): undefined | string => {
-        if (name != null) {
-            count ++;
-            if (names) {
-                if (count > 5) {
-                    names = null;
-                } else {
-                    names.push(name);
-                }
-            }
-            return;
-        }
-        return `copied ${!names ? count + ' files' : names.join(', ')}`;
     };
 }
 

@@ -2,7 +2,7 @@
 
 Builds AngularJS templates cache.
 
-[Changlelog](./CHANGELOG.md)
+[Changelog](./CHANGELOG.md)
 
 ## Installation
 

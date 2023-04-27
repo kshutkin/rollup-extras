@@ -15,7 +15,7 @@ Plugin runs on `renderStart` per each output and uses output.dir as a default ta
 
 Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/README.md) to log messages, can be configured through `@niceties/logger` API.
 
-[Changlelog](./CHANGELOG.md)
+[Changelog](./CHANGELOG.md)
 
 ## Installation
 
@@ -63,15 +63,15 @@ or
 clean({targets: ['dir1', 'dir2']})
 ```
 
-Other supporded fields in options object: `pluginName`, `deleteOnce`, `outputPlugin` and `verbose`.
+Other supported fields in options object: `pluginName`, `deleteOnce`, `outputPlugin` and `verbose`.
 
-`pluginName` is just for debugging purpose so you can understand which instance of plugin responsible for an error.
+`pluginName` is just for debugging purposes so you can understand which instance of the plugin is responsible for an error.
 
-`deleteOnce` can be set to `false` if you want to clean directory every rebuild.
+`deleteOnce` can be set to `false` if you want to clean the directory every rebuild.
 
-`outputPlugin` can be set to `false` if you want plugin to trigger earlier (use with caution, you may want to define `targets` youself in this mode)
+`outputPlugin` can be set to `false` if you want plugin to trigger earlier (use with caution, you may want to define `targets` yourself in this mode)
 
-`verbose` is to get more messages in console.
+`verbose` is to get more messages in the console.
 
 ## Configuration
 

@@ -12,7 +12,7 @@ export type NonTargetOptions = {
     copyOnce?: boolean,
     watch?: boolean,
     verbose?: boolean | 'list-filenames',
-    flattern?: boolean,
+    flatten?: boolean,
     exactFileNames?: boolean,
     outputPlugin?: boolean,
     emitFiles?: boolean
