@@ -176,25 +176,25 @@ importers:
         specifier: ^1.1.10
         version: 1.1.10
       '@rollup-extras/plugin-angularjs-template-cache':
-        specifier: ^0.2.0
+        specifier: ^0.3.0
         version: link:../plugin-angularjs-template-cache
       '@rollup-extras/plugin-binify':
-        specifier: ^1.0.0
+        specifier: ^1.1.6
         version: link:../plugin-binify
       '@rollup-extras/plugin-clean':
-        specifier: ^1.0.1
+        specifier: ^1.3.5
         version: link:../plugin-clean
       '@rollup-extras/plugin-copy':
-        specifier: ^1.0.0
+        specifier: ^1.8.0
         version: link:../plugin-copy
       '@rollup-extras/plugin-externals':
-        specifier: ^1.0.0
+        specifier: ^1.1.9
         version: link:../plugin-externals
       '@rollup-extras/plugin-html':
-        specifier: ^1.0.0
+        specifier: ^1.4.0
         version: link:../plugin-html
       '@rollup-extras/plugin-serve':
-        specifier: ^1.0.0
+        specifier: ^1.3.1
         version: link:../plugin-serve
       rollup:
         specifier: ^3.21.0
