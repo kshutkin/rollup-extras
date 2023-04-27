@@ -1,5 +1,16 @@
 Changelog
 
+## 1.3.1
+
+### Patch Changes
+
+- 78047dc: make rollup dependency optional
+- a5f7f39: Improve readme
+- Updated dependencies [a5f7f39]
+- Updated dependencies [78047dc]
+- Updated dependencies [a5f7f39]
+  - @rollup-extras/utils@1.4.0
+
 ## 1.3.0
 
 ### Minor Changes
