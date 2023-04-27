@@ -192,6 +192,10 @@ export default {
 };
 ```
 
+## Asset Factories
+
+
+
 ## Configuration
 
 [Definition of config typings in typescript](./src/types.ts)

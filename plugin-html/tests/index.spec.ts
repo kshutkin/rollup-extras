@@ -9,7 +9,7 @@ let loggerStart: jest.Mock, loggerFinish: jest.Mock, logger: jest.Mock;
 jest.mock('fs/promises');
 jest.mock('fs');
 jest.mock('@niceties/logger', () => ({
-    createLogger: jest.fn(() => Object.assign((logger =jest.fn()), {
+    createLogger: jest.fn(() => Object.assign((logger = jest.fn()), {
         start: (loggerStart = jest.fn()),
         finish: (loggerFinish = jest.fn())
     }))
@@ -435,6 +435,23 @@ describe('@rollup-extras/plugin-html', () => {
         }));
     });
 
+    it('ignore (string)', async () => {
+        const pluginInstance = plugin({ ignore: '.css' });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head></head><body></body></html>',
+            type: 'asset'
+        }));
+    });
+
     it('ignore (number)', async () => {
         const pluginInstance = plugin({ ignore: 123 as never as boolean });
 
@@ -450,7 +467,7 @@ describe('@rollup-extras/plugin-html', () => {
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body></body></html>',
             type: 'asset'
         }));
-        expect(logger).toBeCalledWith('ignore option ignored because it is not a function, RegExp or boolean', LogLevel.warn);
+        expect(logger).toBeCalledWith('ignore option ignored because it is not a function, RegExp, string or boolean', LogLevel.warn);
     });
 
     it('injectIntoHead (function)', async () => {
@@ -507,6 +524,24 @@ describe('@rollup-extras/plugin-html', () => {
         }));
     });
 
+    it('injectIntoHead (string)', async () => {
+        const assetsFactory = () => '<asset/>';
+        const pluginInstance = plugin({ assetsFactory, injectIntoHead: '.css' });
+
+        (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
+        await (pluginInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {
+            'main.css': {
+                type: 'asset'
+            }
+        }]);
+
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'index.html',
+            source: '<!DOCTYPE html><html><head><asset/></head><body></body></html>',
+            type: 'asset'
+        }));
+    });
+
     it('injectIntoHead (number)', async () => {
         const assetsFactory = () => '<asset/>';
         const pluginInstance = plugin({ assetsFactory, injectIntoHead: 123 as never as boolean });
@@ -523,7 +558,7 @@ describe('@rollup-extras/plugin-html', () => {
             source: '<!DOCTYPE html><html><head><asset/></head><body></body></html>',
             type: 'asset'
         }));
-        expect(logger).toBeCalledWith('injectIntoHead option ignored because it is not a function, RegExp or boolean', LogLevel.warn);
+        expect(logger).toBeCalledWith('injectIntoHead option ignored because it is not a function, RegExp, string or boolean', LogLevel.warn);
     });
 
     it('outputFile', async () => {
@@ -850,7 +885,7 @@ describe('@rollup-extras/plugin-html', () => {
         }));
     });
 
-    it('happy path multiple configs and tempalte file ans awtch=false', async () => {
+    it('happy path multiple configs and tempalte file and watch=false', async () => {
         const pluginInstance = plugin({ template: 'index.html', watch: false });
         const additionalInstance = (pluginInstance as any).api.addInstance();
 

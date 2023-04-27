@@ -1,5 +1,6 @@
 import { InternalModuleFormat } from 'rollup';
 
+export type PredicateSource = boolean | AssetPredicate | RegExp | string;
 export type AssetType = 'asset' | InternalModuleFormat;
 export type Assets = {[key in AssetType]?: AssetDescriptor[]};
 export type AssetPredicate = (fileName: string) => boolean;
@@ -27,8 +28,12 @@ export type HtmlPluginOptions = {
     useWriteBundle?: boolean;
     useEmittedTemplate?: boolean;
     conditionalLoading?: boolean;
-    injectIntoHead?: boolean | AssetPredicate | RegExp; // placing asset into head
-    ignore?: boolean | AssetPredicate | RegExp; // filter some of files
+    injectIntoHead?: PredicateSource; // placing asset into head
+    ignore?: PredicateSource; // filter some of files
     assetsFactory?: AssetFactory; // add some assets from emitted chunks / assets in custom way
     templateFactory?: TemplateFactory;
 };
+
+export type Extends<T1, T2> = T1 extends T2 ? true : false;
+
+export type Expect<T extends true> = T;
