@@ -11,6 +11,10 @@
       "require": "./dist/index.cjs",
       "default": "./dist/index.mjs"
     },
+    "./asset-factories": {
+      "require": "./dist/asset-factories.cjs",
+      "default": "./dist/asset-factories.mjs"
+    },
     "./package.json": "./package.json"
   },
   "main": "./dist/index.cjs",
@@ -18,7 +22,8 @@
   "typings": "./dist/index.d.ts",
   "files": [
     "dist",
-    "LICENSE"
+    "LICENSE",
+    "asset-factories"
   ],
   "engines": {
     "node": ">=15"

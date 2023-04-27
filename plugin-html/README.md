@@ -192,6 +192,38 @@ export default {
 };
 ```
 
+## Asset Factories (/asset-factories export)
+
+### simpleES5Script
+
+`(PredicateSource) => AssetFactory`
+
+Creates simple script element.
+
+### simpleES5FallbackScript
+
+`(PredicateSource) => AssetFactory`
+
+Creates simple script element with nomodule attribute.
+
+### simpleES5FallbackScript
+
+`(PredicateSource) => AssetFactory`
+
+Creates simple script element with nomodule attribute.
+
+### simpleModuleScript
+
+`(PredicateSource) => AssetFactory`
+
+Creates simple module script element.
+
+### combineAssetFactories
+
+`(...factories: AssetFactory[]) => AssetFactory`
+
+Combines several factories, calls them in order, first factory created asset wins.
+
 ## Configuration
 
 [Definition of config typings in typescript](./src/types.ts)

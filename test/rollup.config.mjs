@@ -10,6 +10,7 @@ import templateCache from '@rollup-extras/plugin-angularjs-template-cache';
 import crypto from 'crypto';
 import sb from 'simply-beautiful';
 import fs from 'fs';
+import { combineAssetFactories, simpleES5Script } from "@rollup-extras/plugin-html/asset-factories";
 
 appender((msg) => {
     console.log(msg.message);
@@ -20,7 +21,7 @@ const input = 'src/index.js';
 const htmlPluginInstance = html({
     template: 'src/index.html',
     verbose: true,
-    assetsFactory: (fileName, content) => {
+    assetsFactory: combineAssetFactories((fileName, content) => {
         if (fileName.endsWith('.css')) {
             const data = crypto
                 .createHash('sha384')
@@ -28,7 +29,7 @@ const htmlPluginInstance = html({
             return `<link rel="stylesheet" href="${fileName}" integrity="sha384-${data.digest('base64')}" type="text/css">`;
         }
         return undefined;
-    },
+    }, simpleES5Script('.js')),
     templateFactory: (template, assets, defaultFactory) => sb.html(defaultFactory(template, assets))
 });
 
@@ -56,7 +57,7 @@ export default [{
         clean,
         templateCache({ templates: './src/**/*.html', rootDir: './src'}),
         externals(),
-        copy({ targets: ['src/test/index.html', 'src/test.css'], verbose: 'list-filenames' }),
+        copy({ targets: ['src/test/index.html', 'src/test.css', 'src/index2.js'], verbose: 'list-filenames' }),
         htmlPluginInstance,
         server
     ],

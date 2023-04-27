@@ -1,12 +1,13 @@
 import fs from 'fs/promises';
 import oldStyleFs from 'fs';
 import path from 'path';
-import { InternalModuleFormat, NormalizedInputOptions, NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, Plugin, PluginContext, PluginHooks } from 'rollup';
-import { AssetDescriptor, AssetPredicate, Assets, AssetType, HtmlPluginOptions, SimpleAssetDescriptor } from './types';
+import type { InternalModuleFormat, NormalizedInputOptions, NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, Plugin, PluginContext, PluginHooks } from 'rollup';
+import type { AssetDescriptor, AssetPredicate, Assets, AssetType, HtmlPluginOptions, PredicateSource, SimpleAssetDescriptor } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
 import { getOptionsObject } from '@rollup-extras/utils/options';
 import logger from '@rollup-extras/utils/logger';
 import { multiConfigPluginBase } from '@rollup-extras/utils/mutli-config-plugin-base';
+import { getLinkElement, getModuleScriptElement, getNonModuleScriptElement, toAssetPredicate } from './shared';
 
 const defaultTemplate = '<!DOCTYPE html><html><head></head><body></body></html>';
 const headClosingElement = '</head>';
@@ -186,7 +187,7 @@ export default function(options: HtmlPluginOptions = {}) {
                     source
                 });
             }
-            // reset assets and configs for next iteration
+            // reset assets and configs for the next iteration
             assets = freshAssets();
             processedFiles.clear();
             logger.finish('html file generated');
@@ -271,39 +272,16 @@ function isUsableByDefaultTemplateFactory(template: string) {
     return template.indexOf(headClosingElement) >= 0 && template.indexOf(bodyClosingElement) >= 0;
 }
 
-function getLinkElement(fileName: string) {
-    return `<link rel="stylesheet" href="${fileName}" type="text/css">`;
-}
-
-function getNonModuleScriptElement(fileName: string, conditionalLoading: boolean) {
-    return `<script src="${fileName}" type="text/javascript"${conditionalLoading ? ' nomodule' : ''}></script>`;
-}
-
-function getModuleScriptElement(fileName: string) {
-    return `<script src="${fileName}" type="module"></script>`;
-}
-
-function predicateFactory(options: {injectIntoHead?: boolean | AssetPredicate | RegExp, ignore?: boolean | AssetPredicate | RegExp} & { logger?: Logger }, field: 'injectIntoHead' | 'ignore'): AssetPredicate {
+function predicateFactory(options: {injectIntoHead?: PredicateSource, ignore?: PredicateSource} & { logger?: Logger }, field: 'injectIntoHead' | 'ignore'): AssetPredicate {
     if (options[field] != null) {
-        const predicate = toAssetPredicate(options[field] as boolean | AssetPredicate | RegExp);
+        const predicate = toAssetPredicate(options[field] as PredicateSource);
         if (predicate) {
             return predicate;
         } else {
-            options.logger && options.logger(`${field} option ignored because it is not a function, RegExp or boolean`, LogLevel.warn);
+            options.logger && options.logger(`${field} option ignored because it is not a function, RegExp, string or boolean`, LogLevel.warn);
         }
     }
     return defaults[field];
-}
-
-function toAssetPredicate(sourceOption: boolean | AssetPredicate | RegExp): AssetPredicate | undefined {
-    if (typeof sourceOption === 'boolean') {
-        return () => sourceOption;
-    } else if (typeof sourceOption === 'function') {
-        return sourceOption;
-    } else if (sourceOption instanceof RegExp) {
-        return (fileName: string) => sourceOption.test(fileName);
-    }
-    return undefined;
 }
 
 function defaultTemplateFactory(template: string, assets: Assets): string {
