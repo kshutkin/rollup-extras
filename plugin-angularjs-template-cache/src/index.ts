@@ -41,7 +41,11 @@ export default function(options: AngularTemplatesCachePluginOptions) {
         async buildStart() {
             templatesMap.clear();
 
-            const results = await glob(templates, { ignore });
+            const results = new Set(
+                (
+                    await Promise.all([templates].flat(2).map(templateGlob => glob(templateGlob, { ignore })))
+                ).flat(2)
+            );
 
             const statisticsCollector = statistics(
                 verbose === listFilenames,

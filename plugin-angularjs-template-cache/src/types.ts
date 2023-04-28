@@ -1,5 +1,5 @@
 export type AngularTemplatesCachePluginOptionsFull ={
-    templates?: string, // defaults to ./**/*.html
+    templates?: string | string[], // defaults to ./**/*.html
     exclude?: string, // defaults to empty string
     rootDir?: string, // default to '.', relative to this directory will be resolved template url
     processHtml?: (html: string) => string, // function to process html templates
