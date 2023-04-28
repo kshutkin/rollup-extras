@@ -52,30 +52,30 @@ export default function(options: AngularTemplatesCachePluginOptions) {
                 (result: number | string[]) => `inlined ${typeof result == 'number' ? result + ' templates' : result.join(', ')}`
             );
             logger.start('inlining templates', verbose ? LogLevel.info : LogLevel.verbose);
-            for (const fileName of results) {
+            await Promise.all([...results].map(async (fileName) => {
                 if (watch) {
                     (this as unknown as PluginContext).addWatchFile(fileName);
                 }
+                const templateUri = path.relative(rootDir, fileName).replaceAll('\\', '/');
                 try {
                     const fileStat = await fs.stat(fileName);
                     if (!fileStat.isFile() && !fileStat.isSymbolicLink()) {
-                        continue;
-                    }
+                        return;
+                    }                    
                     templatesMap.set(
-                        path.relative(rootDir, fileName).replaceAll('\\', '/'), 
+                        templateUri, 
                         escapeString(processHtml((await fs.readFile(fileName)).toString()))
                     );
                 } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
                     const loglevel: number | undefined = e['code'] === 'ENOENT' ? undefined : LogLevel.warn;
                     logger(`error reading file ${fileName}`, loglevel, e);
-                    continue;
+                    return;
                 }
-                const baseName = path.basename(fileName);
                 if (verbose === listFilenames) {
-                    logger(`\t${fileName}`, LogLevel.info);
+                    logger(`\t${fileName} → ${templateUri}`, LogLevel.info);
                 }
-                statisticsCollector(baseName);
-            }
+                statisticsCollector(templateUri);
+            }));
             logger.finish(statisticsCollector() as string);
         },
 
