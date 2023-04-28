@@ -30,7 +30,7 @@
   "bugs": {
     "url": "https://github.com/kshutkin/rollup-extras/issues"
   },
-  "homepage": "https://github.com/kshutkin/rollup-extras/blob/main/plugin-copy/README.md",
+  "homepage": "https://github.com/kshutkin/rollup-extras/blob/main/plugin-angularjs-template-cache/README.md",
   "readme": "README.md",
   "description": "Plugin to build AngularJS templates cache.",
   "keywords": [
