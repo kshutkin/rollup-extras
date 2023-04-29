@@ -18,7 +18,7 @@
     "@rollup-extras/plugin-serve": "^1.3.1",
     "@rollup-extras/plugin-binify": "^1.1.6",
     "@rollup-extras/plugin-externals": "^1.1.9",
-    "@rollup-extras/plugin-angularjs-template-cache": "^0.3.0",
+    "@rollup-extras/plugin-angularjs-template-cache": "^0.4.0",
     "rollup-plugin-html": "^0.2.1",
     "simply-beautiful": "^0.2.10"
   }

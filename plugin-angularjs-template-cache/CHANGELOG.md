@@ -1,5 +1,18 @@
 Changelog
 
+## 0.4.0
+
+### Minor Changes
+
+- 314a33f: allow templates to be string[]
+- 01798a5: read files in parallel
+- 154865b: allow to use imports for html templates
+
+### Patch Changes
+
+- 3836bcb: fix link to README
+- 8c274dc: update Readme
+
 ## 0.3.0
 
 ### Minor Changes
