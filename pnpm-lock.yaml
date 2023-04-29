@@ -176,7 +176,7 @@ importers:
         specifier: ^1.1.10
         version: 1.1.10
       '@rollup-extras/plugin-angularjs-template-cache':
-        specifier: ^0.3.0
+        specifier: ^0.4.0
         version: link:../plugin-angularjs-template-cache
       '@rollup-extras/plugin-binify':
         specifier: ^1.1.6
