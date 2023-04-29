@@ -64,6 +64,7 @@ type AngularTemplatesCachePluginOptions = {
     processHtml?: (html: string) => string, // function to process html templates, for example htmlmin, not applied when `useImports = true`
     pluginName?: string, // defaults to '@rollup-extras/plugin-angularjs-template-cache'    
     angularModule?: string, // 'templates' by default, angular module name
+    standalone?: boolean, // true by default, true if we plugin needs to create module and false to just retrieve it
     module?: string, // 'templates' by default, javascript module name, import not automatically injected into bundle
     watch?: boolean, // true by default
     verbose?: boolean | 'list-filenames', // false by default

@@ -6,6 +6,7 @@ export type AngularTemplatesCachePluginOptionsFull = {
     pluginName?: string, // defaults to '@rollup-extras/plugin-angularjs-template-cache'
     transformTemplateUri?: (uri: string) => string,
     angularModule?: string, // 'templates' by default
+    standalone?: boolean, // true by default, true if we plugin needs to create module and false to just retrieve it
     module?: string, // 'templates' by default
     watch?: boolean, // true by default
     verbose?: boolean | 'list-filenames', // false by default
