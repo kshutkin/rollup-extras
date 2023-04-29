@@ -23,7 +23,8 @@ type AngularTemplatesCachePluginOptions = {
     angularModule?: string, // 'templates' by default
     module?: string, // 'templates' by default
     watch?: boolean, // true by default
-    verbose?: boolean | 'list-filenames' // false by default
+    verbose?: boolean | 'list-filenames', // false by default
+    useImports?: boolean // false by default
 } | string | string[];
 ```
 

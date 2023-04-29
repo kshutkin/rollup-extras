@@ -11,6 +11,7 @@ import crypto from 'crypto';
 import sb from 'simply-beautiful';
 import fs from 'fs';
 import { combineAssetFactories, simpleES5Script } from "@rollup-extras/plugin-html/asset-factories";
+import htmlImport from 'rollup-plugin-html';
 
 appender((msg) => {
     console.log(msg.message);
@@ -55,7 +56,8 @@ export default [{
 
 	plugins: [
         clean,
-        templateCache({ templates: './src/**/*.html', rootDir: './src'}),
+        htmlImport({include: '**/*.html'}),
+        templateCache({ templates: './src/**/*.html', rootDir: './src', useImports: false}),
         externals(),
         copy({ targets: ['src/test/index.html', 'src/test.css', 'src/index2.js'], verbose: 'list-filenames' }),
         htmlPluginInstance,
