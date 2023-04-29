@@ -1,6 +1,6 @@
-# Plugin AngularJS templates cache
+# Plugin AngularJS template cache
 
-Builds AngularJS templates cache.
+Plugin to build AngularJS template cache.
 
 [Changelog](./CHANGELOG.md)
 
@@ -11,20 +11,63 @@ Using npm:
 npm install --save-dev @rollup-extras/plugin-angularjs-template-cache
 ```
 
+## Example
+
+Basic:
+
+```javascript
+import templatesCache from '@rollup-extras/plugin-angularjs-template-cache';
+
+export default {
+	input: 'src/index.js',
+
+    output: {
+        format: 'es',
+        dir: 'dest'
+    },
+
+	plugins: [
+        templateCache('./views/**/*.html'),
+    ],
+}
+```
+
+With `useImports = true` and `rootDir`:
+
+```javascript
+import templatesCache from '@rollup-extras/plugin-angularjs-template-cache';
+import htmlImport from 'rollup-plugin-html';
+
+export default {
+	input: 'src/index.js',
+
+    output: {
+        format: 'es',
+        dir: 'dest'
+    },
+
+	plugins: [
+        htmlImport({include: '**/*.html'}),
+        templateCache({ templates: './src/**/*.html', rootDir: './src', useImports: true}),
+    ],
+}
+```
+
 ## Configuration
 
 ```typescript
 type AngularTemplatesCachePluginOptions = {
-    templates?: string, // defaults to ./**/*.html
-    exclude?: string, // defaults to empty string
-    rootDir?: string, // default to '.', relative to this directory will be resolved template url
-    processHtml?: (html: string) => string, // function to process html templates
-    pluginName?: string, // defaults to '@rollup-extras/plugin-angularjs-template-cache'
-    angularModule?: string, // 'templates' by default
-    module?: string, // 'templates' by default
+    templates?: string | string[], // defaults to ./**/*.html, glob to get files into templateCache
+    exclude?: string, // defaults to empty string, glob to exclude files
+    rootDir?: string, // default to '.', root directory from which the plugin will construct template URIs (IDs)
+    transformTemplateUri?: (uri: string) => string, // last chance to transform template URI before actually using it in `templateCache.put` call
+    processHtml?: (html: string) => string, // function to process html templates, for example htmlmin, not applied when `useImports = true`
+    pluginName?: string, // defaults to '@rollup-extras/plugin-angularjs-template-cache'    
+    angularModule?: string, // 'templates' by default, angular module name
+    module?: string, // 'templates' by default, javascript module name, import not automatically injected into bundle
     watch?: boolean, // true by default
     verbose?: boolean | 'list-filenames', // false by default
-    useImports?: boolean // false by default
+    useImports?: boolean // false by default, instead of reading files from filesystem generate imports to get them through rollup pipeline. this probably requires additional plugins like `rollup-plugin-html`
 } | string | string[];
 ```
 

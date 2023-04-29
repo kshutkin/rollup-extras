@@ -12,7 +12,7 @@ Collection of rollup plugins
 - [plugin-serve](./plugin-serve) - [Koa-based](https://koajs.com/) dev-server with an extensible API.
 - [plugin-binify](./plugin-binify) - makes an output file executable with shebang and file attributes.
 - [plugin-externals](./plugin-externals) - declares external dependencies with reasonable defaults and customizable logic.
-- [plugin-angularjs-template-cache](./plugin-angularjs-template-cache) - builds AngularJS templates cache.
+- [plugin-angularjs-template-cache](./plugin-angularjs-template-cache) - builds AngularJS template cache.
 
 # License
 [MIT](./LICENSE)
