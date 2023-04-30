@@ -103,6 +103,18 @@ importers:
         specifier: ^5.1.1
         version: 5.1.1
 
+  plugin-exec:
+    dependencies:
+      '@niceties/logger':
+        specifier: ^1.1.4
+        version: 1.1.10
+      '@rollup-extras/utils':
+        specifier: ^1.4.0
+        version: link:../utils
+      rollup:
+        specifier: ^2.60.1 || ^3.0.0
+        version: 3.21.0
+
   plugin-externals:
     dependencies:
       '@niceties/logger':
@@ -173,7 +185,7 @@ importers:
         specifier: ^1.1.10
         version: 1.1.10
       '@rollup-extras/plugin-angularjs-template-cache':
-        specifier: ^1.0.0
+        specifier: ^1.1.0
         version: link:../../plugin-angularjs-template-cache
       '@rollup-extras/plugin-binify':
         specifier: ^1.1.6
