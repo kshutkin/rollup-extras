@@ -50,9 +50,6 @@ importers:
         specifier: ^0.2.9
         version: 0.2.9
     devDependencies:
-      '@types/glob':
-        specifier: ^8.1.0
-        version: 8.1.0
       '@types/js-string-escape':
         specifier: ^1.0.1
         version: 1.0.1
