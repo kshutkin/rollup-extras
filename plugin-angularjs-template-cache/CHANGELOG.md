@@ -1,5 +1,11 @@
 Changelog
 
+## 1.1.0
+
+### Minor Changes
+
+- b0232c4: added importAngular option
+
 ## 1.0.0
 
 ### Major Changes
