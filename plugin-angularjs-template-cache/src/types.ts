@@ -8,6 +8,7 @@ export type AngularTemplatesCachePluginOptionsFull = {
     angularModule?: string, // 'templates' by default
     standalone?: boolean, // true by default, true if we plugin needs to create module and false to just retrieve it
     module?: string, // 'templates' by default
+    importAngular?: boolean, // wheather to import angular or use global
     autoImport?: boolean, // false by default, automatically import generated module (useful for standalone module referenced by name)
     verbose?: boolean | 'list-filenames', // false by default
     useImports?: boolean // false by default

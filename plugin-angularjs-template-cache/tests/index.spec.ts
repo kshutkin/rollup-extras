@@ -322,4 +322,22 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
         await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
         expect(glob).not.toBeCalled();
     });
+
+    describe('importAngular', () => {
+        it('default', async () => {
+            const pluginInstance = plugin();
+            await (pluginInstance as any).buildStart.call(rollupContextMock);
+            await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
+            const result = await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
+            expect(result.includes('import angular from "angular";')).toBe(true);
+        });
+
+        it('default', async () => {
+            const pluginInstance = plugin({importAngular: false});
+            await (pluginInstance as any).buildStart.call(rollupContextMock);
+            await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
+            const result = await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
+            expect(result.includes('import angular from "angular";')).toBe(false);
+        });
+    });
 });

@@ -28,6 +28,7 @@ export default function(options: AngularTemplatesCachePluginOptions = defaultTem
         templates: defaultTemplatesGlob,
         processHtml: (html: string) => html,
         transformTemplateUri: (uri: string) => uri,
+        importAngular: true,
         angularModule: 'templates',
         module: 'templates',
         rootDir: '.',
@@ -38,7 +39,7 @@ export default function(options: AngularTemplatesCachePluginOptions = defaultTem
         useImports: false
     }, 'templates', factories);
 
-    const { pluginName, templates, processHtml, transformTemplateUri, autoImport,
+    const { pluginName, templates, processHtml, transformTemplateUri, autoImport, importAngular,
         angularModule, module: module, standalone, verbose, logger, watch, rootDir, useImports } = normalizedOptions;
     
     const prefixedModuleName = prefix + module;
@@ -80,7 +81,7 @@ export default function(options: AngularTemplatesCachePluginOptions = defaultTem
                 }
 
                 return `
-                    import angular from "angular";
+                    ${importAngular ? 'import angular from "angular";' : ''}
                     ${getImports()}
                     angular.module("${angularModule}"${standalone ? ', []' : ''}).run([
                         "$templateCache",
