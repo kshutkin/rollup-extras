@@ -58,7 +58,6 @@ export default {
 ```typescript
 type AngularTemplatesCachePluginOptions = {
     templates?: string | string[], // defaults to ./**/*.html, glob to get files into templateCache
-    ignore?: string | string[], // defaults to undefined, glob to exclude files
     watch?: boolean, // true by default
     rootDir?: string, // default to '.', root directory from which the plugin will construct template URIs (IDs)
     transformTemplateUri?: (uri: string) => string, // last chance to transform template URI before actually using it in `templateCache.put` call
