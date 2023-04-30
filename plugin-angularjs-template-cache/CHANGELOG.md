@@ -1,5 +1,19 @@
 Changelog
 
+## 1.0.0
+
+### Major Changes
+
+- 1329f39: release v1.0.0
+
+### Minor Changes
+
+- ea582fd: added tests, added autoImport, replaced glob with tiny-glob
+
+### Patch Changes
+
+- d7a000a: added standalone option to options / README
+
 ## 0.4.0
 
 ### Minor Changes
