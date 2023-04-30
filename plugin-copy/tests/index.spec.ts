@@ -27,6 +27,8 @@ describe('@rollup-extras/plugin-copy', () => {
         (fs.copyFile as unknown as jest.Mock<ReturnType<typeof fs.copyFile>, Parameters<typeof fs.copyFile>>).mockClear();
         (fs.readFile as unknown as jest.Mock<ReturnType<typeof fs.readFile>, Parameters<typeof fs.readFile>>).mockClear();
         (createLogger as jest.Mock<ReturnType<typeof createLogger>, Parameters<typeof createLogger>>).mockClear();
+        (glob as unknown as jest.Mock<ReturnType<typeof glob>, Parameters<typeof glob>>).mockClear();
+        (fs.stat as jest.Mock<ReturnType<typeof fs.stat>, Parameters<typeof fs.stat>>).mockClear();
         rollupContextMock = {
             emitFile: jest.fn(),
             addWatchFile: jest.fn()
