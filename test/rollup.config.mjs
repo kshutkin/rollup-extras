@@ -57,7 +57,7 @@ export default [{
 	plugins: [
         clean,
         htmlImport({include: '**/*.html'}),
-        templateCache({ templates: './src/**/*.html', rootDir: './src', useImports: true}),
+        templateCache({ templates: './src/**/*.html', rootDir: './src', useImports: true, autoImport: false }),
         externals(),
         copy({ targets: ['src/test/index.html', 'src/test.css', 'src/index2.js'], verbose: 'list-filenames' }),
         htmlPluginInstance,

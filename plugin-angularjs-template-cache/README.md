@@ -58,7 +58,8 @@ export default {
 ```typescript
 type AngularTemplatesCachePluginOptions = {
     templates?: string | string[], // defaults to ./**/*.html, glob to get files into templateCache
-    exclude?: string, // defaults to empty string, glob to exclude files
+    ignore?: string | string[], // defaults to undefined, glob to exclude files
+    watch?: boolean, // true by default
     rootDir?: string, // default to '.', root directory from which the plugin will construct template URIs (IDs)
     transformTemplateUri?: (uri: string) => string, // last chance to transform template URI before actually using it in `templateCache.put` call
     processHtml?: (html: string) => string, // function to process html templates, for example htmlmin, not applied when `useImports = true`
@@ -66,7 +67,7 @@ type AngularTemplatesCachePluginOptions = {
     angularModule?: string, // 'templates' by default, angular module name
     standalone?: boolean, // true by default, true if we plugin needs to create module and false to just retrieve it
     module?: string, // 'templates' by default, javascript module name, import not automatically injected into bundle
-    watch?: boolean, // true by default
+    autoImport?: boolean, // false by default, automatically import generated module (useful for standalone module referenced by name)
     verbose?: boolean | 'list-filenames', // false by default
     useImports?: boolean // false by default, instead of reading files from filesystem generate imports to get them through rollup pipeline. this probably requires additional plugins like `rollup-plugin-html`
 } | string | string[];

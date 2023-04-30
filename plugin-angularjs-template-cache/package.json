@@ -53,12 +53,11 @@
     }
   },
   "devDependencies": {
-    "@types/glob": "^8.1.0",
     "@types/js-string-escape": "^1.0.1"
   },
   "dependencies": {
     "@niceties/logger": "^1.1.4",
-    "glob": "^10.0.0",
+    "tiny-glob": "^0.2.9",
     "@rollup-extras/utils": "^1.4.0",
     "js-string-escape": "^1.0.1"
   }
