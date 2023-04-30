@@ -1,4 +1,5 @@
 packages:
   - "utils"
   - "plugin-*"
-  - "test"
+  - "test/big-config"
+  # - "test/angularjs"

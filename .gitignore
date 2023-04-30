@@ -104,11 +104,9 @@ dist
 .tern-port
 
 # Temp files
-dest
-dest2
-dest3
-dest4
-dest5
-
-# Temp Test Data
-test/src/html-files
+test/big-config/dest
+test/big-config/dest2
+test/big-config/dest3
+test/big-config/dest4
+test/big-config/dest5
+test/big-config/src/html-files

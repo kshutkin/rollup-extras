@@ -1,0 +1,46 @@
+{
+    "version": "0.0.0",
+    "license": "MIT",
+    "name": "angularjs-test",
+    "author": {
+        "name": "Konstantin Shutkin"
+    },
+    "private": true,
+    "scripts": {
+        "build": "rollup -c",
+        "start": "rollup -c -w",
+        "test": "",
+        "lint": "eslint ./src"
+    },
+    "devDependencies": {
+        "rollup": "^3.21.2",
+        "@rollup/plugin-node-resolve": "^15.0.2",
+        "@rollup/plugin-commonjs": "^24.1.0",
+        "@rollup/plugin-terser": "^0.4.1",        
+        "@rollup-extras/plugin-angularjs-template-cache": "^0.4.0",
+        "@rollup-extras/plugin-clean": "^1.3.5",
+        "@rollup-extras/plugin-copy": "^1.8.0",
+        "@rollup-extras/plugin-html": "^1.4.0",
+        "@rollup-extras/plugin-serve": "^1.3.1",
+        "rollup-plugin-livereload": "^2.0.5",
+        "rollup-plugin-styles": "^4.0.0",
+        "rollup-plugin-html": "^0.2.1",
+        "postcss-lightningcss": "^0.7.0",
+        "angular-mocks": "^1.3.12",
+        "karma": "^0.13.0",
+        "karma-chrome-launcher": "^0.2.2",
+        "karma-jasmine": "^0.2.2"
+    },
+    "overrides": {
+        "rollup-plugin-styles@^4.0.0": {
+            "rollup": "^3.21.2"
+        }
+    },
+    "dependencies": {
+        "angular": "^1.8.3",
+        "todomvc-app-css": "^2.1.0",
+        "angular-route": "^1.4.3",
+        "angular-resource": "^1.4.3"
+    }
+  }
+  

@@ -164,7 +164,7 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2
 
-  test:
+  test/big-config:
     dependencies:
       '@niceties/draftlog-appender':
         specifier: ^1.1.0
@@ -174,25 +174,25 @@ importers:
         version: 1.1.10
       '@rollup-extras/plugin-angularjs-template-cache':
         specifier: ^0.4.0
-        version: link:../plugin-angularjs-template-cache
+        version: link:../../plugin-angularjs-template-cache
       '@rollup-extras/plugin-binify':
         specifier: ^1.1.6
-        version: link:../plugin-binify
+        version: link:../../plugin-binify
       '@rollup-extras/plugin-clean':
         specifier: ^1.3.5
-        version: link:../plugin-clean
+        version: link:../../plugin-clean
       '@rollup-extras/plugin-copy':
         specifier: ^1.8.0
-        version: link:../plugin-copy
+        version: link:../../plugin-copy
       '@rollup-extras/plugin-externals':
         specifier: ^1.1.9
-        version: link:../plugin-externals
+        version: link:../../plugin-externals
       '@rollup-extras/plugin-html':
         specifier: ^1.4.0
-        version: link:../plugin-html
+        version: link:../../plugin-html
       '@rollup-extras/plugin-serve':
         specifier: ^1.3.1
-        version: link:../plugin-serve
+        version: link:../../plugin-serve
       rollup:
         specifier: ^3.21.0
         version: 3.21.0
@@ -1142,8 +1142,8 @@ packages:
       fastq: 1.15.0
     dev: true
 
-  /@rollup/plugin-commonjs@24.0.1(rollup@3.21.0):
-    resolution: {integrity: sha512-15LsiWRZk4eOGqvrJyu3z3DaBu5BhXIMeWnijSRvd8irrrg9SHpQ1pH+BUK4H6Z9wL9yOxZJMTLU+Au86XHxow==}
+  /@rollup/plugin-commonjs@24.1.0(rollup@3.21.2):
+    resolution: {integrity: sha512-eSL45hjhCWI0jCCXcNtLVqM5N1JlBGvlFfY0m6oOYnLCJ6N0qEXoZql4sY2MOUArzhH4SA/qBpTxvvZp2Sc+DQ==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       rollup: ^2.68.0||^3.0.0
@@ -1151,17 +1151,17 @@ packages:
       rollup:
         optional: true
     dependencies:
-      '@rollup/pluginutils': 5.0.2(rollup@3.21.0)
+      '@rollup/pluginutils': 5.0.2(rollup@3.21.2)
       commondir: 1.0.1
       estree-walker: 2.0.2
       glob: 8.1.0
       is-reference: 1.2.1
       magic-string: 0.27.0
-      rollup: 3.21.0
+      rollup: 3.21.2
     dev: true
 
-  /@rollup/plugin-node-resolve@15.0.1(rollup@3.21.0):
-    resolution: {integrity: sha512-ReY88T7JhJjeRVbfCyNj+NXAG3IIsVMsX9b5/9jC98dRP8/yxlZdz7mHZbHk5zHr24wZZICS5AcXsFZAXYUQEg==}
+  /@rollup/plugin-node-resolve@15.0.2(rollup@3.21.2):
+    resolution: {integrity: sha512-Y35fRGUjC3FaurG722uhUuG8YHOJRJQbI6/CkbRkdPotSpDj9NtIN85z1zrcyDcCQIW4qp5mgG72U+gJ0TAFEg==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       rollup: ^2.78.0||^3.0.0
@@ -1169,17 +1169,17 @@ packages:
       rollup:
         optional: true
     dependencies:
-      '@rollup/pluginutils': 5.0.2(rollup@3.21.0)
+      '@rollup/pluginutils': 5.0.2(rollup@3.21.2)
       '@types/resolve': 1.20.2
       deepmerge: 4.3.0
       is-builtin-module: 3.2.1
       is-module: 1.0.0
       resolve: 1.22.1
-      rollup: 3.21.0
+      rollup: 3.21.2
     dev: true
 
-  /@rollup/plugin-terser@0.4.0(rollup@3.21.0):
-    resolution: {integrity: sha512-Ipcf3LPNerey1q9ZMjiaWHlNPEHNU/B5/uh9zXLltfEQ1lVSLLeZSgAtTPWGyw8Ip1guOeq+mDtdOlEj/wNxQw==}
+  /@rollup/plugin-terser@0.4.1(rollup@3.21.2):
+    resolution: {integrity: sha512-aKS32sw5a7hy+fEXVy+5T95aDIwjpGHCTv833HXVtyKMDoVS7pBr5K3L9hEQoNqbJFjfANPrNpIXlTQ7is00eA==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       rollup: ^2.x || ^3.x
@@ -1187,7 +1187,7 @@ packages:
       rollup:
         optional: true
     dependencies:
-      rollup: 3.21.0
+      rollup: 3.21.2
       serialize-javascript: 6.0.1
       smob: 0.0.6
       terser: 5.16.3
@@ -1201,7 +1201,7 @@ packages:
       picomatch: 2.3.1
     dev: true
 
-  /@rollup/pluginutils@5.0.2(rollup@3.21.0):
+  /@rollup/pluginutils@5.0.2(rollup@3.21.2):
     resolution: {integrity: sha512-pTd9rIsP92h+B6wWwFbW8RkZv4hiR/xKsqre4SIuAOaOEQRxi0lqLke9k2/7WegC85GgUs9pjmOjCUi3In4vwA==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
@@ -1213,7 +1213,7 @@ packages:
       '@types/estree': 1.0.0
       estree-walker: 2.0.2
       picomatch: 2.3.1
-      rollup: 3.21.0
+      rollup: 3.21.2
     dev: true
 
   /@sinclair/typebox@0.25.21:
@@ -4328,18 +4328,18 @@ packages:
     engines: {node: '>=16'}
     hasBin: true
     dependencies:
-      '@rollup/plugin-commonjs': 24.0.1(rollup@3.21.0)
-      '@rollup/plugin-node-resolve': 15.0.1(rollup@3.21.0)
-      '@rollup/plugin-terser': 0.4.0(rollup@3.21.0)
+      '@rollup/plugin-commonjs': 24.1.0(rollup@3.21.2)
+      '@rollup/plugin-node-resolve': 15.0.2(rollup@3.21.2)
+      '@rollup/plugin-terser': 0.4.1(rollup@3.21.2)
       draftlog: 1.0.13
       is-builtin-module: 3.2.1
       kleur: 4.1.5
       lodash: 4.17.21
       minimist: 1.2.8
       pkg-dir: 5.0.0
-      rollup: 3.21.0
+      rollup: 3.21.2
       rollup-plugin-preprocess: 0.0.4
-      rollup-plugin-typescript2: 0.34.1(rollup@3.21.0)(typescript@5.0.3)
+      rollup-plugin-typescript2: 0.34.1(rollup@3.21.2)(typescript@5.0.3)
       typescript: 5.0.3
     dev: true
 
@@ -4559,7 +4559,7 @@ packages:
       rollup-pluginutils: 2.8.2
     dev: true
 
-  /rollup-plugin-typescript2@0.34.1(rollup@3.21.0)(typescript@5.0.3):
+  /rollup-plugin-typescript2@0.34.1(rollup@3.21.2)(typescript@5.0.3):
     resolution: {integrity: sha512-P4cHLtGikESmqi1CA+tdMDUv8WbQV48mzPYt77TSTOPJpERyZ9TXdDgjSDix8Fkqce6soYz3+fa4lrC93IEkcw==}
     peerDependencies:
       rollup: '>=1.26.3'
@@ -4568,7 +4568,7 @@ packages:
       '@rollup/pluginutils': 4.2.1
       find-cache-dir: 3.3.2
       fs-extra: 10.1.0
-      rollup: 3.21.0
+      rollup: 3.21.2
       semver: 7.3.8
       tslib: 2.5.0
       typescript: 5.0.3
@@ -4609,6 +4609,15 @@ packages:
     hasBin: true
     optionalDependencies:
       fsevents: 2.3.2
+    dev: false
+
+  /rollup@3.21.2:
+    resolution: {integrity: sha512-c4vC+JZ3bbF4Kqq2TtM7zSKtSyMybFOjqmomFax3xpfYaPZDZ4iz8NMIuBRMjnXOcKYozw7bC6vhJjiWD6JpzQ==}
+    engines: {node: '>=14.18.0', npm: '>=8.0.0'}
+    hasBin: true
+    optionalDependencies:
+      fsevents: 2.3.2
+    dev: true
 
   /run-parallel@1.2.0:
     resolution: {integrity: sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==}
