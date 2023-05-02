@@ -142,7 +142,7 @@ export default function(options: AngularTemplatesCachePluginOptions = defaultTem
 
     function getImports() {
         if (useImports) {
-            return templateFiles.map((value, index) => `import template${index} from './${value}';`).join('\n');
+            return templateFiles.map((value, index) => `import template${index} from './${fixSlashes(value)}';`).join('\n');
         }
         return '';
     }
@@ -156,6 +156,10 @@ export default function(options: AngularTemplatesCachePluginOptions = defaultTem
     }
 
     function getTemplateUri(fileName: string) {
-        return transformTemplateUri(path.relative(rootDir, fileName).replaceAll('\\', '/'));
+        return transformTemplateUri(fixSlashes(path.relative(rootDir, fileName)));
+    }
+
+    function fixSlashes(uri: string) {
+        return uri.replaceAll('\\', '/');
     }
 }
