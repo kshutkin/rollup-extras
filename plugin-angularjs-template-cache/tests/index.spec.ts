@@ -332,12 +332,47 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(result.includes('import angular from "angular";')).toBe(true);
         });
 
-        it('default', async () => {
+        it('false', async () => {
             const pluginInstance = plugin({importAngular: false});
             await (pluginInstance as any).buildStart.call(rollupContextMock);
             await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
             const result = await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
             expect(result.includes('import angular from "angular";')).toBe(false);
+        });
+    });
+
+    describe('transformHtmlImportsToUris', () => {
+        it('default', async () => {
+            const pluginInstance = plugin();
+            await (pluginInstance as any).buildStart.call(rollupContextMock);
+            await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
+            const resolved = await (pluginInstance as any).resolveId.call(rollupContextMock, './aFolder/test.html');
+            await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
+            const result = await (pluginInstance as any).load.call(rollupContextMock, 'aFolder/test.html');
+            expect(resolved).toBe(null);
+            expect(result).toBe(null);
+        });
+
+        it('true', async () => {
+            const pluginInstance = plugin({transformHtmlImportsToUris: true});
+            await (pluginInstance as any).buildStart.call(rollupContextMock);
+            await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
+            const resolved = await (pluginInstance as any).resolveId.call(rollupContextMock, './aFolder/test.html');
+            await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
+            const result = await (pluginInstance as any).load.call(rollupContextMock, resolved.id);
+            expect(resolved).toEqual(expect.objectContaining({id: '\0template:./aFolder/test.html', moduleSideEffects: false}));
+            expect(result).toBe('export default "aFolder/test.html";');
+        });
+
+        it('true + importer', async () => {
+            const pluginInstance = plugin({transformHtmlImportsToUris: true});
+            await (pluginInstance as any).buildStart.call(rollupContextMock);
+            await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
+            const resolved = await (pluginInstance as any).resolveId.call(rollupContextMock, './aFolder/test.html', 'app/app.js');
+            await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
+            const result = await (pluginInstance as any).load.call(rollupContextMock, resolved.id);
+            expect(resolved).toEqual(expect.objectContaining({id: '\0template:app/aFolder/test.html', moduleSideEffects: false}));
+            expect(result).toBe('export default "app/aFolder/test.html";');
         });
     });
 });

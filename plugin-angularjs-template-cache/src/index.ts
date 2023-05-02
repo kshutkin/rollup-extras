@@ -13,7 +13,8 @@ const listFilenames = 'list-filenames';
 
 const factories = { logger } as unknown as { logger: () => Logger };
 
-const prefix = '\0templates:';
+const templatesPrefix = '\0templates:';
+const templatePrefix = '\0template:';
 
 const defaultTemplatesGlob = './**/*.html';
 
@@ -36,13 +37,14 @@ export default function(options: AngularTemplatesCachePluginOptions = defaultTem
         autoImport: false,
         watch: true,
         verbose: false as AngularTemplatesCachePluginOptionsFull['verbose'],
-        useImports: false
+        useImports: false,
+        transformHtmlImportsToUris: false
     }, 'templates', factories);
 
-    const { pluginName, templates, processHtml, transformTemplateUri, autoImport, importAngular,
+    const { pluginName, templates, processHtml, transformTemplateUri, autoImport, importAngular, transformHtmlImportsToUris,
         angularModule, module: module, standalone, verbose, logger, watch, rootDir, useImports } = normalizedOptions;
     
-    const prefixedModuleName = prefix + module;
+    const prefixedModuleName = templatesPrefix + module;
 
     return <Plugin>{
         name: pluginName,
@@ -57,7 +59,11 @@ export default function(options: AngularTemplatesCachePluginOptions = defaultTem
             }            
         },
 
-        resolveId(id) {
+        resolveId(id, importer) {
+            if (transformHtmlImportsToUris && id.endsWith('.html')) {
+                return { id: templatePrefix + (importer ? path.join(path.dirname(importer), id) : id), moduleSideEffects: false };
+            }
+
             if (id === module) {
                 scanPromise = scanForTemplates.apply(this);
                 return { id: prefixedModuleName, moduleSideEffects: standalone };
@@ -91,6 +97,11 @@ export default function(options: AngularTemplatesCachePluginOptions = defaultTem
                     ]);
                     export default "${angularModule}";
                 `;
+            }
+
+            if (id.startsWith(templatePrefix)) {
+                const realId = id.slice(templatePrefix.length);
+                return `export default "${getTemplateUri(realId)}";`;
             }
       
             return null;

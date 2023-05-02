@@ -69,7 +69,8 @@ type AngularTemplatesCachePluginOptions = {
     importAngular?: boolean, // default true, wheather to import angular or use global
     autoImport?: boolean, // false by default, automatically import generated module (useful for standalone module referenced by name)
     verbose?: boolean | 'list-filenames', // false by default
-    useImports?: boolean // false by default, instead of reading files from filesystem generate imports to get them through rollup pipeline. this probably requires additional plugins like `rollup-plugin-html`
+    useImports?: boolean, // false by default, instead of reading files from filesystem generate imports to get them through rollup pipeline. this probably requires additional plugins like `rollup-plugin-html`
+    transformHtmlImportsToUris?: boolean // false by default, wheather to replace template content with its Uri when using bare import
 } | string | string[];
 ```
 

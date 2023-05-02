@@ -11,7 +11,8 @@ export type AngularTemplatesCachePluginOptionsFull = {
     importAngular?: boolean, // wheather to import angular or use global
     autoImport?: boolean, // false by default, automatically import generated module (useful for standalone module referenced by name)
     verbose?: boolean | 'list-filenames', // false by default
-    useImports?: boolean // false by default
+    useImports?: boolean, // false by default
+    transformHtmlImportsToUris?: boolean // false by default
 }
 
 export type AngularTemplatesCachePluginOptions = AngularTemplatesCachePluginOptionsFull | string | string[];

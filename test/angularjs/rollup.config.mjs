@@ -9,6 +9,7 @@ import serve from '@rollup-extras/plugin-serve';
 import templateCache from '@rollup-extras/plugin-angularjs-template-cache';
 import lightningcss from 'postcss-lightningcss';
 import htmlImport from 'rollup-plugin-html';
+import globImport from 'rollup-plugin-glob-import';
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -18,7 +19,6 @@ export default {
 		sourcemap: true,
 		format: 'es',
 		dir: 'dist',
-		name: 'app',
 		entryFileNames: 'assets/[name].[hash].js',
 		chunkFileNames: 'assets/[name].[hash].js',
 		assetFileNames: 'assets/[name].[hash].[ext]'
@@ -26,13 +26,14 @@ export default {
 	plugins: [
 		clean(),
 
-		htmlImport(),
+		globImport({
+			format: 'import'
+		}),
 
 		templateCache({
 			templates: './src/views/**/*.html',
 			rootDir: './src/views',
-			// autoImport: true,
-			useImports: true
+			transformHtmlImportsToUris: true
 		}),
 
 		styles({
@@ -61,8 +62,5 @@ export default {
 	],
 	watch: {
 		clearScreen: false
-	},
-	// external: [
-	// 	'angular'
-	// ]
+	}
 };

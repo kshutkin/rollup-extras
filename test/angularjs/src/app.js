@@ -1,5 +1,6 @@
 import angular from "angular";
 import templates from 'templates';
+import templateUrl from './views/todomvc-index.html';
 
 /**
  * The main TodoMVC app module
@@ -12,7 +13,7 @@ export default angular.module('todomvc', ['ngRoute', 'ngResource', templates])
 
 		var routeConfig = {
 			controller: 'TodoCtrl',
-			templateUrl: 'todomvc-index.html',
+			templateUrl,
 			resolve: {
 				store: function (todoStorage) {
 					// Get the correct module (API or localStorage).

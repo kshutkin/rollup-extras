@@ -1,4 +1,4 @@
 import 'angular';
 import 'angular-mocks';
-import './src/**/*';
-import './test/**/*';
+import './src/**/*.js';
+import './test/**/*.js';
