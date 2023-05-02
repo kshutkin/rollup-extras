@@ -1,5 +1,15 @@
 Changelog
 
+## 1.2.0
+
+### Minor Changes
+
+- 7963b08: added `transformHtmlImportsToUris` option
+
+### Patch Changes
+
+- cfc1cf1: fixed import url on windows
+
 ## 1.1.0
 
 ### Minor Changes
