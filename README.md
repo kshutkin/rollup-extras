@@ -13,6 +13,7 @@ Collection of rollup plugins
 - [plugin-binify](./plugin-binify) - makes an output file executable with shebang and file attributes.
 - [plugin-externals](./plugin-externals) - declares external dependencies with reasonable defaults and customizable logic.
 - [plugin-angularjs-template-cache](./plugin-angularjs-template-cache) - builds AngularJS template cache.
+- [plugin-exec](./plugin-exec) - exec some code when the bundle you are building is finished.
 
 # License
 [MIT](./LICENSE)
