@@ -16,7 +16,6 @@ function recursiveArrayOptions<T extends string | string[] | undefined | Record<
         return field in options ? { ...(options as unknown as any), ...recursiveArrayOptions((options as unknown as Record<string, unknown>)[field] as SimpleOptions, field) as undefined | { [K in C]: string[] }} : options;
     }
     console.warn(`cannot process options: '${options}', reverting to defaults`);
-    return undefined;
 }
 
 export function getOptionsObject<T extends {[key: string]: unknown}, D, F extends DefaultsFactory<T>>(options: T, defaults?: D, factory?: F) {
