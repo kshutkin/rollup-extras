@@ -10,11 +10,17 @@ import { getOptions } from '@rollup-extras/utils/options';
 import logger from '@rollup-extras/utils/logger';
 import statistics from '@rollup-extras/utils/statistics';
 
+const enum CopyMethod { Copy, Link, CopyLinks }
+
 type FileDesc = { dest: string[], copied: string[], timestamp: number };
 
 type Logger = ReturnType<typeof createLogger>;
 
-const factories = { targets, logger } as unknown as { targets: () => SingleTargetDesc[], logger: () => Logger };
+const factories = { targets, logger, emitFiles } as unknown as {
+    targets: () => SingleTargetDesc[],
+    logger: () => Logger,
+    emitFiles: () => boolean
+};
 
 const listFilenames = 'list-filenames';
 
@@ -33,10 +39,14 @@ export default function(options: CopyPluginOptions) {
         exactFileNames: true,
         watch: true,
         emitFiles: true,
-        outputPlugin: false
+        outputPlugin: false,
+        copyMethod: CopyMethod.Copy
     }, 'targets', factories);
 
-    const { pluginName, copyOnce, verbose, exactFileNames, targets, outputPlugin, flatten, emitFiles, logger } = normalizedOptions;
+    const { pluginName, copyOnce, verbose, exactFileNames, targets, outputPlugin, flatten, emitFiles, logger, copyMethod } = normalizedOptions;
+
+    console.log(emitFiles, copyMethod);
+
     let { watch } = normalizedOptions;
 
     const hookName = outputPlugin ? 'generateBundle' : emitFiles ? 'buildStart' : 'buildEnd';
@@ -98,11 +108,13 @@ export default function(options: CopyPluginOptions) {
             logger.start('coping files', verbose ? LogLevel.info : LogLevel.verbose);
             await Promise.all([...files].map(async ([fileName, fileDesc]) => {
                 let source: Buffer | undefined;
+                let isSymbolicLink: boolean | undefined;
                 try {
-                    const fileStat = await fs.stat(fileName);
-                    if (!fileStat.isFile()) {
+                    const fileStat = await fs.lstat(fileName);
+                    isSymbolicLink = fileStat.isSymbolicLink();
+                    if (!fileStat.isFile() && !isSymbolicLink) {
                         return;
-                    }
+                    }                    
                     const timestamp = fileStat.mtime.getTime();
                     if (timestamp > fileDesc.timestamp) {
                         fileDesc.timestamp = timestamp;
@@ -132,7 +144,13 @@ export default function(options: CopyPluginOptions) {
                             });
                         } else {
                             await fs.mkdir(path.dirname(destFileName), { recursive: true });
-                            await fs.copyFile(fileName, destFileName, fs_.constants.COPYFILE_FICLONE);
+                            if (copyMethod === CopyMethod.Copy || (!isSymbolicLink && copyMethod === CopyMethod.CopyLinks)) {
+                                await fs.copyFile(fileName, destFileName, fs_.constants.COPYFILE_FICLONE);
+                            } else {
+                                // naive implementation for CopyMethod.Link
+                                const path = await fs.realpath(fileName);
+                                await fs.symlink(path, destFileName);
+                            }
                         }
                         if (verbose === listFilenames) {
                             logger(`\t${fileName} → ${destFileName}`, LogLevel.info);
@@ -156,8 +174,8 @@ function normalizeSlash(dir: string): string {
     return dir;
 }
 
-function targets(options: CopyPluginOptions, field: keyof CopyPluginOptions) {
-    let targets: SingleTargetDesc[] = options[field];
+function targets(options: CopyPluginOptions, field: 'targets') {
+    let targets = (options as NonTargetOptions)[field];
     if (targets == null) {
         targets = [options] as SingleTargetDesc[];
     }
@@ -175,4 +193,13 @@ function targets(options: CopyPluginOptions, field: keyof CopyPluginOptions) {
         }).filter(Boolean) as SingleTargetDesc[];
     }
     return targets;
+}
+
+function emitFiles(options: CopyPluginOptions, field: 'emitFiles') {
+    const value = (options as NonTargetOptions)[field];
+    if (value === 'copy-symlinks' || value === 'link-only') {
+        (options as unknown as {copyMethod: CopyMethod}).copyMethod = value === 'copy-symlinks' ? CopyMethod.CopyLinks : CopyMethod.Link;
+        return false;
+    }
+    return value;
 }

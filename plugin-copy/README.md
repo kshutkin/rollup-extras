@@ -176,7 +176,7 @@ type CopyPluginOptions = {
     flattern?: boolean, // false by default
     exactFileNames?: boolean, // true by default
     outputPlugin?: boolean, // false by default
-    emitFiles?: boolean // true by default
+    emitFiles?: boolean | 'copy-symlinks' | 'link-only' // true by default
 } | MultipleTargetsDesc;
 ```
 

@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import fs_ from 'fs';
 import { glob } from 'glob';
 import globParent from 'glob-parent';
-import { createLogger, LogLevel } from '@niceties/logger';
+import { LogLevel } from '@niceties/logger';
 import plugin from '../src';
 import { PluginContext } from 'rollup';
 
@@ -32,9 +32,13 @@ describe('@rollup-extras/plugin-copy', () => {
         (glob as unknown as jest.Mock<ReturnType<typeof glob>, Parameters<typeof glob>>).mockImplementation(() => Promise.resolve(['assets/aFolder/test.json', 'assets/aFolder/test2.json']));
         (globParent as jest.Mock<ReturnType<typeof globParent>, Parameters<typeof globParent>>).mockImplementation(() => 'assets');
         (fs.readFile as jest.Mock<ReturnType<typeof fs.readFile>, Parameters<typeof fs.readFile>>).mockImplementation(() => Promise.resolve(''));
+        (fs.realpath as unknown as jest.Mock<ReturnType<typeof fs.realpath>, Parameters<typeof fs.realpath>>)
+            .mockImplementation((somefilename: Parameters<typeof fs.realpath>[0]) => Promise.resolve(somefilename) as ReturnType<typeof fs.realpath>);
+        (fs.symlink as jest.Mock<ReturnType<typeof fs.symlink>, Parameters<typeof fs.symlink>>).mockImplementation(() => Promise.resolve());
         (fs.stat as jest.Mock<ReturnType<typeof fs.stat>, Parameters<typeof fs.stat>>).mockImplementation(() => Promise.resolve({
             mtime: new Date(),
-            isFile: () => true
+            isFile: () => true,
+            isSymbolicLink: () => false
         }) as unknown as ReturnType<typeof fs.stat>);
     });
 

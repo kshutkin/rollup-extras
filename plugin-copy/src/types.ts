@@ -15,7 +15,7 @@ export type NonTargetOptions = {
     flatten?: boolean,
     exactFileNames?: boolean,
     outputPlugin?: boolean,
-    emitFiles?: boolean
+    emitFiles?: boolean | 'copy-symlinks' | 'link-only'
 };
 
 export type CopyPluginOptions = NonTargetOptions | MultipleTargetsDesc;
