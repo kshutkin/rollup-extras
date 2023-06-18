@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import fs from 'fs/promises';
+import fs_ from 'fs';
 import { glob } from 'glob';
 import globParent from 'glob-parent';
 import { createLogger, LogLevel } from '@niceties/logger';
@@ -23,12 +24,7 @@ describe('@rollup-extras/plugin-copy', () => {
     let rollupContextMock: Partial<PluginContext>;
 
     beforeEach(() => {
-        (fs.mkdir as unknown as jest.Mock<ReturnType<typeof fs.mkdir>, Parameters<typeof fs.mkdir>>).mockClear();
-        (fs.copyFile as unknown as jest.Mock<ReturnType<typeof fs.copyFile>, Parameters<typeof fs.copyFile>>).mockClear();
-        (fs.readFile as unknown as jest.Mock<ReturnType<typeof fs.readFile>, Parameters<typeof fs.readFile>>).mockClear();
-        (createLogger as jest.Mock<ReturnType<typeof createLogger>, Parameters<typeof createLogger>>).mockClear();
-        (glob as unknown as jest.Mock<ReturnType<typeof glob>, Parameters<typeof glob>>).mockClear();
-        (fs.stat as jest.Mock<ReturnType<typeof fs.stat>, Parameters<typeof fs.stat>>).mockClear();
+        jest.clearAllMocks();
         rollupContextMock = {
             emitFile: jest.fn(),
             addWatchFile: jest.fn()
@@ -347,8 +343,8 @@ describe('@rollup-extras/plugin-copy', () => {
         await (pluginInstance as any).buildEnd.apply(rollupContextMock);
         expect(rollupContextMock.addWatchFile).toBeCalledTimes(0);
         expect(rollupContextMock.emitFile).toBeCalledTimes(0);
-        expect(fs.copyFile).toBeCalledWith('assets/aFolder/test.json', 'aFolder/test.json');
-        expect(fs.copyFile).toBeCalledWith('assets/aFolder/test2.json', 'aFolder/test2.json');
+        expect(fs.copyFile).toBeCalledWith('assets/aFolder/test.json', 'aFolder/test.json', fs_.constants.COPYFILE_FICLONE);
+        expect(fs.copyFile).toBeCalledWith('assets/aFolder/test2.json', 'aFolder/test2.json', fs_.constants.COPYFILE_FICLONE);
     });
 
     it('non verbose', async () => {
@@ -412,28 +408,6 @@ describe('@rollup-extras/plugin-copy', () => {
         const pluginInstance = plugin('assets/**/*.json');
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
         expect(loggerFinish).toBeCalledWith('copied 6 files');
-    });
-
-    it('symbolic link', async () => {
-        (fs.stat as jest.Mock<ReturnType<typeof fs.stat>, Parameters<typeof fs.stat>>).mockImplementation(() => Promise.resolve({
-            mtime: new Date(),
-            isFile: () => false,
-            isSymbolicLink: () => true
-        }) as unknown as ReturnType<typeof fs.stat>);
-
-        const pluginInstance = plugin('assets/**/*.json');
-        await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test.json', 
-            source: '',
-            type: 'asset'
-        }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
-            fileName: 'aFolder/test2.json', 
-            source: '',
-            type: 'asset'
-        }));
     });
 
     it('something else than file or symlink', async () => {

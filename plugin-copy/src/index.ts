@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import fs_ from 'fs';
 import path from 'path';
 import { glob } from 'glob';
 import globParent from 'glob-parent';
@@ -99,7 +100,7 @@ export default function(options: CopyPluginOptions) {
                 let source: Buffer | undefined;
                 try {
                     const fileStat = await fs.stat(fileName);
-                    if (!fileStat.isFile() && !fileStat.isSymbolicLink()) {
+                    if (!fileStat.isFile()) {
                         return;
                     }
                     const timestamp = fileStat.mtime.getTime();
@@ -131,7 +132,7 @@ export default function(options: CopyPluginOptions) {
                             });
                         } else {
                             await fs.mkdir(path.dirname(destFileName), { recursive: true });
-                            await fs.copyFile(fileName, destFileName);
+                            await fs.copyFile(fileName, destFileName, fs_.constants.COPYFILE_FICLONE);
                         }
                         if (verbose === listFilenames) {
                             logger(`\t${fileName} → ${destFileName}`, LogLevel.info);
