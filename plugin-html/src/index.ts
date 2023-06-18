@@ -83,7 +83,7 @@ export default function(options: HtmlPluginOptions = {}) {
 
     instance.renderStart = function (this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) {
         logger('started collecting information', LogLevel.verbose);
-        initialDir = outputOptions.dir || '';
+        initialDir = outputOptions.dir ?? '';
         fileNameInInitialDir = path.join(initialDir, outputFile);
         return (baseRenderStart as (this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) => void | Promise<void>).call(this, outputOptions, inputOptions);
     };
@@ -119,7 +119,7 @@ export default function(options: HtmlPluginOptions = {}) {
             .map(({ key, count }) => `${key}: ${count}`)
             .join(', ');
         logger(`assets collected: [${statistics}], remaining: ${remainingOutputsCount} outputs, ${remainingConfigsCount} configs`, LogLevel.verbose);
-        const dir = options.dir || '', fileName = path.relative(dir, fileNameInInitialDir);
+        const dir = options.dir ?? '', fileName = path.relative(dir, fileNameInInitialDir);
         if (fileName in bundle) {
             if (useEmittedTemplate) {
                 logger(`using exiting emitted ${fileName} as an input for out templateFactory`, LogLevel.verbose);
@@ -170,7 +170,7 @@ export default function(options: HtmlPluginOptions = {}) {
     async function generateBundle(this: PluginContext, options: NormalizedOutputOptions) {
         logger.start('generating html', logLevel);
         try {
-            const dir = options.dir || '', fileName = path.relative(dir, fileNameInInitialDir);
+            const dir = options.dir ?? '', fileName = path.relative(dir, fileNameInInitialDir);
             const depromisifiedTemplateString = await templateString,
                 source = await templateFactory(depromisifiedTemplateString, assets, defaultTemplateFactory);
 
@@ -197,19 +197,19 @@ export default function(options: HtmlPluginOptions = {}) {
     }
 
     async function getAssets(options: NormalizedOutputOptions, bundle: OutputBundle) {
-        const dir = options.dir || '';
+        const dir = options.dir ?? '';
         for (const fileName of Object.keys(bundle)) {
             const relativeToRootAssetPath = path.join(dir, fileName);
+            const assetPath = path.relative(initialDir, relativeToRootAssetPath);
             if (ignore(relativeToRootAssetPath) || processedFiles.has(relativeToRootAssetPath)) {
                 continue;
             }
             processedFiles.add(relativeToRootAssetPath);
             if ((bundle[fileName] as OutputAsset | OutputChunk).type === 'asset') {
-                if (await useAssetFactory(fileName, relativeToRootAssetPath, (bundle[fileName] as OutputAsset).source, 'asset')) {
+                if (await useAssetFactory(assetPath, relativeToRootAssetPath, (bundle[fileName] as OutputAsset).source, 'asset')) {
                     continue;
                 }
                 if (fileName.endsWith(cssExtention)) {
-                    const assetPath = path.relative(initialDir, relativeToRootAssetPath);
                     (assets.asset as AssetDescriptor[]).push({
                         html: getLinkElement(assetPath),
                         head: injectIntoHead(relativeToRootAssetPath),
@@ -220,11 +220,10 @@ export default function(options: HtmlPluginOptions = {}) {
             } else if ((bundle[fileName] as OutputAsset | OutputChunk).type === 'chunk') {
                 const chunk = bundle[fileName] as OutputChunk;
                 if (chunk.isEntry) {
-                    if (await useAssetFactory(fileName, relativeToRootAssetPath, chunk.code, options.format)) {
+                    if (await useAssetFactory(assetPath, relativeToRootAssetPath, chunk.code, options.format)) {
                         continue;
                     }
                     if (options.format === 'es' || options.format === 'iife' || options.format === 'umd') {
-                        const assetPath = path.relative(initialDir, relativeToRootAssetPath);
                         (assets[options.format] as AssetDescriptor[]).push({
                             html: (assets: Assets) => {
                                 let useConditionalLoading = conditionalLoading;
