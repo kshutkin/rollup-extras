@@ -1,5 +1,18 @@
 Changelog
 
+## 1.9.0
+
+### Minor Changes
+
+- bfd87eb: improvement: read / copy files in parallel
+  added ability to use array in `src` property
+- 17d2025: use COW copyFile when available
+
+### Patch Changes
+
+- Updated dependencies [018bbb4]
+  - @rollup-extras/utils@1.4.1
+
 ## 1.8.0
 
 ### Minor Changes

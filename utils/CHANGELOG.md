@@ -1,5 +1,11 @@
 Changelog
 
+## 1.4.1
+
+### Patch Changes
+
+- 018bbb4: minor refactoring
+
 ## 1.4.0
 
 ### Minor Changes
