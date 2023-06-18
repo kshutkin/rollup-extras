@@ -1,5 +1,13 @@
 Changelog
 
+## 1.4.1
+
+### Patch Changes
+
+- fd0e5e0: fixed correct path to file when using multiple dist folders and asset factories
+- Updated dependencies [018bbb4]
+  - @rollup-extras/utils@1.4.1
+
 ## 1.4.0
 
 ### Minor Changes
