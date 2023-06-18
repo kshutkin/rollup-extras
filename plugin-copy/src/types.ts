@@ -1,5 +1,5 @@
 export type SingleTargetDesc = {
-    src: string,
+    src: string | string[],
     exclude?: string | string[],
     dest?: string;
 };

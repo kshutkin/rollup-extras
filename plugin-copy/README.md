@@ -51,6 +51,10 @@ copy({ src: 'assets/*' })
 ```
 
 ```javascript
+copy({ src: ['assets/*'] })
+```
+
+```javascript
 copy([{ src: 'assets/*' }])
 ```
 
@@ -105,7 +109,7 @@ copy({ src: 'assets/*', flatten: true })
 
 // or
 
-copy({ targets: ['assets/*'], flattern: true })
+copy({ targets: ['assets/*'], flatten: true })
 ```
 
 To add hashes to file names use `exactFileNames` = `false`, tweak `assetFileNames` option in rollup config if needed. Files with the same content will be deduplicated by `rollup` in this mode.
@@ -156,7 +160,7 @@ copy({ targets: [{ src: 'assets/*', dest: 'fonts', exclude: '*.json' }] })
 
 ```typescript
 type SingleTargetDesc = {
-    src: string,
+    src: string | string[],
     exclude?: string | string[],
     dest?: string;
 };

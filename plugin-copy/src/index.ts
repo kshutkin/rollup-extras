@@ -54,12 +54,17 @@ export default function(options: CopyPluginOptions) {
         name: pluginName,
 
         async [hookName]() {
-            const results = await Promise.all((targets as SingleTargetDesc[]).map(target => glob(target.src, { ignore: target.exclude })
-                .then(result => ({
-                    src: result,
-                    dest: target.dest ? target.dest : '',
-                    parent: globParent(target.src)
-                }))));
+            const results = await Promise.all((targets as SingleTargetDesc[])
+                .flatMap(target => Array.isArray(target.src) ? target.src.map(itemSrc => ({
+                    ...target,
+                    src: itemSrc
+                })) : target)
+                .map(target => glob(target.src, { ignore: target.exclude })
+                    .then(result => ({
+                        src: result,
+                        dest: target.dest ? target.dest : '',
+                        parent: globParent(target.src as string)
+                    }))));
 
             for (const result of results) {
                 for (const file of result.src) {
@@ -90,12 +95,12 @@ export default function(options: CopyPluginOptions) {
                 (result: number | string[]) => `copied ${typeof result == 'number' ? result + ' files' : result.join(', ')}`
             );
             logger.start('coping files', verbose ? LogLevel.info : LogLevel.verbose);
-            for (const [fileName, fileDesc] of files) {
+            await Promise.all([...files].map(async ([fileName, fileDesc]) => {
                 let source: Buffer | undefined;
                 try {
                     const fileStat = await fs.stat(fileName);
                     if (!fileStat.isFile() && !fileStat.isSymbolicLink()) {
-                        continue;
+                        return;
                     }
                     const timestamp = fileStat.mtime.getTime();
                     if (timestamp > fileDesc.timestamp) {
@@ -105,10 +110,10 @@ export default function(options: CopyPluginOptions) {
                     if (emitFiles) {
                         source = await fs.readFile(fileName);
                     }
-                } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-                    const loglevel: number | undefined = e['code'] === 'ENOENT' ? undefined : LogLevel.warn;
+                } catch (e: unknown) {
+                    const loglevel: number | undefined = (e as { code: string })['code'] === 'ENOENT' ? undefined : LogLevel.warn;
                     logger(`error reading file ${fileName}`, loglevel, e);
-                    continue;
+                    return;
                 }
                 for (const dest of fileDesc.dest) {
                     if (copyOnce && fileDesc.copied.includes(dest)) {
@@ -137,7 +142,7 @@ export default function(options: CopyPluginOptions) {
                         logger(`error copying file ${fileName} → ${destFileName}`, LogLevel.warn, e);
                     }
                 }
-            }
+            }));
             logger.finish(statisticsCollector() as string);
         }
     };
@@ -150,9 +155,8 @@ function normalizeSlash(dir: string): string {
     return dir;
 }
 
-function targets(options: CopyPluginOptions, field: string) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let targets: SingleTargetDesc[]  = (options as never as any)[field];
+function targets(options: CopyPluginOptions, field: keyof CopyPluginOptions) {
+    let targets: SingleTargetDesc[] = options[field];
     if (targets == null) {
         targets = [options] as SingleTargetDesc[];
     }

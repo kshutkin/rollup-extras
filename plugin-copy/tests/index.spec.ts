@@ -168,6 +168,38 @@ describe('@rollup-extras/plugin-copy', () => {
         }));
     });
 
+    it('object without targets as a parameter but src is array', async () => {
+        const pluginInstance = plugin({ src: ['assets/**/*.json'] });
+        await (pluginInstance as any).buildStart.apply(rollupContextMock);
+        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'aFolder/test.json', 
+            source: '',
+            type: 'asset'
+        }));
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'aFolder/test2.json', 
+            source: '',
+            type: 'asset'
+        }));
+    });
+
+    it('object without targets as a parameter + dest', async () => {
+        const pluginInstance = plugin({ src: 'assets/**/*.json', dest: 'vendor' });
+        await (pluginInstance as any).buildStart.apply(rollupContextMock);
+        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'vendor/aFolder/test.json', 
+            source: '',
+            type: 'asset'
+        }));
+        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+            fileName: 'vendor/aFolder/test2.json', 
+            source: '',
+            type: 'asset'
+        }));
+    });
+
     it('empty array', async () => {
         const pluginInstance = plugin([]);
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
@@ -227,7 +259,7 @@ describe('@rollup-extras/plugin-copy', () => {
         expect(glob).toBeCalledWith('assets/**/*.json', { ignore: 'assets/**' });
     });
 
-    it('falttern', async () => {
+    it('flatten', async () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json', flatten: true });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
         expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
@@ -243,7 +275,7 @@ describe('@rollup-extras/plugin-copy', () => {
         }));
     });
 
-    it('dest with slash and flattern', async () => {
+    it('dest with slash and flatten', async () => {
         const pluginInstance = plugin({
             targets: [{ src: 'assets/**/*.json', dest: 'folder' }, { src: 'assets/**/*.json', dest: 'folder/' }],
             flatten: true
