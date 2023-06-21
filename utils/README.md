@@ -1,6 +1,6 @@
 # Utils
 
-Utils to support creation of rollup plugins.
+Utils to support the development of rollup plugins.
 
 *Disclaimer: It is not a substitute for the `@rollup/pluginutils` package.*
 
@@ -20,19 +20,19 @@ function getOptions<T extends string | string[] | undefined | Record<string, unk
 
 Utility function to get options object.
 
-- `options` - object passed to plugin, can be `string`, `string[]` or `undefined` (applied second)
+- `options` - object passed to the plugin, can be `string`, `string[]` or `undefined` (applied second)
 - `defaults` - defaults (applied first)
 - `factory` - additional factories (applied last)
-- `field` - `string` to set property in case options is `string` or `string[]`, if `options[field]` is `string` it will be converted to `string[]`
+- `field` - `string` to set a property in case options is `string` or `string[]`, if `options[field]` is `string` it will be converted to `string[]`
 
-## Multiconfig Plugin Base
+## Multi-config Plugin Base
 
-Utility to construct plugins that should/can be executed when multiple configs used to gather information for plugin.
+Utility to construct a plugin that should/can be executed when multiple configs are used to gather information for the plugin.
 
 ```typescript
 function multiConfigPluginBase(useWriteBundle: boolean, pluginName: string, execute: ExecuteFn): Partial<PluginHooks>
 ```
-- `useWriteBundle` - truthy if function should be executed on last `writeBundle`, falthy if it should be executed on `generateBundle`
+- `useWriteBundle` - truthy if `execute` function should be executed on the last `writeBundle`, falsy if it should be executed on `generateBundle`
 - `pluginName` - plugin name
 - `execute` - function to execute
 
@@ -40,13 +40,13 @@ Returns a plugin instance.
 
 ## Statistics
 
-Utility to construct a collector of data that reports count if verbose / more than 5 items. Assumption than in case of verbose an external logger will take care about reporting. It is very niche and probably you don't need it. Main idea for this is that in case we report thousands of files we are not holding data in memory but discarding it / writing it to log.
+Utility to construct a collector of data that reports count if verbose / more than 5 items. The assumption is that in case of verbose an external logger will take care of reporting. It is very niche and probably you don't need it. The main idea for this is that in case we report thousands of files we are not holding data in memory but discarding it / writing it to log.
 
 ```typescript
 function statistics(verbose: boolean, messageFactory: (result: number | string[]) => string): (name?: string) => undefined | string
 ```
 
-Returns a collector that accepts new data if you pass a non null / non undefined parameter or constructs a message using message factory.
+Returns a collector that accepts new data if you pass a non-null/non-undefined parameter or constructs a message using the message factory.
 
 ## Types
 

@@ -1,6 +1,6 @@
 # Plugin Exec
 
-Exec some code when the bundle you are building is finished.
+Executes some code when the bundle you are building is finished.
 
 [Changelog](./CHANGELOG.md)
 
@@ -32,13 +32,13 @@ export default {
 
 ## Providing options
 
-Just pass options to the plugin function. Returned object is the plugin instance which can be passed to rollup.
+Just pass options to the plugin function. The returned object is the plugin instance which can be passed to rollup.
 
 ```javascript
 exec({option: value, option2: value2})
 ```
 
-For additional plugin instances (in case of multiple configs) please use: `firstInstance.api.addInstance()`
+For additional plugin instances (in case of multiple configs) please use `firstInstance.api.addInstance()`
 
 ## Options
 

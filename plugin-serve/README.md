@@ -1,13 +1,13 @@
 # Plugin Serve
 
-Rollup plugin for dev server.
+Rollup plugin for a dev server.
 
 Points:
 
 - Uses `koa`, customizable through koa middleware
-- Zero config by default (works if you have output.dir defined)
+- Zero-config by default (works if you have `output.dir` defined)
 
-Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/README.md) to log messages, can be configured through `@niceties/logger` API.
+Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/README.md) to log messages, which can be configured through `@niceties/logger` API.
 
 [Changelog](./CHANGELOG.md)
 
@@ -37,13 +37,13 @@ export default {
 
 ## Providing options
 
-Just pass options to the plugin function. Returned object is the plugin instance which can be passed to rollup.
+Just pass options to the plugin function. The returned object is the plugin instance which can be passed to rollup.
 
 ```javascript
 serve({option: value, option2: value2})
 ```
 
-For additional plugin instances (in case of multiple configs) please use: `firstInstance.api.addInstance()`
+For additional plugin instances (in case of multiple configs) please use `firstInstance.api.addInstance()`
 
 ## Options
 
@@ -69,19 +69,19 @@ Defines what dir to serve using `koa-static` middleware. If you want to disable 
 
 Optional, `number`, default: `8080`.
 
-Port to use for server.
+Port to use for the server.
 
 ### host
 
 Optional, `string`.
 
-Host to use, by default it does not provide host to createServer and lets nodejs decide.
+Host to use, by default, does not provide a host to createServer and lets nodejs decide.
 
 ### useKoaLogger
 
 Optional, `boolean`, default: `true`.
 
-If plugin should use koa-logger middleware.
+If the plugin should use koa-logger middleware.
 
 ### koaStaticOptions
 
@@ -93,7 +93,7 @@ Please check [`koa-static`](https://github.com/koajs/static) for options.
 
 Optional, `{ cert: string, key: string, ca?: string; }`.
 
-Key and certificate to use for https. Best way to generate cert and key (and to install ca) is [`mkcert`](https://github.com/FiloSottile/mkcert).
+Key and certificate to use for https. The best way to generate a certificate and key (and to install ca) is [`mkcert`](https://github.com/FiloSottile/mkcert).
 
 ### customizeKoa
 
@@ -105,7 +105,7 @@ Extension point to customize `koa`.
 
 Optional, `(server: Server) => void | true`
 
-Extension point after server is live. Please return true to suppress the default banner.
+Extension point after the server is live. Please return true to suppress the default banner.
 
 ## Configuration
 
@@ -133,7 +133,7 @@ type ServePluginOptions = {
 - https://github.com/thgh/rollup-plugin-serve
 - https://github.com/pearofducks/rollup-plugin-dev
 - https://github.com/modernweb-dev/web/tree/master/packages/dev-server-rollup
-- https://github.com/lukeed/sirv (and any another standalone server)
+- https://github.com/lukeed/sirv
 
 # License
 

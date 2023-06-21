@@ -1,11 +1,11 @@
 # Plugin Binify
 
-Rollup plugin to create cli entry files during build.
+Rollup plugin to create CLI entry files during the build.
 
 Points:
 
 - simple
-- respects sourcemaps
+- respects source maps
 - changes permissions of the file(s)
 - configurable
 
@@ -70,7 +70,7 @@ Optional, `number | false`.
 
 Default: `0o755`
 
-Number / string means try to set permissions on a file using fs.chmod.
+Number/string defines permissions for a file, passed to `fs.chmod`.
 `false` (falsy values not working) disables permissions settings.
 
 ### filter
@@ -79,7 +79,7 @@ Optional, `(item: OutputAsset | OutputChunk) => boolean`.
 
 Default: `(item: OutputAsset | OutputChunk) => item.type === 'chunk' && item.isEntry`
 
-Filters chunks / assets before applying plugin transformation.
+Filters chunks/assets before applying plugin transformation.
 
 ## Configuration
 

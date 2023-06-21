@@ -6,11 +6,11 @@ Points:
 
 - Inject file names with hashes
 - Watch on a template file and trigger rebuild if it is changed
-- Provides minimalistic template by default, so you are ready to start without configuration
+- Provides a minimalistic template by default, so you are ready to start without configuration
 - Supports multiple rollup configs (will trigger only when last output generated)
-- Extensible through API so you can plug in something for html processing or generate new types of html elements
+- Extensible through API so you can plug in something for HTML processing or generate new types of HTML elements
 
-Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/README.md) to log messages, can be configured through `@niceties/logger` API.
+Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/README.md) to log messages, which can be configured through `@niceties/logger` API.
 
 [Changelog](./CHANGELOG.md)
 
@@ -40,13 +40,13 @@ export default {
 
 ## Providing options
 
-Just pass options to the plugin function. Returned object is the plugin instance which can be passed to rollup.
+Just pass options to the plugin function. The returned object is the plugin instance which can be passed to rollup.
 
 ```javascript
 html({option: value, option2: value2})
 ```
 
-For additional plugin instances (in case of multiple configs) please use: `firstInstance.api.addInstance()`
+For additional plugin instances (in case of multiple configs) please use `firstInstance.api.addInstance()`
 
 ## Options
 
@@ -60,7 +60,7 @@ For debugging purposes, so many instances of a plugin can be differentiated in d
 
 Optional, string, default: `'index.html'`.
 
-Used to override output file name. If a filename with the same name exists in the pipeline it will be removed or overwritten in the process but its content by default will be used as an input for this plugin. In the following example file emitted by copy plugin will be used as an input for this plugin:
+Used to override output file name. If a filename with the same name exists in the pipeline it will be removed or overwritten in the process but its content by default will be used as input for this plugin. In the following example file emitted by copy plugin will be used as input for this plugin:
 
 ```javascript
 import copy from '@rollup-extras/plugin-copy';
@@ -94,19 +94,19 @@ If the plugin found a template file name this option defines if the plugin needs
 
 Optional, boolean, default: true.
 
-Defines if the plugin should use this.emitFile or should just write it to disk. Option can be ignored in setup with multiple rollup configs.
+Defines if the plugin should use this.emitFile or should just write it to disk. The option can be ignored in setup with multiple rollup configs.
 
 ### useEmittedTemplate
 
 Optional, boolean, default: true.
 
-Defines what the plugin does if it finds a file with the expected file name in the bundle. By default it will be used as a template. Templates provided through the template option should be of higher priority to the plugin.
+Defines what the plugin does if it finds a file with the expected file name in the bundle. By default, it will be used as a template. Templates provided through the template option should be of higher priority to the plugin.
 
 ### conditionalLoading
 
 Optional, boolean, default: undefined.
 
-Defines if plugin adds `nomodule` attribute for non modular js chunks. By default it is done only if we have `es` outputs in one of the bundles processed by the plugin. Also plugin values `iife` outputs higher than `umd` and if we have both filters out `umd` ones. This can be changed only by providing custom `assetFactory`.
+Defines if the plugin adds `nomodule` attributes for non-modular js chunks. By default, it is done only if we have an `es` output in one of the bundles processed by the plugin. Also plugin values `iife` outputs higher than `umd` and if we have both filters out `umd` ones. This can be changed only by providing a custom `assetFactory`.
 
 ### injectIntoHead
 
@@ -216,7 +216,7 @@ Creates a simple module script element.
 
 `(...factories: AssetFactory[]) => AssetFactory`
 
-Combines several factories, calls them in order, the first factory created asset wins.
+Combines several factories, and calls them in order, the first factory-created asset wins.
 
 ## Configuration
 

@@ -61,16 +61,16 @@ type AngularTemplatesCachePluginOptions = {
     watch?: boolean, // true by default
     rootDir?: string, // default to '.', root directory from which the plugin will construct template URIs (IDs)
     transformTemplateUri?: (uri: string) => string, // last chance to transform template URI before actually using it in `templateCache.put` call
-    processHtml?: (html: string) => string, // function to process html templates, for example htmlmin, not applied when `useImports = true`
+    processHtml?: (html: string) => string, // function to process html templates, for example `htmlmin`, not applied when `useImports = true`
     pluginName?: string, // defaults to '@rollup-extras/plugin-angularjs-template-cache'    
     angularModule?: string, // 'templates' by default, angular module name
     standalone?: boolean, // true by default, true if we plugin needs to create module and false to just retrieve it
     module?: string, // 'templates' by default, javascript module name, import not automatically injected into bundle
-    importAngular?: boolean, // default true, wheather to import angular or use global
+    importAngular?: boolean, // default true, defines if it is required to import angular or to use global
     autoImport?: boolean, // false by default, automatically import generated module (useful for standalone module referenced by name)
     verbose?: boolean | 'list-filenames', // false by default
     useImports?: boolean, // false by default, instead of reading files from filesystem generate imports to get them through rollup pipeline. this probably requires additional plugins like `rollup-plugin-html`
-    transformHtmlImportsToUris?: boolean // false by default, wheather to replace template content with its Uri when using bare import
+    transformHtmlImportsToUris?: boolean // false by default, if true replaces template content with its Uri when using bare import
 } | string | string[];
 ```
 

@@ -1,17 +1,17 @@
 # Plugin Clean
 
-Rollup plugin to clean a directory during build.
+Rollup plugin to clean a directory during the build.
 
 Points:
 
 - Uses fs.rm to remove directories that shipped with nodejs and has built-in retries
 - Can be used with no configuration
 - Runs once per directory by default (good for watch mode)
-- Minimal amount of logs by default
+- A minimal amount of logs by default
 
 No globs support, please use [rollup-plugin-delete](https://github.com/vladshcherbin/rollup-plugin-delete) for globs.
 
-Plugin runs on `renderStart` per each output and uses output.dir as a default target.
+The plugin runs on `renderStart` per each output and uses output.dir as a default target.
 
 Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/README.md) to log messages, can be configured through `@niceties/logger` API.
 
@@ -42,7 +42,8 @@ export default {
 }
 ```
 
-To override / provide target directory to clean use:
+To override/provide target directory to clean use:
+
 ```javascript
 clean('dir')
 ```
@@ -63,13 +64,13 @@ or
 clean({targets: ['dir1', 'dir2']})
 ```
 
-Other supported fields in options object: `pluginName`, `deleteOnce`, `outputPlugin` and `verbose`.
+Other supported fields in the options object: `pluginName`, `deleteOnce`, `outputPlugin` and `verbose`.
 
 `pluginName` is just for debugging purposes so you can understand which instance of the plugin is responsible for an error.
 
-`deleteOnce` can be set to `false` if you want to clean the directory every rebuild.
+`deleteOnce` can be set to `false` if you want to clean the directory for every rebuild.
 
-`outputPlugin` can be set to `false` if you want plugin to trigger earlier (use with caution, you may want to define `targets` yourself in this mode)
+`outputPlugin` can be set to `false` if you want the plugin to trigger earlier (use with caution, you may want to define `targets` yourself in this mode)
 
 `verbose` is to get more messages in the console.
 
