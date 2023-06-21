@@ -52,6 +52,6 @@
   },
   "dependencies": {
     "@niceties/logger": "^1.1.4",
-    "@rollup-extras/utils": "^1.4.2"
+    "@rollup-extras/utils": "^1.4.1"
   }
 }
