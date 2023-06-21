@@ -1,5 +1,5 @@
 {
-  "version": "1.1.6",
+  "version": "1.1.7",
   "license": "MIT",
   "name": "@rollup-extras/plugin-binify",
   "author": {
@@ -53,6 +53,6 @@
   },
   "dependencies": {
     "@niceties/logger": "^1.1.4",
-    "@rollup-extras/utils": "^1.4.0"
+    "@rollup-extras/utils": "^1.4.2"
   }
 }

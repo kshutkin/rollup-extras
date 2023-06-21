@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "MIT",
   "name": "@rollup-extras/plugin-exec",
   "author": {
@@ -52,6 +52,6 @@
   },
   "dependencies": {
     "@niceties/logger": "^1.1.4",
-    "@rollup-extras/utils": "^1.4.0"
+    "@rollup-extras/utils": "^1.4.2"
   }
 }

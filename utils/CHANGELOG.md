@@ -1,5 +1,11 @@
 Changelog
 
+## 1.4.2
+
+### Patch Changes
+
+- befcdb4: Updated readme files
+
 ## 1.4.1
 
 ### Patch Changes

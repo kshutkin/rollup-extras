@@ -1,5 +1,13 @@
 Changelog
 
+## 1.3.6
+
+### Patch Changes
+
+- befcdb4: Updated readme files
+- Updated dependencies [befcdb4]
+  - @rollup-extras/utils@1.4.2
+
 ## 1.3.5
 
 ### Patch Changes
