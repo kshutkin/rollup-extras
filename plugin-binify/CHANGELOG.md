@@ -1,5 +1,13 @@
 Changelog
 
+## 1.1.8
+
+### Patch Changes
+
+- 82e7e03: update package.json to a newer structure
+- Updated dependencies [82e7e03]
+  - @rollup-extras/utils@1.4.3
+
 ## 1.1.7
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "name": "@rollup-extras/plugin-angularjs-template-cache",
   "description": "Plugin to build AngularJS templates cache.",
   "license": "MIT",
@@ -44,7 +44,7 @@
   "dependencies": {
     "@niceties/logger": "^1.1.4",
     "tiny-glob": "^0.2.9",
-    "@rollup-extras/utils": "^1.4.2",
+    "@rollup-extras/utils": "^1.4.3",
     "js-string-escape": "^1.0.1"
   },
   "devDependencies": {
