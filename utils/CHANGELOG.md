@@ -1,5 +1,11 @@
 Changelog
 
+## 1.4.3
+
+### Patch Changes
+
+- 82e7e03: update package.json to a newer structure
+
 ## 1.4.2
 
 ### Patch Changes
