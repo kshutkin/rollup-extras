@@ -1,5 +1,11 @@
 Changelog
 
+## 1.4.4
+
+### Patch Changes
+
+- f321d3f: chore(deps): update dependency rollup to v4
+
 ## 1.4.3
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "name": "@rollup-extras/utils",
   "description": "Utils to support creation of rollup plugins.",
   "license": "MIT",
