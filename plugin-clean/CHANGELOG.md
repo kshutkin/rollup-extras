@@ -1,5 +1,13 @@
 Changelog
 
+## 1.3.8
+
+### Patch Changes
+
+- f321d3f: chore(deps): update dependency rollup to v4
+- Updated dependencies [f321d3f]
+  - @rollup-extras/utils@1.4.4
+
 ## 1.3.7
 
 ### Patch Changes
