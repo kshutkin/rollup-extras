@@ -1,5 +1,13 @@
 Changelog
 
+## 1.1.12
+
+### Patch Changes
+
+- 84135eb: use prune on package.json
+- Updated dependencies [84135eb]
+  - @rollup-extras/utils@1.4.5
+
 ## 1.1.11
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 Changelog
 
+## 1.4.5
+
+### Patch Changes
+
+- 84135eb: use prune on package.json
+
 ## 1.4.4
 
 ### Patch Changes
