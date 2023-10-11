@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "version": "1.1.12",
+  "version": "1.2.0",
   "name": "@rollup-extras/plugin-externals",
   "description": "Rollup plugin to declare dependencies external with reasonable defaults and customizable logic.",
   "license": "MIT",

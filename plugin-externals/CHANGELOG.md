@@ -1,5 +1,11 @@
 Changelog
 
+## 1.2.0
+
+### Minor Changes
+
+- 5ef5451: allow options to be function
+
 ## 1.1.12
 
 ### Patch Changes
