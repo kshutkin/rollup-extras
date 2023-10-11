@@ -1,5 +1,13 @@
 Changelog
 
+## 1.3.9
+
+### Patch Changes
+
+- 84135eb: use prune on package.json
+- Updated dependencies [84135eb]
+  - @rollup-extras/utils@1.4.5
+
 ## 1.3.8
 
 ### Patch Changes

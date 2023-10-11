@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "version": "1.9.2",
+  "version": "1.9.3",
   "name": "@rollup-extras/plugin-copy",
   "description": "Rollup plugin to copy assets during build.",
   "license": "MIT",
@@ -44,7 +44,7 @@
     "@niceties/logger": "^1.1.4",
     "glob": "^10.0.0",
     "glob-parent": "^6.0.2",
-    "@rollup-extras/utils": "^1.4.4"
+    "@rollup-extras/utils": "^1.4.5"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
