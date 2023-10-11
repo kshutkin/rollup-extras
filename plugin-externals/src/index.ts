@@ -10,6 +10,9 @@ import packageDirectory from 'pkg-dir';
 const factories = { logger };
 
 export default function(options: ExternalsPluginOptions = {}) {
+    if (typeof options === 'function') {
+        options = { external: options };
+    }
     const { pluginName, external, logger, verbose } = getOptionsObject(options, {
         pluginName: '@rollup-extras/plugin-externals',
         verbose: false
