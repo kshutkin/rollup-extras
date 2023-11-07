@@ -201,7 +201,7 @@ importers:
         specifier: ^1.9.3
         version: link:../../plugin-copy
       '@rollup-extras/plugin-externals':
-        specifier: ^1.2.0
+        specifier: ^1.2.1
         version: link:../../plugin-externals
       '@rollup-extras/plugin-html':
         specifier: ^1.4.5
