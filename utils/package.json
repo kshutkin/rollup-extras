@@ -9,28 +9,37 @@
   "module": "./dist/index.mjs",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
       "require": "./dist/index.cjs",
       "default": "./dist/index.mjs"
     },
     "./mutli-config-plugin-base": {
+      "types": "./dist/mutli-config-plugin-base.d.ts",
+      "import": "./dist/mutli-config-plugin-base.mjs",
       "require": "./dist/mutli-config-plugin-base.cjs",
       "default": "./dist/mutli-config-plugin-base.mjs"
     },
     "./options": {
+      "types": "./dist/options.d.ts",
+      "import": "./dist/options.mjs",
       "require": "./dist/options.cjs",
       "default": "./dist/options.mjs"
     },
     "./logger": {
+      "types": "./dist/logger.d.ts",
+      "import": "./dist/logger.mjs",
       "require": "./dist/logger.cjs",
       "default": "./dist/logger.mjs"
     },
     "./statistics": {
+      "types": "./dist/statistics.d.ts",
+      "import": "./dist/statistics.mjs",
       "require": "./dist/statistics.cjs",
       "default": "./dist/statistics.mjs"
     },
     "./package.json": "./package.json"
   },
-  "typings": "./dist/index.d.ts",
   "files": [
     "dist",
     "mutli-config-plugin-base",
@@ -59,7 +68,8 @@
   "scripts": {
     "build": "pkgbld-internal",
     "test": "jest --collectCoverage",
-    "lint": "eslint ./src"
+    "lint": "eslint ./src",
+    "prepack": "pkgbld-internal prune"
   },
   "dependencies": {
     "@niceties/logger": "^1.1.5"
@@ -71,5 +81,6 @@
     "rollup": {
       "optional": true
     }
-  }
+  },
+  "types": "./dist/index.d.ts"
 }

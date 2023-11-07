@@ -1,6 +1,5 @@
 import { createLogger, LogLevel } from '@niceties/logger';
-import packageDirectory from 'pkg-dir';
-// import path from 'path';
+import { packageDirectory } from 'pkg-dir';
 import plugin from '../src';
 
 let log: jest.Mock;
@@ -11,9 +10,8 @@ jest.mock('@niceties/logger', () => ({
 }));
 
 jest.mock('pkg-dir', () => ({
-    ...jest.requireActual('pkg-dir'),
-    __esModule: true,
-    default: jest.fn(() => Promise.resolve(''))
+    packageDirectory: jest.fn(() => Promise.resolve('')),
+    __esModule: true
 }));
 
 describe('@rollup-extras/plugin-externals', () => {

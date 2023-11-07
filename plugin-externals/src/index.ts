@@ -5,7 +5,7 @@ import { getOptionsObject } from '@rollup-extras/utils/options';
 import { LogLevel } from '@niceties/logger';
 import logger from '@rollup-extras/utils/logger';
 import { ExternalsPluginOptions } from './types';
-import packageDirectory from 'pkg-dir';
+import { packageDirectory } from 'pkg-dir';
 
 const factories = { logger };
 

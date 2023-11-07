@@ -9,16 +9,19 @@
   "module": "./dist/index.mjs",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
       "require": "./dist/index.cjs",
       "default": "./dist/index.mjs"
     },
     "./asset-factories": {
+      "types": "./dist/asset-factories.d.ts",
+      "import": "./dist/asset-factories.mjs",
       "require": "./dist/asset-factories.cjs",
       "default": "./dist/asset-factories.mjs"
     },
     "./package.json": "./package.json"
   },
-  "typings": "./dist/index.d.ts",
   "files": [
     "dist",
     "LICENSE",
@@ -43,7 +46,8 @@
   "scripts": {
     "build": "pkgbld-internal",
     "test": "jest --collectCoverage",
-    "lint": "eslint ./src"
+    "lint": "eslint ./src",
+    "prepack": "pkgbld-internal prune"
   },
   "dependencies": {
     "@niceties/logger": "^1.1.4",
@@ -56,5 +60,6 @@
     "rollup": {
       "optional": true
     }
-  }
+  },
+  "types": "./dist/index.d.ts"
 }
