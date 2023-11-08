@@ -1,5 +1,11 @@
 Changelog
 
+## 1.2.2
+
+### Patch Changes
+
+- 31f85ef: revert pkg-dir version because we still use commonjs
+
 ## 1.2.1
 
 ### Patch Changes
