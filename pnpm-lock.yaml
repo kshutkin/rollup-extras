@@ -56,7 +56,7 @@ importers:
     devDependencies:
       '@types/js-string-escape':
         specifier: ^1.0.1
-        version: 1.0.1
+        version: 1.0.3
 
   plugin-binify:
     dependencies:
@@ -1464,8 +1464,8 @@ packages:
       pretty-format: 29.7.0
     dev: true
 
-  /@types/js-string-escape@1.0.1:
-    resolution: {integrity: sha512-s3Tz/P+u4X78n0TdgNR0l9Yu1jyH2dRwofi/DqGLpbbjiuIs0n6W8W4XfUI6+9K0lPK1fF4KHA5HcqtOsy1V0Q==}
+  /@types/js-string-escape@1.0.3:
+    resolution: {integrity: sha512-D3SEAdmrWQTAVR3fQVc/idOCSqXINe8JoRAW3k6pOVgCO74aPs5KJql8sDxXlo2DNE+u0N2pnqFQL8VR9hGd6w==}
     dev: true
 
   /@types/json-schema@7.0.11:
