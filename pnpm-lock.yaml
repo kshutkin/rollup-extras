@@ -40,7 +40,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^1.1.4
-        version: 1.1.10
+        version: 1.1.13
       '@rollup-extras/utils':
         specifier: ^1.4.5
         version: link:../utils
@@ -62,7 +62,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^1.1.4
-        version: 1.1.10
+        version: 1.1.13
       '@rollup-extras/utils':
         specifier: ^1.4.5
         version: link:../utils
@@ -74,7 +74,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^1.1.4
-        version: 1.1.10
+        version: 1.1.13
       '@rollup-extras/utils':
         specifier: ^1.4.5
         version: link:../utils
@@ -86,7 +86,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^1.1.4
-        version: 1.1.10
+        version: 1.1.13
       '@rollup-extras/utils':
         specifier: ^1.4.5
         version: link:../utils
@@ -111,7 +111,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^1.1.4
-        version: 1.1.10
+        version: 1.1.13
       '@rollup-extras/utils':
         specifier: ^1.4.5
         version: link:../utils
@@ -123,7 +123,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^1.1.4
-        version: 1.1.10
+        version: 1.1.13
       '@rollup-extras/utils':
         specifier: ^1.4.5
         version: link:../utils
@@ -141,7 +141,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^1.1.4
-        version: 1.1.10
+        version: 1.1.13
       '@rollup-extras/utils':
         specifier: ^1.4.5
         version: link:../utils
@@ -153,7 +153,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^1.1.4
-        version: 1.1.10
+        version: 1.1.13
       '@rollup-extras/utils':
         specifier: ^1.4.5
         version: link:../utils
@@ -184,10 +184,10 @@ importers:
     dependencies:
       '@niceties/draftlog-appender':
         specifier: ^1.1.0
-        version: 1.1.0(@niceties/logger@1.1.10)
+        version: 1.1.0(@niceties/logger@1.1.13)
       '@niceties/logger':
         specifier: ^1.1.10
-        version: 1.1.10
+        version: 1.1.13
       '@rollup-extras/plugin-angularjs-template-cache':
         specifier: ^1.2.4
         version: link:../../plugin-angularjs-template-cache
@@ -223,7 +223,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^1.1.5
-        version: 1.1.10
+        version: 1.1.13
       rollup:
         specifier: ^2.60.1 || ^3.0.0 || ^4.0.0
         version: 3.21.0
@@ -1184,18 +1184,18 @@ packages:
       read-yaml-file: 1.1.0
     dev: true
 
-  /@niceties/draftlog-appender@1.1.0(@niceties/logger@1.1.10):
+  /@niceties/draftlog-appender@1.1.0(@niceties/logger@1.1.13):
     resolution: {integrity: sha512-65JpyEKtEG+ip0gCvWm2js5SymJcKYp1nsjX35lR/RsGMednCenOwDbN0Aj4D6D2zu/Uty5fD5EAMTQIrBUZAg==}
     engines: {node: '>=15'}
     peerDependencies:
       '@niceties/logger': ^1.1.0
     dependencies:
-      '@niceties/logger': 1.1.10
+      '@niceties/logger': 1.1.13
       draftlog: 1.0.13
     dev: false
 
-  /@niceties/logger@1.1.10:
-    resolution: {integrity: sha512-lrKS/tdvlnUf04PJqMDXaLpkxNt2j5Mfr3gM9aGqKBlKYESldF8vmK3dfn1KqmdwXekQJTuBEWejKl4zUrCVzw==}
+  /@niceties/logger@1.1.13:
+    resolution: {integrity: sha512-yorxAcjtpxCgZQy1o4Lq3Umr2rzwHyMN9dZCgZBKXIFkxlhsIH7olQFPSLJdvRmQC+4iaPFcPIq1WvN1ObtPBA==}
     engines: {node: '>=15'}
     dependencies:
       kleur: 4.1.5
