@@ -178,7 +178,7 @@ importers:
         version: 3.1.5
       '@types/koa-static':
         specifier: ^4.0.2
-        version: 4.0.2
+        version: 4.0.4
 
   test/big-config:
     dependencies:
@@ -1591,17 +1591,17 @@ packages:
       '@types/koa': 2.13.4
     dev: true
 
-  /@types/koa-send@4.1.3:
-    resolution: {integrity: sha512-daaTqPZlgjIJycSTNjKpHYuKhXYP30atFc1pBcy6HHqB9+vcymDgYTguPdx9tO4HMOqNyz6bz/zqpxt5eLR+VA==}
+  /@types/koa-send@4.1.6:
+    resolution: {integrity: sha512-vgnNGoOJkx7FrF0Jl6rbK1f8bBecqAchKpXtKuXzqIEdXTDO6dsSTjr+eZ5m7ltSjH4K/E7auNJEQCAd0McUPA==}
     dependencies:
       '@types/koa': 2.13.4
     dev: true
 
-  /@types/koa-static@4.0.2:
-    resolution: {integrity: sha512-ns/zHg+K6XVPMuohjpOlpkR1WLa4VJ9czgUP9bxkCDn0JZBtUWbD/wKDZzPGDclkQK1bpAEScufCHOy8cbfL0w==}
+  /@types/koa-static@4.0.4:
+    resolution: {integrity: sha512-j1AUzzl7eJYEk9g01hNTlhmipFh8RFbOQmaMNLvLcNNAkPw0bdTs3XTa3V045XFlrWN0QYnblbDJv2RzawTn6A==}
     dependencies:
       '@types/koa': 2.13.4
-      '@types/koa-send': 4.1.3
+      '@types/koa-send': 4.1.6
     dev: true
 
   /@types/koa@2.13.4:
