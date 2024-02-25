@@ -105,7 +105,7 @@ importers:
         version: 8.1.0
       '@types/glob-parent':
         specifier: ^5.1.1
-        version: 5.1.1
+        version: 5.1.3
 
   plugin-exec:
     dependencies:
@@ -1491,8 +1491,8 @@ packages:
       '@types/serve-static': 1.15.1
     dev: true
 
-  /@types/glob-parent@5.1.1:
-    resolution: {integrity: sha512-r2rwLjU4mYJmX3S81d8KxCboZOGPVEN5hvtYKzQ0aFNRhYir3DIVf8Hlznr65Wk748swi6hhccsDo3MyydHb2A==}
+  /@types/glob-parent@5.1.3:
+    resolution: {integrity: sha512-p+NciRH8TRvrgISOCQ55CP+lktMmDpOXsp4spULIIz0L4aJ6G9zFX+N0UZ2xulmJRgaQLRxXIp4xHdL6YOQjDg==}
     dev: true
 
   /@types/glob@8.1.0:
