@@ -1,5 +1,11 @@
 Changelog
 
+## 1.4.6
+
+### Patch Changes
+
+- 758609c: fixed typings
+
 ## 1.4.5
 
 ### Patch Changes
