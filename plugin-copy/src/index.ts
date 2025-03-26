@@ -3,7 +3,7 @@ import fs_ from 'fs';
 import path from 'path';
 import { glob } from 'glob';
 import globParent from 'glob-parent';
-import { PluginContext, Plugin } from 'rollup';
+import { PluginContext, Plugin, EmittedFile } from 'rollup';
 import { CopyPluginOptions, NonTargetOptions, SingleTargetDesc } from './types';
 import { createLogger, LogLevel } from '@niceties/logger';
 import { getOptions } from '@rollup-extras/utils/options';
@@ -128,8 +128,9 @@ export default function(options: CopyPluginOptions) {
                             (this as unknown as PluginContext).emitFile({
                                 type: 'asset',
                                 [exactFileNames ? 'fileName' : 'name']: destFileName,
-                                source
-                            });
+                                source: source as Uint8Array | undefined,
+                                originalFileName: path.resolve(fileName)
+                            } as EmittedFile);
                         } else {
                             await fs.mkdir(path.dirname(destFileName), { recursive: true });
                             await fs.copyFile(fileName, destFileName, fs_.constants.COPYFILE_FICLONE);
