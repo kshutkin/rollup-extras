@@ -45,7 +45,7 @@
   },
   "dependencies": {
     "@niceties/logger": "^1.1.4",
-    "is-builtin-module": "^3.2.0",
+    "is-builtin-module": "^5.0.0",
     "pkg-dir": "5.0.0",
     "@rollup-extras/utils": "^1.4.5"
   },
