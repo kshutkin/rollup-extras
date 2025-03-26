@@ -13,7 +13,7 @@
     "@niceties/logger": "^1.1.10",
     "@niceties/draftlog-appender": "^1.1.0",
     "@rollup-extras/plugin-clean": "^1.3.9",
-    "@rollup-extras/plugin-copy": "^1.9.3",
+    "@rollup-extras/plugin-copy": "^1.10.0",
     "@rollup-extras/plugin-html": "^1.4.5",
     "@rollup-extras/plugin-serve": "^1.3.5",
     "@rollup-extras/plugin-binify": "^1.1.10",

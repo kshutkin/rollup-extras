@@ -1,5 +1,16 @@
 Changelog
 
+## 1.10.0
+
+### Minor Changes
+
+- 758609c: Pass result of path.resolve() in originalFileName property into emitFile. It should not affect older rollup versions but potentially fixes #182.
+
+### Patch Changes
+
+- Updated dependencies [758609c]
+  - @rollup-extras/utils@1.4.6
+
 ## 1.9.3
 
 ### Patch Changes
