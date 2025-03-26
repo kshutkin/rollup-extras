@@ -10,32 +10,32 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
       "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs",
       "default": "./dist/index.mjs"
     },
     "./mutli-config-plugin-base": {
       "types": "./dist/mutli-config-plugin-base.d.ts",
-      "import": "./dist/mutli-config-plugin-base.mjs",
       "require": "./dist/mutli-config-plugin-base.cjs",
+      "import": "./dist/mutli-config-plugin-base.mjs",
       "default": "./dist/mutli-config-plugin-base.mjs"
     },
     "./options": {
       "types": "./dist/options.d.ts",
-      "import": "./dist/options.mjs",
       "require": "./dist/options.cjs",
+      "import": "./dist/options.mjs",
       "default": "./dist/options.mjs"
     },
     "./logger": {
       "types": "./dist/logger.d.ts",
-      "import": "./dist/logger.mjs",
       "require": "./dist/logger.cjs",
+      "import": "./dist/logger.mjs",
       "default": "./dist/logger.mjs"
     },
     "./statistics": {
       "types": "./dist/statistics.d.ts",
-      "import": "./dist/statistics.mjs",
       "require": "./dist/statistics.cjs",
+      "import": "./dist/statistics.mjs",
       "default": "./dist/statistics.mjs"
     },
     "./package.json": "./package.json"
@@ -82,5 +82,28 @@
       "optional": true
     }
   },
-  "types": "./dist/index.d.ts"
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      ".": [
+        "dist/index.d.ts"
+      ],
+      "./mutli-config-plugin-base": [
+        "dist/mutli-config-plugin-base.d.ts"
+      ],
+      "./options": [
+        "dist/options.d.ts"
+      ],
+      "./logger": [
+        "dist/logger.d.ts"
+      ],
+      "./statistics": [
+        "dist/statistics.d.ts"
+      ],
+      "*": [
+        "dist/index.d.ts",
+        "dist/*"
+      ]
+    }
+  }
 }

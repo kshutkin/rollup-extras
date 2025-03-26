@@ -10,8 +10,8 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
       "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs",
       "default": "./dist/index.mjs"
     },
     "./package.json": "./package.json"
@@ -54,5 +54,16 @@
       "optional": true
     }
   },
-  "types": "./dist/index.d.ts"
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      ".": [
+        "dist/index.d.ts"
+      ],
+      "*": [
+        "dist/index.d.ts",
+        "dist/*"
+      ]
+    }
+  }
 }

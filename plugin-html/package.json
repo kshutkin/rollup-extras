@@ -10,14 +10,14 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
       "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs",
       "default": "./dist/index.mjs"
     },
     "./asset-factories": {
       "types": "./dist/asset-factories.d.ts",
-      "import": "./dist/asset-factories.mjs",
       "require": "./dist/asset-factories.cjs",
+      "import": "./dist/asset-factories.mjs",
       "default": "./dist/asset-factories.mjs"
     },
     "./package.json": "./package.json"
@@ -61,5 +61,19 @@
       "optional": true
     }
   },
-  "types": "./dist/index.d.ts"
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      ".": [
+        "dist/index.d.ts"
+      ],
+      "./asset-factories": [
+        "dist/asset-factories.d.ts"
+      ],
+      "*": [
+        "dist/index.d.ts",
+        "dist/*"
+      ]
+    }
+  }
 }
