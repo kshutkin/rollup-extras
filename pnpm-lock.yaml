@@ -42,8 +42,8 @@ importers:
         specifier: ^1.1.4
         version: 1.1.13
       '@rollup-extras/utils':
-        specifier: ^1.4.5
-        version: 1.4.5(rollup@3.29.5)
+        specifier: workspace:^
+        version: link:../utils
       js-string-escape:
         specifier: ^1.0.1
         version: 1.0.1
@@ -64,8 +64,8 @@ importers:
         specifier: ^1.1.4
         version: 1.1.13
       '@rollup-extras/utils':
-        specifier: ^1.4.5
-        version: 1.4.5(rollup@3.29.5)
+        specifier: workspace:^
+        version: link:../utils
       rollup:
         specifier: ^2.60.1 || ^3.0.0 || ^4.0.0
         version: 3.29.5
@@ -76,8 +76,8 @@ importers:
         specifier: ^1.1.4
         version: 1.1.13
       '@rollup-extras/utils':
-        specifier: ^1.4.5
-        version: 1.4.5(rollup@3.29.5)
+        specifier: workspace:^
+        version: link:../utils
       rollup:
         specifier: ^2.60.1 || ^3.0.0 || ^4.0.0
         version: 3.29.5
@@ -88,8 +88,8 @@ importers:
         specifier: ^1.1.4
         version: 1.1.13
       '@rollup-extras/utils':
-        specifier: ^1.4.5
-        version: 1.4.5(rollup@3.29.5)
+        specifier: workspace:^
+        version: link:../utils
       glob:
         specifier: ^10.0.0
         version: 10.4.5
@@ -113,8 +113,8 @@ importers:
         specifier: ^1.1.4
         version: 1.1.13
       '@rollup-extras/utils':
-        specifier: ^1.4.5
-        version: 1.4.5(rollup@3.29.5)
+        specifier: workspace:^
+        version: link:../utils
       rollup:
         specifier: ^2.60.1 || ^3.0.0 || ^4.0.0
         version: 3.29.5
@@ -125,8 +125,8 @@ importers:
         specifier: ^1.1.4
         version: 1.1.13
       '@rollup-extras/utils':
-        specifier: ^1.4.5
-        version: 1.4.5(rollup@3.29.5)
+        specifier: workspace:^
+        version: link:../utils
       is-builtin-module:
         specifier: ^3.2.0
         version: 3.2.1
@@ -143,8 +143,8 @@ importers:
         specifier: ^1.1.4
         version: 1.1.13
       '@rollup-extras/utils':
-        specifier: ^1.4.5
-        version: 1.4.5(rollup@3.29.5)
+        specifier: workspace:^
+        version: link:../utils
       rollup:
         specifier: ^2.60.1 || ^3.0.0 || ^4.0.0
         version: 3.29.5
@@ -155,8 +155,8 @@ importers:
         specifier: ^1.1.4
         version: 1.1.13
       '@rollup-extras/utils':
-        specifier: ^1.4.5
-        version: 1.4.5(rollup@3.29.5)
+        specifier: workspace:^
+        version: link:../utils
       koa:
         specifier: ^2.14.1
         version: 2.16.0
@@ -189,26 +189,26 @@ importers:
         specifier: ^1.1.10
         version: 1.1.13
       '@rollup-extras/plugin-angularjs-template-cache':
-        specifier: ^1.2.4
-        version: 1.2.4(rollup@4.37.0)
+        specifier: workspace:^
+        version: link:../../plugin-angularjs-template-cache
       '@rollup-extras/plugin-binify':
-        specifier: ^1.1.10
-        version: 1.1.10(rollup@4.37.0)
+        specifier: workspace:^
+        version: link:../../plugin-binify
       '@rollup-extras/plugin-clean':
-        specifier: ^1.3.9
-        version: 1.3.9(rollup@4.37.0)
+        specifier: workspace:^
+        version: link:../../plugin-clean
       '@rollup-extras/plugin-copy':
-        specifier: ^1.9.3
-        version: 1.9.3(rollup@4.37.0)
+        specifier: workspace:^
+        version: link:../../plugin-copy
       '@rollup-extras/plugin-externals':
-        specifier: ^1.2.2
-        version: 1.2.2(rollup@4.37.0)
+        specifier: workspace:^
+        version: link:../../plugin-externals
       '@rollup-extras/plugin-html':
-        specifier: ^1.4.5
-        version: 1.4.5(rollup@4.37.0)
+        specifier: workspace:^
+        version: link:../../plugin-html
       '@rollup-extras/plugin-serve':
-        specifier: ^1.3.5
-        version: 1.3.5(rollup@4.37.0)
+        specifier: workspace:^
+        version: link:../../plugin-serve
       rollup:
         specifier: ^4.37.0
         version: 4.37.0
@@ -615,78 +615,6 @@ packages:
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
-
-  '@rollup-extras/plugin-angularjs-template-cache@1.2.4':
-    resolution: {integrity: sha512-6U1K8NI4L42/aRwfP3+Bi2MKnPG4XmJXQJr7J2rLtW7MJpUV0BUNNq2+PtrJv9PW1tBGKiNLNgp1DOGZFrsiEQ==}
-    engines: {node: '>=15'}
-    peerDependencies:
-      rollup: ^2.60.1 || ^3.0.0 || ^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
-  '@rollup-extras/plugin-binify@1.1.10':
-    resolution: {integrity: sha512-nXvdJQqIdUp1ZajuPXs4q3e+Z9VkNTkUqvKeMzsB1MutVitYe3s3MA2RTgK/zkc6NGRI8V9VioMLFUum5780Og==}
-    engines: {node: '>=15'}
-    peerDependencies:
-      rollup: ^2.60.1 || ^3.0.0 || ^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
-  '@rollup-extras/plugin-clean@1.3.9':
-    resolution: {integrity: sha512-BxJrxI5iq/hpTTfp2VVjfgzuDKtcpUDLwDPXByLLz1CnReDnzPlHTqxHpOdWDv8L26yjuAagnoDPTxIW6NrUmw==}
-    engines: {node: '>=15'}
-    peerDependencies:
-      rollup: ^2.60.1 || ^3.0.0 || ^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
-  '@rollup-extras/plugin-copy@1.9.3':
-    resolution: {integrity: sha512-md3Kbmluhk8WYMfMPVXEfHvE8LfpvSjvv3JjKlasblNFDz2M2/zDFFekHpj6590A2Ek+q/M0Mp/6qK5v2NxLFw==}
-    engines: {node: '>=15'}
-    peerDependencies:
-      rollup: ^2.60.1 || ^3.0.0 || ^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
-  '@rollup-extras/plugin-externals@1.2.2':
-    resolution: {integrity: sha512-6I53ViN6IKez+RetiJXQ3BPHhSv+JyhB2HrfjjeDRPknaId5+MzMJ52n5bsbDTb8ZPTvPwrvU9XmRH30Emd6Cw==}
-    engines: {node: '>=15'}
-    peerDependencies:
-      rollup: ^2.60.1 || ^3.0.0 || ^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
-  '@rollup-extras/plugin-html@1.4.5':
-    resolution: {integrity: sha512-uCG3XWh2off79sx/2G9AyjnCvmXb/1M41eSu9lEhwq+N5m+WNFg0zbXlaLBVEPALjKcIiIYFStgsCy/f11VwyQ==}
-    engines: {node: '>=15'}
-    peerDependencies:
-      rollup: ^2.60.1 || ^3.0.0 || ^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
-  '@rollup-extras/plugin-serve@1.3.5':
-    resolution: {integrity: sha512-/Pfr7P4sMwPwYIMJn5Jiv7rtCxjexSFJS5vg/hC6pFieqq7RnjOXmZarGsla4WLRswxDvWJt28Vi4EjRjeEXQw==}
-    engines: {node: '>=15'}
-    peerDependencies:
-      rollup: ^2.60.1 || ^3.0.0 || ^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
-  '@rollup-extras/utils@1.4.5':
-    resolution: {integrity: sha512-XVz+UhdyVNGeEmlV99QPwZLGpkUS1iOAapEwrWz1CszLq0aTkEUWtCdtad8Ce0qt2TU8dR2qH9/kuO6pBF61qw==}
-    engines: {node: '>=15'}
-    peerDependencies:
-      rollup: ^2.60.1 || ^3.0.0 || ^4.0.0
-    peerDependenciesMeta:
-      rollup:
-        optional: true
 
   '@rollup/plugin-commonjs@28.0.3':
     resolution: {integrity: sha512-pyltgilam1QPdn+Zd9gaCfOLcnjMEJ9gV+bTw6/r73INdvzf1ah9zLIJBm+kW7R6IUFIQ1YO+VqZtYxZNWFPEQ==}
@@ -3386,78 +3314,6 @@ snapshots:
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
-
-  '@rollup-extras/plugin-angularjs-template-cache@1.2.4(rollup@4.37.0)':
-    dependencies:
-      '@niceties/logger': 1.1.13
-      '@rollup-extras/utils': 1.4.5(rollup@4.37.0)
-      js-string-escape: 1.0.1
-      tiny-glob: 0.2.9
-    optionalDependencies:
-      rollup: 4.37.0
-
-  '@rollup-extras/plugin-binify@1.1.10(rollup@4.37.0)':
-    dependencies:
-      '@niceties/logger': 1.1.13
-      '@rollup-extras/utils': 1.4.5(rollup@4.37.0)
-    optionalDependencies:
-      rollup: 4.37.0
-
-  '@rollup-extras/plugin-clean@1.3.9(rollup@4.37.0)':
-    dependencies:
-      '@niceties/logger': 1.1.13
-      '@rollup-extras/utils': 1.4.5(rollup@4.37.0)
-    optionalDependencies:
-      rollup: 4.37.0
-
-  '@rollup-extras/plugin-copy@1.9.3(rollup@4.37.0)':
-    dependencies:
-      '@niceties/logger': 1.1.13
-      '@rollup-extras/utils': 1.4.5(rollup@4.37.0)
-      glob: 10.4.5
-      glob-parent: 6.0.2
-    optionalDependencies:
-      rollup: 4.37.0
-
-  '@rollup-extras/plugin-externals@1.2.2(rollup@4.37.0)':
-    dependencies:
-      '@niceties/logger': 1.1.13
-      '@rollup-extras/utils': 1.4.5(rollup@4.37.0)
-      is-builtin-module: 3.2.1
-      pkg-dir: 5.0.0
-    optionalDependencies:
-      rollup: 4.37.0
-
-  '@rollup-extras/plugin-html@1.4.5(rollup@4.37.0)':
-    dependencies:
-      '@niceties/logger': 1.1.13
-      '@rollup-extras/utils': 1.4.5(rollup@4.37.0)
-    optionalDependencies:
-      rollup: 4.37.0
-
-  '@rollup-extras/plugin-serve@1.3.5(rollup@4.37.0)':
-    dependencies:
-      '@niceties/logger': 1.1.13
-      '@rollup-extras/utils': 1.4.5(rollup@4.37.0)
-      koa: 2.16.0
-      koa-logger: 3.2.1
-      koa-static: 5.0.0
-    optionalDependencies:
-      rollup: 4.37.0
-    transitivePeerDependencies:
-      - supports-color
-
-  '@rollup-extras/utils@1.4.5(rollup@3.29.5)':
-    dependencies:
-      '@niceties/logger': 1.1.13
-    optionalDependencies:
-      rollup: 3.29.5
-
-  '@rollup-extras/utils@1.4.5(rollup@4.37.0)':
-    dependencies:
-      '@niceties/logger': 1.1.13
-    optionalDependencies:
-      rollup: 4.37.0
 
   '@rollup/plugin-commonjs@28.0.3(rollup@4.37.0)':
     dependencies:
