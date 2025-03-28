@@ -1,5 +1,11 @@
 Changelog
 
+## 1.11.0
+
+### Minor Changes
+
+- 1486c92: added emitOriginalFileName option, default to 'absolute' as it is required by rollup documentation, allows to be set to 'relative' or a function to customize the name
+
 ## 1.10.0
 
 ### Minor Changes
