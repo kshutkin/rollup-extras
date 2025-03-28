@@ -59,7 +59,7 @@ describe('@rollup-extras/plugin-html/asset-factories', () => {
         expect(result1).toEqual(undefined);
         expect(result2).toEqual(undefined);
 
-        expect(logger).toBeCalledWith('0 is not valid, using noopPredicate', LogLevel.warn);
+        expect(logger).toHaveBeenCalledWith('0 is not valid, using noopPredicate', LogLevel.warn);
     });
 
     it('combineAssetFactories', () => {

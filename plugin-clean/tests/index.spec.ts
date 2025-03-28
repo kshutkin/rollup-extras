@@ -28,7 +28,7 @@ describe('@rollup-extras/plugin-clean', () => {
         const pluginInstance = plugin();
         await (pluginInstance as any).renderStart({dir: '/dist2'});
         expect(fs.rm).toBeCalledTimes(1);
-        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
     it('happy path - two output targets (1)', async () => {
@@ -36,7 +36,7 @@ describe('@rollup-extras/plugin-clean', () => {
         await (pluginInstance as any).renderStart({dir: '/dist2'});
         await (pluginInstance as any).renderStart({dir: '/dist2/subdir'});
         expect(fs.rm).toBeCalledTimes(1);
-        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
     it('happy path - two output targets (2)', async () => {
@@ -44,8 +44,8 @@ describe('@rollup-extras/plugin-clean', () => {
         await (pluginInstance as any).renderStart({dir: '/dist2/subdir'});
         await (pluginInstance as any).renderStart({dir: '/dist2'});
         expect(fs.rm).toBeCalledTimes(2);
-        expect(fs.rm).toBeCalledWith('/dist2/subdir', { recursive: true });
-        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2/subdir', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
     it('happy path - two output targets (2)', async () => {
@@ -53,8 +53,8 @@ describe('@rollup-extras/plugin-clean', () => {
         await (pluginInstance as any).renderStart({dir: '/dist2/subdir'});
         await (pluginInstance as any).renderStart({dir: '/dist2/subdir2'});
         expect(fs.rm).toBeCalledTimes(2);
-        expect(fs.rm).toBeCalledWith('/dist2/subdir', { recursive: true });
-        expect(fs.rm).toBeCalledWith('/dist2/subdir2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2/subdir', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2/subdir2', { recursive: true });
     });
 
     it('unhappy path', async () => {
@@ -67,35 +67,35 @@ describe('@rollup-extras/plugin-clean', () => {
         const pluginInstance = plugin('/dist2');
         await (pluginInstance as any).renderStart({dir: '/dist3'});
         expect(fs.rm).toBeCalledTimes(1);
-        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
     it('with non default directory (string[])', async () => {
         const pluginInstance = plugin(['/dist2']);
         await (pluginInstance as any).renderStart({dir: '/dist3'});
         expect(fs.rm).toBeCalledTimes(1);
-        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
     it('happy path (with targets string)', async () => {
         const pluginInstance = plugin({targets: '/dist2'});
         await (pluginInstance as any).renderStart({});
         expect(fs.rm).toBeCalledTimes(1);
-        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
     it('happy path (with targets string[])', async () => {
         const pluginInstance = plugin({targets: ['/dist2']});
         await (pluginInstance as any).renderStart({});
         expect(fs.rm).toBeCalledTimes(1);
-        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
     it('strips ending slash', async () => {
         const pluginInstance = plugin({targets: '/dist2/'});
         await (pluginInstance as any).renderStart({});
         expect(fs.rm).toBeCalledTimes(1);
-        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
     it('deleteOnce by default', async () => {
@@ -103,7 +103,7 @@ describe('@rollup-extras/plugin-clean', () => {
         await (pluginInstance as any).renderStart({dir: '/dist2'});
         await (pluginInstance as any).renderStart({dir: '/dist2'});
         expect(fs.rm).toBeCalledTimes(1);
-        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
     it('deleteOnce by default + addInstance', async () => {
@@ -114,7 +114,7 @@ describe('@rollup-extras/plugin-clean', () => {
         await (pluginInstance2 as any).renderStart({dir: '/dist2'});
         await (pluginInstance2 as any).renderStart({dir: '/dist2'});
         expect(fs.rm).toBeCalledTimes(1);
-        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
     it('deleteOnce by default (check timings)', async () => {
@@ -165,7 +165,7 @@ describe('@rollup-extras/plugin-clean', () => {
         await (pluginInstance2 as any).buildStart();
         await (pluginInstance2 as any).buildStart();
         expect(fs.rm).toBeCalledTimes(1);
-        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
     it('deleteOnce false', async () => {
@@ -174,7 +174,7 @@ describe('@rollup-extras/plugin-clean', () => {
         await (pluginInstance as any).generateBundle();
         await (pluginInstance as any).renderStart({dir: '/dist2'});
         expect(fs.rm).toBeCalledTimes(2);
-        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
     it('deleteOnce true', async () => {
@@ -183,7 +183,7 @@ describe('@rollup-extras/plugin-clean', () => {
         await (pluginInstance as any).generateBundle();
         await (pluginInstance as any).renderStart({dir: '/dist2'});
         expect(fs.rm).toBeCalledTimes(1);
-        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
     it('deleteOnce true + outputPlugin false + targets string', async () => {
@@ -194,7 +194,7 @@ describe('@rollup-extras/plugin-clean', () => {
         await (pluginInstance as any).buildStart();
         await (pluginInstance as any).renderStart();
         expect(fs.rm).toBeCalledTimes(1);
-        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
     it('deleteOnce true + outputPlugin false', async () => {
@@ -205,28 +205,28 @@ describe('@rollup-extras/plugin-clean', () => {
         await (pluginInstance as any).buildStart();
         await (pluginInstance as any).renderStart();
         expect(fs.rm).toBeCalledTimes(1);
-        expect(fs.rm).toBeCalledWith('/dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
     it('pluginName', async () => {
         const pluginName = 'test-plugin';
         const pluginInstance = plugin({pluginName});
         await (pluginInstance as any).renderStart({dir: '/dist2'});
-        expect(createLogger).toBeCalledWith(pluginName);
+        expect(createLogger).toHaveBeenCalledWith(pluginName);
     });
 
     it('non verbose', async () => {
         const pluginInstance = plugin();
         await (pluginInstance as any).renderStart({dir: '/dist2'});
-        expect(loggerStart).toBeCalledWith('cleaning \'/dist2\'', LogLevel.verbose);
-        expect(loggerFinish).toBeCalledWith('cleaned \'/dist2\'');
+        expect(loggerStart).toHaveBeenCalledWith('cleaning \'/dist2\'', LogLevel.verbose);
+        expect(loggerFinish).toHaveBeenCalledWith('cleaned \'/dist2\'');
     });
 
     it('verbose', async () => {
         const pluginInstance = plugin({ verbose: true });
         await (pluginInstance as any).renderStart({dir: '/dist2'});
-        expect(loggerStart).toBeCalledWith('cleaning \'/dist2\'', LogLevel.info);
-        expect(loggerFinish).toBeCalledWith('cleaned \'/dist2\'');
+        expect(loggerStart).toHaveBeenCalledWith('cleaning \'/dist2\'', LogLevel.info);
+        expect(loggerFinish).toHaveBeenCalledWith('cleaned \'/dist2\'');
     });
 
     it('exception', async () => {
@@ -234,7 +234,7 @@ describe('@rollup-extras/plugin-clean', () => {
             .mockImplementationOnce(() => { throw { stack: '' }; });
         const pluginInstance = plugin({ verbose: true });
         await (pluginInstance as any).renderStart({dir: 'dist2'});
-        expect(loggerFinish).toBeCalledWith('failed cleaning \'dist2\'', LogLevel.warn, expect.objectContaining({ stack: '' }));
+        expect(loggerFinish).toHaveBeenCalledWith('failed cleaning \'dist2\'', LogLevel.warn, expect.objectContaining({ stack: '' }));
     });
 
     it('missing directory exception', async () => {
@@ -242,14 +242,14 @@ describe('@rollup-extras/plugin-clean', () => {
             .mockImplementationOnce(() => { throw { code: 'ENOENT', stack: '' }; });
         const pluginInstance = plugin({ verbose: true });
         await (pluginInstance as any).renderStart({dir: 'dist2'});
-        expect(loggerFinish).toBeCalledWith('failed cleaning \'dist2\'', undefined, expect.objectContaining({ code: 'ENOENT', stack: '' }));
+        expect(loggerFinish).toHaveBeenCalledWith('failed cleaning \'dist2\'', undefined, expect.objectContaining({ code: 'ENOENT', stack: '' }));
     });
 
     it('outputPlugin: false', async () => {
         const pluginInstance = plugin({ targets: 'dist2', outputPlugin: false });
         await (pluginInstance as any).buildStart();
         expect(fs.rm).toBeCalledTimes(1);
-        expect(fs.rm).toBeCalledWith('dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('dist2', { recursive: true });
     });
 
     it('outputPlugin: false + options without dir', async () => {
@@ -271,7 +271,7 @@ describe('@rollup-extras/plugin-clean', () => {
         await (pluginInstance as any).options({output: { dir: 'dist2' }});
         await (pluginInstance as any).buildStart();
         expect(fs.rm).toBeCalledTimes(1);
-        expect(fs.rm).toBeCalledWith('dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('dist2', { recursive: true });
     });
 
     it('outputPlugin: false + options with outputs array', async () => {
@@ -279,6 +279,6 @@ describe('@rollup-extras/plugin-clean', () => {
         await (pluginInstance as any).options({output: [{ dir: 'dist2' }]});
         await (pluginInstance as any).buildStart();
         expect(fs.rm).toBeCalledTimes(1);
-        expect(fs.rm).toBeCalledWith('dist2', { recursive: true });
+        expect(fs.rm).toHaveBeenCalledWith('dist2', { recursive: true });
     });
 });

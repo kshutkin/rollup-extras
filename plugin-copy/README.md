@@ -176,7 +176,8 @@ type CopyPluginOptions = {
     flattern?: boolean, // false by default
     exactFileNames?: boolean, // true by default
     outputPlugin?: boolean, // false by default
-    emitFiles?: boolean // true by default
+    emitFiles?: boolean // true by default,
+    emitOriginalFileName?: 'absolute' | 'relative' | ((fileName: string) => string) // 'absolute' by default
 } | MultipleTargetsDesc;
 ```
 

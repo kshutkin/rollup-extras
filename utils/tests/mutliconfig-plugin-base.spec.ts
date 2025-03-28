@@ -12,7 +12,7 @@ describe('@rollup-extras/util/mutli-config-plugin-base', () => {
         await (pluginInstance as any).renderStart();
         await (pluginInstance as any).generateBundle(1, 2);
         expect(execute).toBeCalledTimes(1);
-        expect(execute).toBeCalledWith(1, 2);
+        expect(execute).toHaveBeenCalledWith(1, 2);
     });
 
     it('additional instance, generateBundle', async () => {
@@ -24,7 +24,7 @@ describe('@rollup-extras/util/mutli-config-plugin-base', () => {
         await (pluginInstance as any).generateBundle();
         await (additionalInstance as any).generateBundle(1, 2);
         expect(execute).toBeCalledTimes(1);
-        expect(execute).toBeCalledWith(1, 2);
+        expect(execute).toHaveBeenCalledWith(1, 2);
     });
 
     it('single instance, writeBundle', async () => {
@@ -33,7 +33,7 @@ describe('@rollup-extras/util/mutli-config-plugin-base', () => {
         await (pluginInstance as any).renderStart();
         await (pluginInstance as any).writeBundle(1, 2);
         expect(execute).toBeCalledTimes(1);
-        expect(execute).toBeCalledWith(1, 2);
+        expect(execute).toHaveBeenCalledWith(1, 2);
     });
 
     it('additional instance, writeBundle', async () => {
@@ -45,7 +45,7 @@ describe('@rollup-extras/util/mutli-config-plugin-base', () => {
         await (pluginInstance as any).writeBundle();
         await (additionalInstance as any).writeBundle(1, 2);
         expect(execute).toBeCalledTimes(1);
-        expect(execute).toBeCalledWith(1, 2);
+        expect(execute).toHaveBeenCalledWith(1, 2);
     });
 
     it('exception (apssed to rollup)', async () => {
@@ -59,7 +59,7 @@ describe('@rollup-extras/util/mutli-config-plugin-base', () => {
             exception = e;
         }
         expect(exception).toBeDefined();
-        expect(execute).toBeCalledWith(1, 2);
+        expect(execute).toHaveBeenCalledWith(1, 2);
     });
 
     it('recovery after exception', async () => {
@@ -77,7 +77,7 @@ describe('@rollup-extras/util/mutli-config-plugin-base', () => {
         } catch(e) {
             // suppress
         }
-        expect(execute).toBeCalledWith(1, 2);
+        expect(execute).toHaveBeenCalledWith(1, 2);
         expect(execute).toBeCalledTimes(2);
     });
 
@@ -97,7 +97,7 @@ describe('@rollup-extras/util/mutli-config-plugin-base', () => {
         } catch(e) {
             // suppress
         }
-        expect(execute).toBeCalledWith(1, 2);
+        expect(execute).toHaveBeenCalledWith(1, 2);
         expect(execute).toBeCalledTimes(2);
         expect(onFinalHook).toBeCalledTimes(2);
     });

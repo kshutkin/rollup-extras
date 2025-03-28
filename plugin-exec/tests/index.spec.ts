@@ -18,13 +18,13 @@ describe('@rollup-extras/plugin-exec', () => {
     it('pluginName (default)', () => {
         const pluginInstance = plugin(() => undefined);
         expect((pluginInstance as any).name).toEqual('@rollup-extras/plugin-exec');
-        expect(createLogger).toBeCalledWith('@rollup-extras/plugin-exec');
+        expect(createLogger).toHaveBeenCalledWith('@rollup-extras/plugin-exec');
     });
 
     it('pluginName (changed)', () => {
         const pluginInstance = plugin({ pluginName: 'test' });
         expect((pluginInstance as any).name).toEqual('test');
-        expect(createLogger).toBeCalledWith('test');
+        expect(createLogger).toHaveBeenCalledWith('test');
     });
 
     it('exec', async () => {

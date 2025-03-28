@@ -15,7 +15,8 @@ export type NonTargetOptions = {
     flatten?: boolean,
     exactFileNames?: boolean,
     outputPlugin?: boolean,
-    emitFiles?: boolean
+    emitFiles?: boolean,
+    emitOriginalFileName?: 'absolute' | 'relative' | ((fileName: string) => string),
 };
 
 export type CopyPluginOptions = NonTargetOptions | MultipleTargetsDesc;
