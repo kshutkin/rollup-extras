@@ -42,13 +42,13 @@ describe('@rollup-extras/plugin-html', () => {
     it('pluginName (default)', () => {
         const pluginInstance = plugin();
         expect((pluginInstance as unknown as {name: string}).name).toEqual('@rollup-extras/plugin-html');
-        expect(createLogger).toBeCalledWith('@rollup-extras/plugin-html');
+        expect(createLogger).toHaveBeenCalledWith('@rollup-extras/plugin-html');
     });
 
     it('pluginName (changed)', () => {
         const pluginInstance = plugin({ pluginName: 'test' });
         expect((pluginInstance as unknown as {name: string}).name).toEqual('test');
-        expect(createLogger).toBeCalledWith('test');
+        expect(createLogger).toHaveBeenCalledWith('test');
     });
     
     it('happy path', async () => {
@@ -65,7 +65,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         });
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
             type: 'asset'
@@ -91,7 +91,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(additionalInstance.name).toEqual('@rollup-extras/plugin-html#1');
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
             type: 'asset'
@@ -117,7 +117,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head></head><body><script src="index.js" type="text/javascript" nomodule></script><script src="index.mjs" type="module"></script></body></html>',
             type: 'asset'
@@ -143,7 +143,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head></head><body><script src="index.js" type="text/javascript" nomodule></script><script src="index.mjs" type="module"></script></body></html>',
             type: 'asset'
@@ -177,7 +177,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head></head><body><script src="index.js" type="text/javascript" nomodule></script><script src="index.mjs" type="module"></script></body></html>',
             type: 'asset'
@@ -203,7 +203,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head></head><body><script src="index.js" type="text/javascript"></script><script src="index.mjs" type="module"></script></body></html>',
             type: 'asset'
@@ -222,7 +222,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head></head><body><script src="index.js" type="text/javascript" nomodule></script></body></html>',
             type: 'asset'
@@ -251,9 +251,9 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(assetsFactory).toBeCalledWith('index.mjs', 'code1', 'es');
-        expect(assetsFactory).toBeCalledWith('index.js', 'code2', 'iife');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(assetsFactory).toHaveBeenCalledWith('index.mjs', 'code1', 'es');
+        expect(assetsFactory).toHaveBeenCalledWith('index.js', 'code2', 'iife');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head></head><body><asset/><asset/></body></html>',
             type: 'asset'
@@ -273,8 +273,8 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(assetsFactory).toBeCalledWith('index.mjs', 'code1', 'amd');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(assetsFactory).toHaveBeenCalledWith('index.mjs', 'code1', 'amd');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head></head><body></body></html>',
             type: 'asset'
@@ -303,9 +303,9 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
         
-        expect(assetsFactory).toBeCalledWith('index.mjs', 'code1', 'es');
-        expect(assetsFactory).toBeCalledWith('index.js', 'code2', 'iife');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(assetsFactory).toHaveBeenCalledWith('index.mjs', 'code1', 'es');
+        expect(assetsFactory).toHaveBeenCalledWith('index.js', 'code2', 'iife');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head></head><body><asset/><asset/></body></html>',
             type: 'asset'
@@ -323,7 +323,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><asset/></head><body></body></html>',
             type: 'asset'
@@ -341,7 +341,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head></head><body></body></html>',
             type: 'asset'
@@ -359,7 +359,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><asset/></head><body></body></html>',
             type: 'asset'
@@ -377,7 +377,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body></body></html>',
             type: 'asset'
@@ -394,7 +394,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head></head><body></body></html>',
             type: 'asset'
@@ -411,7 +411,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head></head><body></body></html>',
             type: 'asset'
@@ -428,7 +428,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head></head><body></body></html>',
             type: 'asset'
@@ -445,7 +445,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head></head><body></body></html>',
             type: 'asset'
@@ -462,12 +462,12 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body></body></html>',
             type: 'asset'
         }));
-        expect(logger).toBeCalledWith('ignore option ignored because it is not a function, RegExp, string or boolean', LogLevel.warn);
+        expect(logger).toHaveBeenCalledWith('ignore option ignored because it is not a function, RegExp, string or boolean', LogLevel.warn);
     });
 
     it('injectIntoHead (function)', async () => {
@@ -481,7 +481,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head></head><body><asset/></body></html>',
             type: 'asset'
@@ -499,7 +499,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head></head><body><asset/></body></html>',
             type: 'asset'
@@ -517,7 +517,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head></head><body><asset/></body></html>',
             type: 'asset'
@@ -535,7 +535,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><asset/></head><body></body></html>',
             type: 'asset'
@@ -553,12 +553,12 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><asset/></head><body></body></html>',
             type: 'asset'
         }));
-        expect(logger).toBeCalledWith('injectIntoHead option ignored because it is not a function, RegExp, string or boolean', LogLevel.warn);
+        expect(logger).toHaveBeenCalledWith('injectIntoHead option ignored because it is not a function, RegExp, string or boolean', LogLevel.warn);
     });
 
     it('outputFile', async () => {
@@ -575,7 +575,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'main.html',
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
             type: 'asset'
@@ -596,7 +596,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<html><head>Hi!<link rel="stylesheet" href="main.css" type="text/css"></head><body>Hello!<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
@@ -618,7 +618,7 @@ describe('@rollup-extras/plugin-html', () => {
         }]);
 
         expect(fs.writeFile)
-            .toBeCalledWith('index.html', '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>');
+            .toHaveBeenCalledWith('index.html', '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>');
     });
 
     it('emitFile: auto', async () => {
@@ -636,9 +636,9 @@ describe('@rollup-extras/plugin-html', () => {
         }]);
 
         expect(fs.writeFile)
-            .toBeCalledWith('dest/index.html', '<!DOCTYPE html><html><head><link rel="stylesheet" href="../dest2/main.css" type="text/css"></head><body><script src="../dest2/index.js" type="module"></script></body></html>');
+            .toHaveBeenCalledWith('dest/index.html', '<!DOCTYPE html><html><head><link rel="stylesheet" href="../dest2/main.css" type="text/css"></head><body><script src="../dest2/index.js" type="module"></script></body></html>');
         expect(logger)
-            .not.toBeCalledWith('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
+            .not.toHaveBeenCalledWith('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
     });
 
     it('emitFile: true', async () => {
@@ -656,9 +656,9 @@ describe('@rollup-extras/plugin-html', () => {
         }]);
 
         expect(fs.writeFile)
-            .toBeCalledWith('dest/index.html', '<!DOCTYPE html><html><head><link rel="stylesheet" href="../dest2/main.css" type="text/css"></head><body><script src="../dest2/index.js" type="module"></script></body></html>');
+            .toHaveBeenCalledWith('dest/index.html', '<!DOCTYPE html><html><head><link rel="stylesheet" href="../dest2/main.css" type="text/css"></head><body><script src="../dest2/index.js" type="module"></script></body></html>');
         expect(logger)
-            .toBeCalledWith('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
+            .toHaveBeenCalledWith('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
     });
 
     it('exception in generateBundle', async () => {
@@ -677,8 +677,8 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(loggerStart).toBeCalledWith('generating html', LogLevel.verbose);
-        expect(loggerFinish).toBeCalledWith('html generation failed', LogLevel.error, expect.any(Error));
+        expect(loggerStart).toHaveBeenCalledWith('generating html', LogLevel.verbose);
+        expect(loggerFinish).toHaveBeenCalledWith('html generation failed', LogLevel.error, expect.any(Error));
     });
 
     it('happy path with template file', async () => {
@@ -696,8 +696,8 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);        
 
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('index.html');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('index.html');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>File Template<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
@@ -707,19 +707,19 @@ describe('@rollup-extras/plugin-html', () => {
     it('exception with template file', async () => {
         (oldFs.readFileSync as jest.Mock).mockImplementationOnce(() => { throw new Error('test'); });
         plugin({template: 'index.html'});
-        expect(logger).toBeCalledWith('error reading template', LogLevel.warn, expect.any(Error));
+        expect(logger).toHaveBeenCalledWith('error reading template', LogLevel.warn, expect.any(Error));
     });
 
     it('exception with template file (ENOENT)', async () => {
         (oldFs.readFileSync as jest.Mock).mockImplementationOnce(() => { throw { code: 'ENOENT' }; });
         plugin({template: 'index.html'});
-        expect(logger).toBeCalledWith('template nor a file or string', LogLevel.warn, expect.objectContaining({ code: 'ENOENT' }));
+        expect(logger).toHaveBeenCalledWith('template nor a file or string', LogLevel.warn, expect.objectContaining({ code: 'ENOENT' }));
     });
 
     it('exception with template file (null)', async () => {
         (oldFs.readFileSync as jest.Mock).mockImplementationOnce(() => { throw null; });
         plugin({template: 'index.html'});
-        expect(logger).toBeCalledWith('error reading template', LogLevel.warn, null);
+        expect(logger).toHaveBeenCalledWith('error reading template', LogLevel.warn, null);
     });
 
     it('exception with template file (on reread)', async () => {
@@ -729,7 +729,7 @@ describe('@rollup-extras/plugin-html', () => {
         await (pluginInstance as any).buildStart.apply(rollupContextMock, [{}]);
         (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
 
-        expect(logger).toBeCalledWith('error reading template', LogLevel.warn, expect.any(Error));
+        expect(logger).toHaveBeenCalledWith('error reading template', LogLevel.warn, expect.any(Error));
     });
 
     it('exception with template file (on reread, ENOENT)', async () => {
@@ -739,7 +739,7 @@ describe('@rollup-extras/plugin-html', () => {
         await (pluginInstance as any).buildStart.apply(rollupContextMock, [{}]);
         (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
 
-        expect(logger).toBeCalledWith('template nor a file or string', LogLevel.warn, expect.objectContaining({ code: 'ENOENT' }));
+        expect(logger).toHaveBeenCalledWith('template nor a file or string', LogLevel.warn, expect.objectContaining({ code: 'ENOENT' }));
     });
     it('exception with template file (on reread, null)', async () => {
         const pluginInstance = plugin({template: 'index.html'});
@@ -748,7 +748,7 @@ describe('@rollup-extras/plugin-html', () => {
         await (pluginInstance as any).buildStart.apply(rollupContextMock, [{}]);
         (pluginInstance as any).renderStart.apply(rollupContextMock, [{}]);
 
-        expect(logger).toBeCalledWith('error reading template', LogLevel.warn, null);
+        expect(logger).toHaveBeenCalledWith('error reading template', LogLevel.warn, null);
     });
 
     it('empty template from file', async () => {
@@ -765,7 +765,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
             type: 'asset'
@@ -786,7 +786,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: 'html',
             type: 'asset'
@@ -807,7 +807,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
             type: 'asset'
@@ -829,7 +829,7 @@ describe('@rollup-extras/plugin-html', () => {
         }]);
 
         expect(pluginInstance.buildStart).toBeUndefined();
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: 'html',
             type: 'asset'
@@ -850,7 +850,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);        
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>File Template<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
@@ -878,7 +878,7 @@ describe('@rollup-extras/plugin-html', () => {
 
         expect(additionalInstance.name).toEqual('@rollup-extras/plugin-html#1');
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>File Template<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
@@ -905,7 +905,7 @@ describe('@rollup-extras/plugin-html', () => {
         expect(pluginInstance.buildStart).toBeUndefined();
         expect(additionalInstance.buildStart).toBeUndefined();
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>File Template<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
@@ -930,7 +930,7 @@ describe('@rollup-extras/plugin-html', () => {
         (additionalInstance as any).renderStart.apply(rollupContextMock, [{}]);
         await (additionalInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {}]);
 
-        expect(templateFactory).toBeCalledWith(
+        expect(templateFactory).toHaveBeenCalledWith(
             '<!DOCTYPE html><html><head></head><body>File Template</body></html>',
             expect.objectContaining({
                 'asset': [{'head': true, 'html': '<link rel="stylesheet" href="main.css" type="text/css">', 'type': 'asset'}],
@@ -940,7 +940,7 @@ describe('@rollup-extras/plugin-html', () => {
             }),
             expect.any(Function)
         );
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: 'test',
             type: 'asset'
@@ -965,7 +965,7 @@ describe('@rollup-extras/plugin-html', () => {
         (additionalInstance as any).renderStart.apply(rollupContextMock, [{}]);
         await (additionalInstance as any).generateBundle.apply(rollupContextMock, [{format: 'es'}, {}]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>File Template<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
@@ -990,7 +990,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>Emitted Template<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
@@ -1015,7 +1015,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>Custom Template<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
@@ -1040,7 +1040,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>Emitted Template<script src="index.js" type="module"></script></body></html>',
             type: 'asset'
@@ -1065,7 +1065,7 @@ describe('@rollup-extras/plugin-html', () => {
             }
         }]);
 
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'index.html',
             source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
             type: 'asset'
@@ -1092,8 +1092,8 @@ describe('@rollup-extras/plugin-html', () => {
         }]);
 
         expect(logger)
-            .toBeCalledWith('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
+            .toHaveBeenCalledWith('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
         expect(loggerStart)
-            .toBeCalledWith(expect.any(String), LogLevel.info);
+            .toHaveBeenCalledWith(expect.any(String), LogLevel.info);
     });
 });

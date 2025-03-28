@@ -69,13 +69,13 @@ describe('@rollup-extras/plugin-serve', () => {
     it('pluginName (default)', () => {
         const pluginInstance = plugin();
         expect((pluginInstance as any).name).toEqual('@rollup-extras/plugin-serve');
-        expect(createLogger).toBeCalledWith('@rollup-extras/plugin-serve');
+        expect(createLogger).toHaveBeenCalledWith('@rollup-extras/plugin-serve');
     });
 
     it('pluginName (changed)', () => {
         const pluginInstance = plugin({ pluginName: 'test' });
         expect((pluginInstance as any).name).toEqual('test');
-        expect(createLogger).toBeCalledWith('test');
+        expect(createLogger).toHaveBeenCalledWith('test');
     });
 
     it('useWriteBundle: true', () => {
@@ -92,8 +92,8 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(createServer).toBeCalledTimes(1);
         expect(createHttpsServer).not.toBeCalled();
         expect(koaLogger).toBeCalled();
-        expect(serveStatic).toBeCalledWith('dist', undefined);
-        expect(loggerFinish).toBeCalledWith('listening on http://localhost:8080', LogLevel.info);
+        expect(serveStatic).toHaveBeenCalledWith('dist', undefined);
+        expect(loggerFinish).toHaveBeenCalledWith('listening on http://localhost:8080', LogLevel.info);
     });
 
     it('happy path (two configs)', async () => {
@@ -108,8 +108,8 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(createServer).toBeCalledTimes(1);
         expect(createHttpsServer).not.toBeCalled();
         expect(koaLogger).toBeCalled();
-        expect(serveStatic).toBeCalledWith('dist', undefined);
-        expect(loggerFinish).toBeCalledWith('listening on http://localhost:8080', LogLevel.info);
+        expect(serveStatic).toHaveBeenCalledWith('dist', undefined);
+        expect(loggerFinish).toHaveBeenCalledWith('listening on http://localhost:8080', LogLevel.info);
     });
 
     it('useKoaLogger: false', async () => {
@@ -121,8 +121,8 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(createServer).toBeCalledTimes(1);
         expect(createHttpsServer).not.toBeCalled();
         expect(koaLogger).not.toBeCalled();
-        expect(serveStatic).toBeCalledWith('dist', undefined);
-        expect(loggerFinish).toBeCalledWith('listening on http://localhost:8080', LogLevel.info);
+        expect(serveStatic).toHaveBeenCalledWith('dist', undefined);
+        expect(loggerFinish).toHaveBeenCalledWith('listening on http://localhost:8080', LogLevel.info);
     });
 
     it('customizeKoa', async () => {
@@ -147,7 +147,7 @@ describe('@rollup-extras/plugin-serve', () => {
         await (pluginInstance as any).writeBundle();
 
         expect(createHttpsServer).toBeCalledTimes(1);
-        expect(loggerFinish).toBeCalledWith('listening on https://localhost:8080', LogLevel.info);
+        expect(loggerFinish).toHaveBeenCalledWith('listening on https://localhost:8080', LogLevel.info);
     });
 
     it('host', async () => {
@@ -178,7 +178,7 @@ describe('@rollup-extras/plugin-serve', () => {
         await (pluginInstance as any).writeBundle();
         errorCb({ code: 'EADDRINUSE' });
 
-        expect(loggerFinish).toBeCalledWith('address in use, please try another port', LogLevel.error);
+        expect(loggerFinish).toHaveBeenCalledWith('address in use, please try another port', LogLevel.error);
     });
 
     it('error (not EADDRINUSE)', async () => {
@@ -204,7 +204,7 @@ describe('@rollup-extras/plugin-serve', () => {
             listen: expect.any(Function),
             on: expect.any(Function)
         }));
-        expect(loggerFinish).toBeCalledWith('listening on http://localhost:8080', LogLevel.info);
+        expect(loggerFinish).toHaveBeenCalledWith('listening on http://localhost:8080', LogLevel.info);
     });
 
     it('onListen => truthy', async () => {
@@ -239,7 +239,7 @@ describe('@rollup-extras/plugin-serve', () => {
         await (pluginInstance as any).renderStart({ dir: 'dist' });
         await (pluginInstance as any).writeBundle();
 
-        expect(loggerFinish).toBeCalledWith('listening on some address', LogLevel.info);
+        expect(loggerFinish).toHaveBeenCalledWith('listening on some address', LogLevel.info);
     });
 
     it('non IPv6 address', async () => {
@@ -260,7 +260,7 @@ describe('@rollup-extras/plugin-serve', () => {
         await (pluginInstance as any).renderStart({ dir: 'dist' });
         await (pluginInstance as any).writeBundle();
 
-        expect(loggerFinish).toBeCalledWith('listening on http://127.0.0.1:8080', LogLevel.info);
+        expect(loggerFinish).toHaveBeenCalledWith('listening on http://127.0.0.1:8080', LogLevel.info);
     });
 
 });

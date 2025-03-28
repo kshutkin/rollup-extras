@@ -6,6 +6,7 @@ import globParent from 'glob-parent';
 import { createLogger, LogLevel } from '@niceties/logger';
 import plugin from '../src';
 import { PluginContext } from 'rollup';
+import path from 'path';
 
 let loggerStart: jest.Mock, loggerFinish: jest.Mock, logger: jest.Mock;
 
@@ -55,13 +56,13 @@ describe('@rollup-extras/plugin-copy', () => {
     it('single string parameter', async () => {
         const pluginInstance = plugin('assets/**/*.json');
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test.json', 
             source: '',
             type: 'asset'
         }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test2.json', 
             source: '',
             type: 'asset'
@@ -71,13 +72,13 @@ describe('@rollup-extras/plugin-copy', () => {
     it('array of strings as a parameter', async () => {
         const pluginInstance = plugin(['assets/**/*.json']);
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test.json', 
             source: '',
             type: 'asset'
         }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test2.json', 
             source: '',
             type: 'asset'
@@ -87,13 +88,13 @@ describe('@rollup-extras/plugin-copy', () => {
     it('array of objects as a parameter', async () => {
         const pluginInstance = plugin([{ src: 'assets/**/*.json' }]);
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test.json', 
             source: '',
             type: 'asset'
         }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test2.json', 
             source: '',
             type: 'asset'
@@ -103,13 +104,13 @@ describe('@rollup-extras/plugin-copy', () => {
     it('object with targets (array of objects) as a parameter', async () => {
         const pluginInstance = plugin({ targets: [{ src: 'assets/**/*.json' }] });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test.json', 
             source: '',
             type: 'asset'
         }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test2.json', 
             source: '',
             type: 'asset'
@@ -119,13 +120,13 @@ describe('@rollup-extras/plugin-copy', () => {
     it('object with targets (array of strings) as a parameter', async () => {
         const pluginInstance = plugin({ targets: ['assets/**/*.json'] });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test.json', 
             source: '',
             type: 'asset'
         }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test2.json', 
             source: '',
             type: 'asset'
@@ -135,13 +136,13 @@ describe('@rollup-extras/plugin-copy', () => {
     it('object with targets (string) as a parameter', async () => {
         const pluginInstance = plugin({ targets: 'assets/**/*.json' });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test.json', 
             source: '',
             type: 'asset'
         }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test2.json', 
             source: '',
             type: 'asset'
@@ -151,13 +152,13 @@ describe('@rollup-extras/plugin-copy', () => {
     it('object without targets as a parameter', async () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json' });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test.json', 
             source: '',
             type: 'asset'
         }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test2.json', 
             source: '',
             type: 'asset'
@@ -167,13 +168,13 @@ describe('@rollup-extras/plugin-copy', () => {
     it('object without targets as a parameter but src is array', async () => {
         const pluginInstance = plugin({ src: ['assets/**/*.json'] });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test.json', 
             source: '',
             type: 'asset'
         }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test2.json', 
             source: '',
             type: 'asset'
@@ -183,14 +184,86 @@ describe('@rollup-extras/plugin-copy', () => {
     it('object without targets as a parameter + dest', async () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json', dest: 'vendor' });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'vendor/aFolder/test.json', 
             source: '',
             type: 'asset'
         }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'vendor/aFolder/test2.json', 
+            source: '',
+            type: 'asset'
+        }));
+    });
+
+    it('emitOriginalFileName = relative', async () => {
+        const pluginInstance = plugin({ src: 'assets/**/*.json', emitOriginalFileName: 'relative' });
+        await (pluginInstance as any).buildStart.apply(rollupContextMock);
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
+            fileName: 'aFolder/test.json',
+            originalFileName: 'assets/aFolder/test.json',
+            source: '',
+            type: 'asset'
+        }));
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
+            fileName: 'aFolder/test2.json',
+            originalFileName: 'assets/aFolder/test2.json',
+            source: '',
+            type: 'asset'
+        }));
+    });
+
+    it('emitOriginalFileName = absolute', async () => {
+        const pluginInstance = plugin({ src: 'assets/**/*.json', emitOriginalFileName: 'absolute' });
+        await (pluginInstance as any).buildStart.apply(rollupContextMock);
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
+            fileName: 'aFolder/test.json',
+            originalFileName: path.resolve('assets/aFolder/test.json'),
+            source: '',
+            type: 'asset'
+        }));
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
+            fileName: 'aFolder/test2.json',
+            originalFileName: path.resolve('assets/aFolder/test2.json'),
+            source: '',
+            type: 'asset'
+        }));
+    });
+
+    it('emitOriginalFileName = function', async () => {
+        const pluginInstance = plugin({ src: 'assets/**/*.json', emitOriginalFileName: (fileName: string) => fileName.replace('assets', 'vendor') });
+        await (pluginInstance as any).buildStart.apply(rollupContextMock);
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
+            fileName: 'aFolder/test.json', 
+            originalFileName: 'vendor/aFolder/test.json',
+            source: '',
+            type: 'asset'
+        }));
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
+            fileName: 'aFolder/test2.json',
+            originalFileName: 'vendor/aFolder/test2.json',
+            source: '',
+            type: 'asset'
+        }));
+    });
+
+    it('emitOriginalFileName = undefined', async () => {
+        const pluginInstance = plugin({ src: 'assets/**/*.json', emitOriginalFileName: undefined });
+        await (pluginInstance as any).buildStart.apply(rollupContextMock);
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
+            fileName: 'aFolder/test.json',
+            originalFileName: undefined,
+            source: '',
+            type: 'asset'
+        }));
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
+            fileName: 'aFolder/test2.json',
+            originalFileName: undefined,
             source: '',
             type: 'asset'
         }));
@@ -221,12 +294,12 @@ describe('@rollup-extras/plugin-copy', () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json', outputPlugin: true });
         await (pluginInstance as any).generateBundle.apply(rollupContextMock);
         expect(rollupContextMock.addWatchFile).toBeCalledTimes(0);
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test.json', 
             source: '',
             type: 'asset'
         }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test2.json', 
             source: '',
             type: 'asset'
@@ -236,13 +309,13 @@ describe('@rollup-extras/plugin-copy', () => {
     it('dest', async () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json', dest: 'folder' });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'folder/aFolder/test.json', 
             source: '',
             type: 'asset'
         }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'folder/aFolder/test2.json', 
             source: '',
             type: 'asset'
@@ -252,19 +325,19 @@ describe('@rollup-extras/plugin-copy', () => {
     it('exclude', async () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json', dest: 'folder', exclude: 'assets/**' });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(glob).toBeCalledWith('assets/**/*.json', { ignore: 'assets/**' });
+        expect(glob).toHaveBeenCalledWith('assets/**/*.json', { ignore: 'assets/**' });
     });
 
     it('flatten', async () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json', flatten: true });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'test.json', 
             source: '',
             type: 'asset'
         }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'test2.json', 
             source: '',
             type: 'asset'
@@ -309,13 +382,13 @@ describe('@rollup-extras/plugin-copy', () => {
     it('exactFileNames (false)', async () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json', exactFileNames: false });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             name: 'aFolder/test.json', 
             source: '',
             type: 'asset'
         }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             name: 'aFolder/test2.json', 
             source: '',
             type: 'asset'
@@ -326,12 +399,12 @@ describe('@rollup-extras/plugin-copy', () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json', watch: false });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
         expect(rollupContextMock.addWatchFile).toBeCalledTimes(0);
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test.json', 
             source: '',
             type: 'asset'
         }));
-        expect(rollupContextMock.emitFile).toBeCalledWith(expect.objectContaining({
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(expect.objectContaining({
             fileName: 'aFolder/test2.json', 
             source: '',
             type: 'asset'
@@ -343,31 +416,31 @@ describe('@rollup-extras/plugin-copy', () => {
         await (pluginInstance as any).buildEnd.apply(rollupContextMock);
         expect(rollupContextMock.addWatchFile).toBeCalledTimes(0);
         expect(rollupContextMock.emitFile).toBeCalledTimes(0);
-        expect(fs.copyFile).toBeCalledWith('assets/aFolder/test.json', 'aFolder/test.json', fs_.constants.COPYFILE_FICLONE);
-        expect(fs.copyFile).toBeCalledWith('assets/aFolder/test2.json', 'aFolder/test2.json', fs_.constants.COPYFILE_FICLONE);
+        expect(fs.copyFile).toHaveBeenCalledWith('assets/aFolder/test.json', 'aFolder/test.json', fs_.constants.COPYFILE_FICLONE);
+        expect(fs.copyFile).toHaveBeenCalledWith('assets/aFolder/test2.json', 'aFolder/test2.json', fs_.constants.COPYFILE_FICLONE);
     });
 
     it('non verbose', async () => {
         const pluginInstance = plugin('assets/**/*.json');
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(loggerStart).toBeCalledWith('coping files', LogLevel.verbose);
-        expect(loggerFinish).toBeCalledWith('copied test.json, test2.json');
+        expect(loggerStart).toHaveBeenCalledWith('coping files', LogLevel.verbose);
+        expect(loggerFinish).toHaveBeenCalledWith('copied test.json, test2.json');
     });
 
     it('verbose', async () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json', verbose: true });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(loggerStart).toBeCalledWith('coping files', LogLevel.info);
-        expect(loggerFinish).toBeCalledWith('copied test.json, test2.json');
+        expect(loggerStart).toHaveBeenCalledWith('coping files', LogLevel.info);
+        expect(loggerFinish).toHaveBeenCalledWith('copied test.json, test2.json');
     });
 
     it('verbose: list-filenames', async () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json', verbose: 'list-filenames' });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(loggerStart).toBeCalledWith('coping files', LogLevel.info);
-        expect(logger).toBeCalledWith('\tassets/aFolder/test.json → aFolder/test.json', LogLevel.info);
-        expect(logger).toBeCalledWith('\tassets/aFolder/test2.json → aFolder/test2.json', LogLevel.info);
-        expect(loggerFinish).toBeCalledWith('copied 2 files');
+        expect(loggerStart).toHaveBeenCalledWith('coping files', LogLevel.info);
+        expect(logger).toHaveBeenCalledWith('\tassets/aFolder/test.json → aFolder/test.json', LogLevel.info);
+        expect(logger).toHaveBeenCalledWith('\tassets/aFolder/test2.json → aFolder/test2.json', LogLevel.info);
+        expect(loggerFinish).toHaveBeenCalledWith('copied 2 files');
     });
 
     it('readFile exception', async () => {
@@ -375,7 +448,7 @@ describe('@rollup-extras/plugin-copy', () => {
             .mockImplementationOnce(() => { throw { stack: '' }; });
         const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: true });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(logger).toBeCalledWith('error reading file assets/aFolder/test.json', LogLevel.warn, expect.objectContaining({ stack: '' }));
+        expect(logger).toHaveBeenCalledWith('error reading file assets/aFolder/test.json', LogLevel.warn, expect.objectContaining({ stack: '' }));
     });
 
     it('missing file exception', async () => {
@@ -383,7 +456,7 @@ describe('@rollup-extras/plugin-copy', () => {
             .mockImplementationOnce(() => { throw { code: 'ENOENT', stack: '' }; });
         const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: true });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(logger).toBeCalledWith('error reading file assets/aFolder/test.json', undefined, expect.objectContaining({ code: 'ENOENT', stack: '' }));
+        expect(logger).toHaveBeenCalledWith('error reading file assets/aFolder/test.json', undefined, expect.objectContaining({ code: 'ENOENT', stack: '' }));
     });
 
     it('exception', async () => {
@@ -391,7 +464,7 @@ describe('@rollup-extras/plugin-copy', () => {
             .mockImplementationOnce(() => { throw { stack: '' }; });
         const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
         await (pluginInstance as any).buildEnd.apply(rollupContextMock);
-        expect(logger).toBeCalledWith('error copying file assets/aFolder/test.json → aFolder/test.json', LogLevel.warn, expect.objectContaining({ stack: '' }));
+        expect(logger).toHaveBeenCalledWith('error copying file assets/aFolder/test.json → aFolder/test.json', LogLevel.warn, expect.objectContaining({ stack: '' }));
     });
 
     it('missing directory exception', async () => {
@@ -399,7 +472,7 @@ describe('@rollup-extras/plugin-copy', () => {
             .mockImplementationOnce(() => { throw { code: 'ENOENT', stack: '' }; });
         const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
         await (pluginInstance as any).buildEnd.apply(rollupContextMock);
-        expect(logger).toBeCalledWith('error copying file assets/aFolder/test.json → aFolder/test.json', LogLevel.warn, expect.objectContaining({ code: 'ENOENT', stack: '' }));
+        expect(logger).toHaveBeenCalledWith('error copying file assets/aFolder/test.json → aFolder/test.json', LogLevel.warn, expect.objectContaining({ code: 'ENOENT', stack: '' }));
     });
 
     it('statistics', async () => {
@@ -407,7 +480,7 @@ describe('@rollup-extras/plugin-copy', () => {
             .mockImplementation(() => Promise.resolve(['1', '2', '3', '4', '5', '6']));
         const pluginInstance = plugin('assets/**/*.json');
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(loggerFinish).toBeCalledWith('copied 6 files');
+        expect(loggerFinish).toHaveBeenCalledWith('copied 6 files');
     });
 
     it('something else than file or symlink', async () => {

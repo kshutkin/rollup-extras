@@ -33,10 +33,11 @@ export default function(options: CopyPluginOptions) {
         exactFileNames: true,
         watch: true,
         emitFiles: true,
-        outputPlugin: false
+        outputPlugin: false,
+        emitOriginalFileName: 'absolute' as const
     }, 'targets', factories);
 
-    const { pluginName, copyOnce, verbose, exactFileNames, targets, outputPlugin, flatten, emitFiles, logger } = normalizedOptions;
+    const { pluginName, copyOnce, verbose, exactFileNames, targets, outputPlugin, flatten, emitFiles, logger, emitOriginalFileName } = normalizedOptions;
     let { watch } = normalizedOptions;
 
     const hookName = outputPlugin ? 'generateBundle' : emitFiles ? 'buildStart' : 'buildEnd';
@@ -129,7 +130,7 @@ export default function(options: CopyPluginOptions) {
                                 type: 'asset',
                                 [exactFileNames ? 'fileName' : 'name']: destFileName,
                                 source: source as Uint8Array | undefined,
-                                originalFileName: path.resolve(fileName)
+                                originalFileName: getOriginalFileName(fileName, emitOriginalFileName)
                             } as EmittedFile);
                         } else {
                             await fs.mkdir(path.dirname(destFileName), { recursive: true });
@@ -176,4 +177,17 @@ function targets(options: CopyPluginOptions, field: keyof CopyPluginOptions) {
         }).filter(Boolean) as SingleTargetDesc[];
     }
     return targets;
+}
+
+function getOriginalFileName(fileName: string, emitOriginalFileName: NonTargetOptions['emitOriginalFileName']) {
+    if (emitOriginalFileName === 'relative') {
+        return fileName;
+    }
+    if (emitOriginalFileName === 'absolute') {
+        return path.resolve(fileName);
+    }
+    if (typeof emitOriginalFileName === 'function') {
+        return emitOriginalFileName(fileName);
+    }
+    return undefined;
 }

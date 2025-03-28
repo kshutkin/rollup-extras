@@ -57,9 +57,9 @@ describe('@rollup-extras/plugin-binify', () => {
             }
         });
         expect(fs.chmod).toBeCalledTimes(1);
-        expect(fs.chmod).toBeCalledWith('/dist2/index.js', 0o755);
+        expect(fs.chmod).toHaveBeenCalledWith('/dist2/index.js', 0o755);
         expect(loggerStart).toHaveBeenCalledTimes(1);
-        expect(loggerStart).toBeCalledWith(expect.any(String), LogLevel.verbose);
+        expect(loggerStart).toHaveBeenCalledWith(expect.any(String), LogLevel.verbose);
         expect(loggerFinish).toHaveBeenCalledTimes(1);
         expect(loggerUpdate).toHaveBeenCalledTimes(2);
         expect(chunk.map.mappings).toEqual(';;');
@@ -89,7 +89,7 @@ describe('@rollup-extras/plugin-binify', () => {
         });
         expect(fs.chmod).toBeCalledTimes(0);
         expect(loggerStart).toHaveBeenCalledTimes(1);
-        expect(loggerStart).toBeCalledWith(expect.any(String), LogLevel.verbose);
+        expect(loggerStart).toHaveBeenCalledWith(expect.any(String), LogLevel.verbose);
         expect(loggerFinish).toHaveBeenCalledTimes(1);
         expect(chunk.map.mappings).toEqual(';;');
         expect(chunk.code).toEqual('#!/usr/bin/env node\nconst test = 1;');
@@ -121,7 +121,7 @@ describe('@rollup-extras/plugin-binify', () => {
         });
         expect(fs.chmod).toBeCalledTimes(0);
         expect(loggerStart).toHaveBeenCalledTimes(1);
-        expect(loggerStart).toBeCalledWith(expect.any(String), LogLevel.verbose);
+        expect(loggerStart).toHaveBeenCalledWith(expect.any(String), LogLevel.verbose);
         expect(loggerFinish).toHaveBeenCalledTimes(1);
         expect(chunk.map.mappings).toEqual(';;');
         expect(chunk.code).toEqual('#!/usr/bin/env node\nconst test = 1;');
@@ -151,7 +151,7 @@ describe('@rollup-extras/plugin-binify', () => {
             'test.js': { ...chunk, isEntry: false, fileName: 'test.js' }
         });
         expect(fs.chmod).toBeCalledTimes(1);
-        expect(fs.chmod).toBeCalledWith('/dist2/index.js', 0o755);
+        expect(fs.chmod).toHaveBeenCalledWith('/dist2/index.js', 0o755);
     });
 
     it('filters out assets by default', async () => {
@@ -178,7 +178,7 @@ describe('@rollup-extras/plugin-binify', () => {
             'test.js': { ...chunk, type: 'asset', fileName: 'test.js' }
         });
         expect(fs.chmod).toBeCalledTimes(1);
-        expect(fs.chmod).toBeCalledWith('/dist2/index.js', 0o755);
+        expect(fs.chmod).toHaveBeenCalledWith('/dist2/index.js', 0o755);
     });
 
     it('filter can be applied', async () => {
@@ -210,7 +210,7 @@ describe('@rollup-extras/plugin-binify', () => {
     it('verbose: true raises loglevel to info', async () => {
         const pluginInstance = plugin({ verbose: true });
         await (pluginInstance as any).renderStart({ dir: '/dist2' });
-        expect(loggerStart).toBeCalledWith(expect.any(String), LogLevel.info);
+        expect(loggerStart).toHaveBeenCalledWith(expect.any(String), LogLevel.info);
     });
 
     it('no dir in output options', async () => {
@@ -223,13 +223,13 @@ describe('@rollup-extras/plugin-binify', () => {
                 fileName: 'index.js'
             }
         });
-        expect(fs.chmod).toBeCalledWith('index.js', 0o755);
+        expect(fs.chmod).toHaveBeenCalledWith('index.js', 0o755);
     });
 
     it('different plugin name (for debug)', async () => {
         const pluginInstance = plugin({ pluginName: 'test' });
         await (pluginInstance as any).renderStart({});
-        expect(createLogger).toBeCalledWith('test');
+        expect(createLogger).toHaveBeenCalledWith('test');
     });
 
     it('shebang can be changed', async () => {
@@ -303,7 +303,7 @@ describe('@rollup-extras/plugin-binify', () => {
                 fileName: 'index.js'
             }
         });
-        expect(fs.chmod).toBeCalledWith('/dist2/index.js', 0);
+        expect(fs.chmod).toHaveBeenCalledWith('/dist2/index.js', 0);
     });
 
     it('logs error on fs error', async () => {
@@ -332,6 +332,6 @@ describe('@rollup-extras/plugin-binify', () => {
                 fileName: 'index.js'
             }
         });
-        expect(log).toBeCalledWith(expect.any(String), LogLevel.error, error);
+        expect(log).toHaveBeenCalledWith(expect.any(String), LogLevel.error, error);
     });
 });

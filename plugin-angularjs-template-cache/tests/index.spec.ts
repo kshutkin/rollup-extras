@@ -60,9 +60,9 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await (pluginInstance as any).buildStart.apply(rollupContextMock);
             await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
             await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
-            expect(rollupContextMock.addWatchFile).toBeCalledWith('aFolder/test.html');
-            expect(rollupContextMock.addWatchFile).toBeCalledWith('aFolder/test2.html');
-            expect(glob).toBeCalledWith('./**/*.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
+            expect(glob).toHaveBeenCalledWith('./**/*.html');
         });
 
         it('custom - string', async () => {
@@ -70,9 +70,9 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await (pluginInstance as any).buildStart.apply(rollupContextMock);
             await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
             await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
-            expect(rollupContextMock.addWatchFile).toBeCalledWith('aFolder/test.html');
-            expect(rollupContextMock.addWatchFile).toBeCalledWith('aFolder/test2.html');
-            expect(glob).toBeCalledWith('./views/**/*.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
+            expect(glob).toHaveBeenCalledWith('./views/**/*.html');
         });
 
         it('custom - array', async () => {
@@ -80,10 +80,10 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await (pluginInstance as any).buildStart.apply(rollupContextMock);
             await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
             await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
-            expect(rollupContextMock.addWatchFile).toBeCalledWith('aFolder/test.html');
-            expect(rollupContextMock.addWatchFile).toBeCalledWith('aFolder/test2.html');
-            expect(glob).toBeCalledWith('./views/**/*.html');
-            expect(glob).toBeCalledWith('./**/*.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
+            expect(glob).toHaveBeenCalledWith('./views/**/*.html');
+            expect(glob).toHaveBeenCalledWith('./**/*.html');
         });
 
         it('custom templates property - string', async () => {
@@ -91,9 +91,9 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await (pluginInstance as any).buildStart.apply(rollupContextMock);
             await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
             await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
-            expect(rollupContextMock.addWatchFile).toBeCalledWith('aFolder/test.html');
-            expect(rollupContextMock.addWatchFile).toBeCalledWith('aFolder/test2.html');
-            expect(glob).toBeCalledWith('./views/**/*.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
+            expect(glob).toHaveBeenCalledWith('./views/**/*.html');
         });
 
         it('custom templates property - array', async () => {
@@ -101,10 +101,10 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await (pluginInstance as any).buildStart.apply(rollupContextMock);
             await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
             await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
-            expect(rollupContextMock.addWatchFile).toBeCalledWith('aFolder/test.html');
-            expect(rollupContextMock.addWatchFile).toBeCalledWith('aFolder/test2.html');
-            expect(glob).toBeCalledWith('./views/**/*.html');
-            expect(glob).toBeCalledWith('./**/*.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
+            expect(glob).toHaveBeenCalledWith('./views/**/*.html');
+            expect(glob).toHaveBeenCalledWith('./**/*.html');
         });
 
         it('!isFile', async () => {
@@ -145,8 +145,8 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
             const result = await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
             expect(result.includes('$templateCache.put("id", "<html></html>");')).toBe(true);
-            expect(transformTemplateUri).toBeCalledWith('aFolder/test.html');
-            expect(transformTemplateUri).toBeCalledWith('aFolder/test2.html');
+            expect(transformTemplateUri).toHaveBeenCalledWith('aFolder/test.html');
+            expect(transformTemplateUri).toHaveBeenCalledWith('aFolder/test2.html');
         });
     });
 
@@ -158,7 +158,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
         const result = await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
         expect(result.includes('$templateCache.put("aFolder/test.html", "some text");')).toBe(true);
         expect(result.includes('$templateCache.put("aFolder/test2.html", "some text");')).toBe(true);
-        expect(processHtml).toBeCalledWith('<html></html>');
+        expect(processHtml).toHaveBeenCalledWith('<html></html>');
         expect(processHtml).toBeCalledTimes(2);
     });
 
@@ -212,8 +212,8 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await (pluginInstance as any).buildStart.call(rollupContextMock);
             await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
             await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
-            expect(rollupContextMock.addWatchFile).toBeCalledWith('aFolder/test.html');
-            expect(rollupContextMock.addWatchFile).toBeCalledWith('aFolder/test2.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
         });
 
         it('off', async () => {
@@ -221,8 +221,8 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await (pluginInstance as any).buildStart.call(rollupContextMock);
             await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
             await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
-            expect(rollupContextMock.addWatchFile).not.toBeCalledWith('aFolder/test.html');
-            expect(rollupContextMock.addWatchFile).not.toBeCalledWith('aFolder/test2.html');
+            expect(rollupContextMock.addWatchFile).not.toHaveBeenCalledWith('aFolder/test.html');
+            expect(rollupContextMock.addWatchFile).not.toHaveBeenCalledWith('aFolder/test2.html');
         });
     });
 
@@ -234,7 +234,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
             expect(createLogger).lastCalledWith('@rollup-extras/plugin-angularjs-template-cache');
             expect(loggerStart).lastCalledWith('inlining templates', LogLevel.verbose);
-            expect(loggerFinish).toBeCalledWith('inlined aFolder/test.html, aFolder/test2.html');
+            expect(loggerFinish).toHaveBeenCalledWith('inlined aFolder/test.html, aFolder/test2.html');
         });
 
         it('more than 5 templates', async () => {
@@ -246,7 +246,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
             expect(createLogger).lastCalledWith('@rollup-extras/plugin-angularjs-template-cache');
             expect(loggerStart).lastCalledWith('inlining templates', LogLevel.verbose);
-            expect(loggerFinish).toBeCalledWith('inlined 6 templates');
+            expect(loggerFinish).toHaveBeenCalledWith('inlined 6 templates');
         });
 
         it('true', async () => {
@@ -262,8 +262,8 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await (pluginInstance as any).buildStart.call(rollupContextMock);
             await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
             await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
-            expect(logger).toBeCalledWith('\taFolder/test.html → aFolder/test.html', LogLevel.info);
-            expect(logger).toBeCalledWith('\taFolder/test2.html → aFolder/test2.html', LogLevel.info);
+            expect(logger).toHaveBeenCalledWith('\taFolder/test.html → aFolder/test.html', LogLevel.info);
+            expect(logger).toHaveBeenCalledWith('\taFolder/test2.html → aFolder/test2.html', LogLevel.info);
         });
 
         it('exception', async () => {
@@ -273,7 +273,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await (pluginInstance as any).buildStart.call(rollupContextMock);
             await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
             await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
-            expect(logger).toBeCalledWith('error reading file aFolder/test.html', LogLevel.warn, expect.objectContaining({ stack: '' }));
+            expect(logger).toHaveBeenCalledWith('error reading file aFolder/test.html', LogLevel.warn, expect.objectContaining({ stack: '' }));
         });
     
         it('missing directory exception', async () => {
@@ -283,7 +283,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await (pluginInstance as any).buildStart.call(rollupContextMock);
             await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
             await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
-            expect(logger).toBeCalledWith('error reading file aFolder/test.html', undefined, expect.objectContaining({ code: 'ENOENT', stack: '' }));
+            expect(logger).toHaveBeenCalledWith('error reading file aFolder/test.html', undefined, expect.objectContaining({ code: 'ENOENT', stack: '' }));
         });
     });
 
@@ -299,7 +299,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
     it('autoImport - emits entry point', async () => {
         const pluginInstance = plugin({autoImport: true});
         await (pluginInstance as any).buildStart.call(rollupContextMock);
-        expect(rollupContextMock.emitFile).toBeCalledWith({id: '\0templates:templates', type: 'chunk'});
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith({id: '\0templates:templates', type: 'chunk'});
         await (pluginInstance as any).resolveId.call(rollupContextMock, 'templates');
         await (pluginInstance as any).load.call(rollupContextMock, '\0templates:templates');
     });
