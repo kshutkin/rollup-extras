@@ -423,21 +423,21 @@ describe('@rollup-extras/plugin-copy', () => {
     it('non verbose', async () => {
         const pluginInstance = plugin('assets/**/*.json');
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(loggerStart).toHaveBeenCalledWith('coping files', LogLevel.verbose);
+        expect(loggerStart).toHaveBeenCalledWith('copying files', LogLevel.verbose);
         expect(loggerFinish).toHaveBeenCalledWith('copied test.json, test2.json');
     });
 
     it('verbose', async () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json', verbose: true });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(loggerStart).toHaveBeenCalledWith('coping files', LogLevel.info);
+        expect(loggerStart).toHaveBeenCalledWith('copying files', LogLevel.info);
         expect(loggerFinish).toHaveBeenCalledWith('copied test.json, test2.json');
     });
 
     it('verbose: list-filenames', async () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json', verbose: 'list-filenames' });
         await (pluginInstance as any).buildStart.apply(rollupContextMock);
-        expect(loggerStart).toHaveBeenCalledWith('coping files', LogLevel.info);
+        expect(loggerStart).toHaveBeenCalledWith('copying files', LogLevel.info);
         expect(logger).toHaveBeenCalledWith('\tassets/aFolder/test.json → aFolder/test.json', LogLevel.info);
         expect(logger).toHaveBeenCalledWith('\tassets/aFolder/test2.json → aFolder/test2.json', LogLevel.info);
         expect(loggerFinish).toHaveBeenCalledWith('copied 2 files');

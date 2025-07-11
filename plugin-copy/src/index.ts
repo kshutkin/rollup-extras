@@ -96,7 +96,7 @@ export default function(options: CopyPluginOptions) {
                 verbose === listFilenames,
                 (result: number | string[]) => `copied ${typeof result == 'number' ? result + ' files' : result.join(', ')}`
             );
-            logger.start('coping files', verbose ? LogLevel.info : LogLevel.verbose);
+            logger.start('copying files', verbose ? LogLevel.info : LogLevel.verbose);
             await Promise.all([...files].map(async ([fileName, fileDesc]) => {
                 let source: Buffer | undefined;
                 try {
