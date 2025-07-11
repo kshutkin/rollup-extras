@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "version": "1.11.0",
+  "version": "1.11.1",
   "name": "@rollup-extras/plugin-copy",
   "description": "Rollup plugin to copy assets during build.",
   "license": "MIT",
