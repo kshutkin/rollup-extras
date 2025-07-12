@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "@niceties/logger": "^1.1.4",
-    "glob": "^10.0.0",
+    "glob": "^11.0.0",
     "glob-parent": "^6.0.2",
     "@rollup-extras/utils": "workspace:^"
   },
