@@ -36,17 +36,17 @@
         "serve"
     ],
     "scripts": {
-        "build": "dts-buddy",
+        "build": "dts-buddy -m @rollup-extras/plugin-serve:src/exports.d.ts",
         "prepack": "pkgprn-internal --flatten types,src --strip-comments",
         "test": "vitest run --coverage --config ../vitest.config.js",
         "test:types": "tsc -p tsconfig.types.json"
     },
     "dependencies": {
-        "koa": "^2.14.1",
-        "koa-static": "^5.0.0",
-        "koa-logger": "^3.2.1",
         "@niceties/logger": "^2.1.0",
-        "@rollup-extras/utils": "workspace:^"
+        "@rollup-extras/utils": "workspace:^",
+        "koa": "^2.14.1",
+        "koa-logger": "^3.2.1",
+        "koa-static": "^5.0.0"
     },
     "peerDependencies": {
         "rollup": "^2.60.1 || ^3.0.0 || ^4.0.0"
@@ -55,5 +55,9 @@
         "rollup": {
             "optional": true
         }
+    },
+    "devDependencies": {
+        "@types/koa": "^3.0.2",
+        "@types/koa-static": "^4.0.4"
     }
 }

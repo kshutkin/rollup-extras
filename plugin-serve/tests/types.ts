@@ -1,7 +1,11 @@
 // biome-ignore-all lint: test file
 
+import type { Server } from 'node:http';
+
 import serve from '@rollup-extras/plugin-serve';
 
+import type Koa from 'koa';
+import type { Options as KoaStaticOptions } from 'koa-static';
 import type { Plugin } from 'rollup';
 
 // --- default call ---
@@ -26,6 +30,7 @@ const plugin4: Plugin = serve({
         key: 'key.pem',
         ca: 'ca.pem',
     },
+    koaStaticOptions: { maxage: 1000, defer: true },
     customizeKoa: koa => {},
     onListen: server => {},
 });
@@ -33,6 +38,23 @@ const plugin4: Plugin = serve({
 // --- with partial options ---
 const plugin5: Plugin = serve({ port: 9000 });
 const plugin6: Plugin = serve({ dirs: 'public' });
+
+// --- with koaStaticOptions ---
+const plugin7: Plugin = serve({ koaStaticOptions: { defer: true } });
+const plugin8: Plugin = serve({
+    dirs: 'public',
+    koaStaticOptions: { maxage: 60000, hidden: false, gzip: true },
+});
+
+// --- verify callback parameter types ---
+serve({
+    customizeKoa: (koa: Koa) => {
+        koa.use(async (ctx, next) => next());
+    },
+    onListen: (server: Server) => {
+        server.close();
+    },
+});
 
 // ============================================================================
 // Negative tests
@@ -43,3 +65,9 @@ serve(123);
 
 // @ts-expect-error - boolean is not valid
 serve(true);
+
+// @ts-expect-error - koaStaticOptions should not accept a string
+serve({ koaStaticOptions: 'invalid' });
+
+// @ts-expect-error - koaStaticOptions should not accept a number
+serve({ koaStaticOptions: 42 });

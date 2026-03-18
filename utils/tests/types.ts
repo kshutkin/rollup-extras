@@ -9,6 +9,14 @@ import statistics from '@rollup-extras/utils/statistics';
 import type { NormalizedOutputOptions, OutputBundle, Plugin, PluginContext } from 'rollup';
 
 // ============================================================================
+// Type assertion helpers
+// ============================================================================
+
+type IsExact<T, U> = [T] extends [U] ? ([U] extends [T] ? true : false) : false;
+type Assert<T extends true> = T;
+type Has<T, K extends string> = K extends keyof T ? true : false;
+
+// ============================================================================
 // multiConfigPluginBase
 // ============================================================================
 
@@ -38,6 +46,27 @@ const result1 = getOptionsObject({ foo: 'bar' }, { baz: 42 });
 const foo: string = result1.foo;
 const baz: number = result1.baz;
 
+// Verify the return type is not `any` — these would fail if result1 were `any`
+type _r1HasFoo = Assert<Has<typeof result1, 'foo'>>;
+type _r1HasBaz = Assert<Has<typeof result1, 'baz'>>;
+type _r1FooIsString = Assert<IsExact<typeof result1.foo, string>>;
+type _r1BazIsNumber = Assert<IsExact<typeof result1.baz, number>>;
+
+// getOptionsObject with factory
+const result1f = getOptionsObject(
+    { foo: 'bar' },
+    { baz: 42 },
+    { logger: (options: Partial<{ foo: string }>, field: string) => console.log }
+);
+type _r1fHasLogger = Assert<Has<typeof result1f, 'logger'>>;
+
+// getOptionsObject via subpath import
+const result1sub = goo({ foo: 'bar' }, { baz: 42 });
+type _r1subHasFoo = Assert<Has<typeof result1sub, 'foo'>>;
+type _r1subHasBaz = Assert<Has<typeof result1sub, 'baz'>>;
+type _r1subFooIsString = Assert<IsExact<typeof result1sub.foo, string>>;
+type _r1subBazIsNumber = Assert<IsExact<typeof result1sub.baz, number>>;
+
 // ============================================================================
 // getOptions
 // ============================================================================
@@ -45,6 +74,15 @@ const baz: number = result1.baz;
 const result2 = getOptions('hello', { pluginName: 'test' }, 'targets');
 const result3 = getOptions(['a', 'b'], { pluginName: 'test' }, 'targets');
 const result4 = getOptions({ targets: ['a'] }, { pluginName: 'test' }, 'targets');
+
+// Verify return type carries defaults
+type _r2HasPluginName = Assert<Has<typeof result2, 'pluginName'>>;
+type _r3HasPluginName = Assert<Has<typeof result3, 'pluginName'>>;
+type _r4HasPluginName = Assert<Has<typeof result4, 'pluginName'>>;
+
+// getOptions via subpath import
+const result2sub = go('hello', { pluginName: 'test' }, 'targets');
+type _r2subHasPluginName = Assert<Has<typeof result2sub, 'pluginName'>>;
 
 // ============================================================================
 // logger factory
