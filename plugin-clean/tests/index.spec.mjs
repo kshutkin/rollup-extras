@@ -11,10 +11,11 @@ let loggerStart, loggerFinish;
 vi.mock('fs/promises');
 vi.mock('@niceties/logger', () => ({
     LogLevel: { verbose: 0, info: 1, warn: 2, error: 3 },
-    createLogger: vi.fn(() => ({
-        start: (loggerStart = vi.fn()),
-        finish: (loggerFinish = vi.fn()),
-    })),
+    createLogger: vi.fn(() => {
+        loggerStart = vi.fn();
+        loggerFinish = vi.fn();
+        return { start: loggerStart, finish: loggerFinish };
+    }),
 }));
 
 describe('@rollup-extras/plugin-clean', () => {

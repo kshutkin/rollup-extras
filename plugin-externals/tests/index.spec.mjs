@@ -9,7 +9,10 @@ let log;
 
 vi.mock('@niceties/logger', () => ({
     LogLevel: { verbose: 0, info: 1, warn: 2, error: 3 },
-    createLogger: vi.fn(() => Object.assign((log = vi.fn()), {})),
+    createLogger: vi.fn(() => {
+        log = vi.fn();
+        return Object.assign(log, {});
+    }),
 }));
 
 vi.mock('pkg-dir', async () => ({

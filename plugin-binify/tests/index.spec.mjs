@@ -11,13 +11,17 @@ let loggerStart, loggerFinish, loggerUpdate, log;
 vi.mock('fs/promises');
 vi.mock('@niceties/logger', () => ({
     LogLevel: { verbose: 0, info: 1, warn: 2, error: 3 },
-    createLogger: vi.fn(() =>
-        Object.assign((log = vi.fn()), {
-            start: (loggerStart = vi.fn()),
-            finish: (loggerFinish = vi.fn()),
-            update: (loggerUpdate = vi.fn()),
-        })
-    ),
+    createLogger: vi.fn(() => {
+        log = vi.fn();
+        loggerStart = vi.fn();
+        loggerFinish = vi.fn();
+        loggerUpdate = vi.fn();
+        return Object.assign(log, {
+            start: loggerStart,
+            finish: loggerFinish,
+            update: loggerUpdate,
+        });
+    }),
 }));
 
 const realPlatform = process.platform;

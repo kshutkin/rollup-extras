@@ -73,11 +73,12 @@ let loggerFinish;
 
 vi.mock('@niceties/logger', () => ({
     LogLevel: { verbose: 0, info: 1, warn: 2, error: 3 },
-    createLogger: vi.fn(() =>
-        Object.assign(vi.fn(), {
-            finish: (loggerFinish = vi.fn()),
-        })
-    ),
+    createLogger: vi.fn(() => {
+        loggerFinish = vi.fn();
+        return Object.assign(vi.fn(), {
+            finish: loggerFinish,
+        });
+    }),
 }));
 
 describe('@rollup-extras/plugin-serve', () => {

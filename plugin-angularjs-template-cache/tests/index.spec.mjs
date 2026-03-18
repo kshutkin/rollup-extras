@@ -13,12 +13,15 @@ vi.mock('fs/promises');
 vi.mock('tiny-glob');
 vi.mock('@niceties/logger', () => ({
     LogLevel: { verbose: 0, info: 1, warn: 2, error: 3 },
-    createLogger: vi.fn(() =>
-        Object.assign((logger = vi.fn()), {
-            start: (loggerStart = vi.fn()),
-            finish: (loggerFinish = vi.fn()),
-        })
-    ),
+    createLogger: vi.fn(() => {
+        logger = vi.fn();
+        loggerStart = vi.fn();
+        loggerFinish = vi.fn();
+        return Object.assign(logger, {
+            start: loggerStart,
+            finish: loggerFinish,
+        });
+    }),
 }));
 
 describe('@rollup-extras/plugin-angularjs-template-cache', () => {
