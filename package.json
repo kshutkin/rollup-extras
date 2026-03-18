@@ -1,22 +1,23 @@
 {
-	"private": true,
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/kshutkin/rollup-extras.git"
-	},
-	"scripts": {
-		"build": "pnpm --aggregate-output --reporter=append-only --stream -r build",
-		"test": "pnpm --aggregate-output --reporter=append-only --stream --parallel -r test",
-		"lint": "biome check .",
-		"lint:fix": "biome check --write .",
-		"ci:publish": "changeset publish"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^2.4.4",
-		"@changesets/cli": "^2.29.8",
-		"@types/node": "24.x",
-		"@vitest/coverage-v8": "^4.0.18",
-		"pkgbld-internal": "~1.8.2",
-		"vitest": "^4.0.18"
-	}
+    "private": true,
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/kshutkin/rollup-extras.git"
+    },
+    "scripts": {
+        "build": "pnpm --aggregate-output --reporter=append-only --stream -r build",
+        "test": "pnpm --aggregate-output --reporter=append-only --stream --parallel -r test",
+        "lint": "biome check .",
+        "lint:fix": "biome check --write .",
+        "ci:publish": "changeset publish"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "^2.4.4",
+        "@changesets/cli": "^2.29.8",
+        "@types/node": "24.x",
+        "@vitest/coverage-v8": "^4.0.18",
+        "dts-buddy": "^0.7.0",
+        "pkgprn-internal": "^0.7.0",
+        "vitest": "^4.0.18"
+    }
 }

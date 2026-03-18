@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { multiConfigPluginBase as plugin } from '../src/index.ts';
+import { multiConfigPluginBase as plugin } from '../src/index.js';
 
 describe('@rollup-extras/util/mutli-config-plugin-base', () => {
     it('smoke', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import statistics from '../src/statistics.ts';
+import statistics from '../src/statistics.js';
 
 describe('@rollup-extras/util/statistics', () => {
     it('smoke', () => {

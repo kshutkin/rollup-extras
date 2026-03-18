@@ -1,5 +1,0 @@
-{
-  "type": "module",
-  "types": "../dist/options.d.ts",
-  "main": "../dist/options.mjs"
-}

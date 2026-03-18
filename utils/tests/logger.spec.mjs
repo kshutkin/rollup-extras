@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { getOptionsObject } from '../src/index.ts';
-import loggerFactory from '../src/logger.ts';
+import { getOptionsObject } from '../src/index.js';
+import loggerFactory from '../src/logger.js';
 
 describe('@rollup-extras/util/logger', () => {
     it('smoke', () => {
