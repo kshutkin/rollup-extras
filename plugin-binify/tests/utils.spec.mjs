@@ -1,7 +1,8 @@
+import { describe, expect, it } from 'vitest';
+
 import { count } from '../src/utils';
 
 describe('@rollup-extras/plugin-binify/utils', () => {
-
     it('smoke', () => {
         expect(count).toBeDefined();
     });

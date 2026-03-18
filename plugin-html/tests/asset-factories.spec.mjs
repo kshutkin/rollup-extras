@@ -1,16 +1,19 @@
-import { LogLevel, createLogger } from '@niceties/logger';
-import { simpleES5Script, simpleES5FallbackScript, simpleModuleScript, combineAssetFactories } from '../src/asset-factories';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let logger: jest.Mock;
+import { createLogger, LogLevel } from '@niceties/logger';
 
-jest.mock('@niceties/logger', () => ({
-    createLogger: jest.fn(() => Object.assign(logger = jest.fn()))
+import { combineAssetFactories, simpleES5FallbackScript, simpleES5Script, simpleModuleScript } from '../src/asset-factories';
+
+let logger;
+
+vi.mock('@niceties/logger', () => ({
+    LogLevel: { verbose: 0, info: 1, warn: 2, error: 3 },
+    createLogger: vi.fn(() => Object.assign((logger = vi.fn()))),
 }));
 
 describe('@rollup-extras/plugin-html/asset-factories', () => {
-
     beforeEach(() => {
-        (createLogger as jest.Mock<ReturnType<typeof createLogger>, Parameters<typeof createLogger>>).mockClear();
+        vi.mocked(createLogger).mockClear();
     });
 
     it('smoke', () => {
@@ -51,7 +54,7 @@ describe('@rollup-extras/plugin-html/asset-factories', () => {
     });
 
     it('invalid predicate', () => {
-        const factory = simpleES5Script(0 as never);
+        const factory = simpleES5Script(0);
 
         const result1 = factory('test.js');
         const result2 = factory('test.css');
@@ -63,13 +66,10 @@ describe('@rollup-extras/plugin-html/asset-factories', () => {
     });
 
     it('combineAssetFactories', () => {
-        const factory = combineAssetFactories(
-            simpleES5FallbackScript('.js'),
-            simpleModuleScript('.mjs')
-        );
+        const factory = combineAssetFactories(simpleES5FallbackScript('.js'), simpleModuleScript('.mjs'));
 
-        const result1 = (factory as any)('test.js');
-        const result2 = (factory as any)('test.mjs');
+        const result1 = factory('test.js');
+        const result2 = factory('test.mjs');
 
         expect(result1).toEqual('<script src="test.js" type="text/javascript" nomodule></script>');
         expect(result2).toEqual('<script src="test.mjs" type="module"></script>');

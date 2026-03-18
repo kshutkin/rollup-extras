@@ -37,8 +37,7 @@
   ],
   "scripts": {
     "build": "pkgbld-internal",
-    "test": "jest --collectCoverage",
-    "lint": "eslint ./src",
+    "test": "vitest run --coverage --config ../vitest.config.js",
     "prepack": "pkgbld-internal prune"
   },
   "dependencies": {
