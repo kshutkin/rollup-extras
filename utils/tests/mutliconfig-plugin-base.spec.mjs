@@ -73,13 +73,13 @@ describe('@rollup-extras/util/mutli-config-plugin-base', () => {
         await pluginInstance.renderStart();
         try {
             await pluginInstance.writeBundle(1, 2);
-        } catch (e) {
+        } catch (_e) {
             /* suppress */
         }
         await pluginInstance.renderStart();
         try {
             await pluginInstance.writeBundle(1, 2);
-        } catch (e) {
+        } catch (_e) {
             /* suppress */
         }
         expect(execute).toHaveBeenCalledWith(1, 2);
@@ -95,13 +95,13 @@ describe('@rollup-extras/util/mutli-config-plugin-base', () => {
         await pluginInstance.renderStart();
         try {
             await pluginInstance.writeBundle(1, 2);
-        } catch (e) {
+        } catch (_e) {
             /* suppress */
         }
         await pluginInstance.renderStart();
         try {
             await pluginInstance.writeBundle(1, 2);
-        } catch (e) {
+        } catch (_e) {
             /* suppress */
         }
         expect(execute).toHaveBeenCalledWith(1, 2);

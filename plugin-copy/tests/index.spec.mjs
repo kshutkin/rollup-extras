@@ -33,6 +33,7 @@ describe('@rollup-extras/plugin-copy', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.mocked(createLogger).mockClear();
         rollupContextMock = {
             emitFile: vi.fn(),
             addWatchFile: vi.fn(),
