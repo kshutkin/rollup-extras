@@ -14,6 +14,7 @@ Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/
 ## Installation
 
 Using npm:
+
 ```
 npm install --save-dev @rollup-extras/plugin-serve
 ```
@@ -21,18 +22,18 @@ npm install --save-dev @rollup-extras/plugin-serve
 ## Usage
 
 ```javascript
-import serve from '@rollup-extras/plugin-serve';
+import serve from "@rollup-extras/plugin-serve";
 
 export default {
-    input: 'src/index.js',
+  input: "src/index.js",
 
-    output: {
-        format: 'es',
-        dir: 'dest'
-    },
+  output: {
+    format: "es",
+    dir: "dest",
+  },
 
-    plugins: [serve()],
-} 
+  plugins: [serve()],
+};
 ```
 
 ## Providing options
@@ -40,7 +41,7 @@ export default {
 Just pass options to the plugin function. The returned object is the plugin instance which can be passed to rollup.
 
 ```javascript
-serve({option: value, option2: value2})
+serve({ option: value, option2: value2 });
 ```
 
 For additional plugin instances (in case of multiple configs) please use `firstInstance.api.addInstance()`
@@ -75,7 +76,7 @@ Port to use for the server.
 
 Optional, `string`.
 
-Host to use, by default, does not provide a host to createServer and lets nodejs decide.
+Host to use, by default, does not provide a host to createServer and lets Node.js decide.
 
 ### useKoaLogger
 

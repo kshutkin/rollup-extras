@@ -52,7 +52,7 @@ Optional, `(id: string, external: boolean) => boolean`.
 
 Default: `id.includes('node_modules') || isBuiltinModule(id) || isOutsideProjectDirectory(id, importer)`
 
-Receives in `external` argument result of default function.
+Receives the result of the default function in the `external` argument.
 
 ## Configuration
 

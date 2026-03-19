@@ -7,6 +7,7 @@ Executes some code when the bundle you are building is finished.
 ## Installation
 
 Using npm:
+
 ```
 npm install --save-dev @rollup-extras/plugin-exec
 ```
@@ -14,20 +15,22 @@ npm install --save-dev @rollup-extras/plugin-exec
 ## Usage
 
 ```javascript
-import exec from '@rollup-extras/plugin-exec';
+import exec from "@rollup-extras/plugin-exec";
 
 export default {
-    input: 'src/index.js',
+  input: "src/index.js",
 
-    output: {
-        format: 'es',
-        dir: 'dest'
-    },
+  output: {
+    format: "es",
+    dir: "dest",
+  },
 
-    plugins: [exec(() => {
-        console.log('finished');
-    })],
-} 
+  plugins: [
+    exec(() => {
+      console.log("finished");
+    }),
+  ],
+};
 ```
 
 ## Providing options
@@ -35,7 +38,7 @@ export default {
 Just pass options to the plugin function. The returned object is the plugin instance which can be passed to rollup.
 
 ```javascript
-exec({option: value, option2: value2})
+exec({ option: value, option2: value2 });
 ```
 
 For additional plugin instances (in case of multiple configs) please use `firstInstance.api.addInstance()`
@@ -52,17 +55,19 @@ For debugging purposes, so many instances of the plugin can be differentiated in
 
 Optional, `(this: Context) => void`
 
-Main 
+Main callback function to execute when the bundle is finished.
 
 ## Configuration
 
 ```typescript
 type CallbackFunction = (this: PluginContext & { logger: Logger }) => void;
 
-export type ExecPluginOptions = {
-    pluginName?: string;
-    exec?: CallbackFunction;
-} | CallbackFunction;
+export type ExecPluginOptions =
+  | {
+      pluginName?: string;
+      exec?: CallbackFunction;
+    }
+  | CallbackFunction;
 ```
 
 # License

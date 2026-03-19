@@ -4,8 +4,8 @@ Rollup plugin to inject assets names into html template.
 
 Points:
 
-- Inject file names with hashes
-- Watch on a template file and trigger rebuild if it is changed
+- Injects file names with hashes
+- Watches the template file and triggers a rebuild if it changes
 - Provides a minimalistic template by default, so you are ready to start without configuration
 - Supports multiple rollup configs (will trigger only when last output generated)
 - Extensible through API so you can plug in something for HTML processing or generate new types of HTML elements

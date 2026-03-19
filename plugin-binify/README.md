@@ -71,7 +71,7 @@ Optional, `number | false`.
 Default: `0o755`
 
 Number/string defines permissions for a file, passed to `fs.chmod`.
-`false` (falsy values not working) disables permissions settings.
+`false` disables permission changes (note: other falsy values do not work).
 
 ### filter
 

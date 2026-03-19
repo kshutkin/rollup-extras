@@ -4,11 +4,11 @@ Rollup plugin to copy assets during build.
 
 Points:
 
-- Uses emitFile by default so all files goes through rollup asset pipeline
+- Uses emitFile by default so all files go through the Rollup asset pipeline
 - Minimal configuration
 - Runs once per file by default
-- Support hashes (uses `assetFileNames` from rollup)
-- Watch on files so when they changed that can be copied again (but only if timestamp is changed)
+- Supports hashes (uses `assetFileNames` from rollup)
+- Watches files so when they change they can be copied again (but only if the timestamp has changed)
 - Minimal amount of logs by default
 - Supports globs (check ['glob'](https://github.com/isaacs/node-glob) for syntax)
 - Can be run both as output or build plugin (build plugin by default for watch)
@@ -173,7 +173,7 @@ type CopyPluginOptions = {
     copyOnce?: boolean, // true by default
     watch?: boolean, // true by default
     verbose?: boolean | 'list-filenames', // false by default
-    flattern?: boolean, // false by default
+    flatten?: boolean, // false by default
     exactFileNames?: boolean, // true by default
     outputPlugin?: boolean, // false by default
     emitFiles?: boolean // true by default,
