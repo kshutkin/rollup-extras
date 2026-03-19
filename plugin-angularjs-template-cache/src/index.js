@@ -3,7 +3,6 @@ import path from 'node:path';
 
 /**
  * @import { PluginContext, Plugin } from 'rollup'
- * @import { Logger } from '@niceties/logger'
  */
 
 /**
