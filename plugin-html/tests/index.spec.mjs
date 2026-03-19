@@ -117,7 +117,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('conditinal loding by default (es + iife)', async () => {
+    it('conditional loading by default (es + iife)', async () => {
         const pluginInstance = plugin();
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -151,7 +151,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('conditinal loding by default (es + umd)', async () => {
+    it('conditional loading by default (es + umd)', async () => {
         const pluginInstance = plugin();
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -185,7 +185,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('conditinal loding by default (es + umd + iife)', async () => {
+    it('conditional loading by default (es + umd + iife)', async () => {
         const pluginInstance = plugin();
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -230,7 +230,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('conditinal loding by default (es + iife) (with false)', async () => {
+    it('conditional loading by default (es + iife) (with false)', async () => {
         const pluginInstance = plugin({ conditionalLoading: false });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -264,7 +264,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('conditinal loding by default (iife)', async () => {
+    it('conditional loading by default (iife)', async () => {
         const pluginInstance = plugin({ conditionalLoading: true });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -1097,7 +1097,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('happy path multiple configs and tempalte file', async () => {
+    it('happy path multiple configs and template file', async () => {
         const pluginInstance = plugin({ template: 'index.html' });
         const additionalInstance = pluginInstance.api.addInstance();
 
@@ -1130,7 +1130,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('happy path multiple configs and tempalte file and watch=false', async () => {
+    it('happy path multiple configs and template file and watch=false', async () => {
         const pluginInstance = plugin({ template: 'index.html', watch: false });
         const additionalInstance = pluginInstance.api.addInstance();
 

@@ -14,7 +14,7 @@ import path from 'node:path';
  */
 
 import { createLogger, LogLevel } from '@niceties/logger';
-import { multiConfigPluginBase } from '@rollup-extras/utils/mutli-config-plugin-base';
+import { multiConfigPluginBase } from '@rollup-extras/utils/multi-config-plugin-base';
 import { getOptions } from '@rollup-extras/utils/options';
 
 /**

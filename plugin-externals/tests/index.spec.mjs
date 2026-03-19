@@ -39,7 +39,7 @@ describe('@rollup-extras/plugin-externals', () => {
         expect(log).toHaveBeenCalledWith("'test' is not external", LogLevel.verbose);
     });
 
-    it('pkg-dir - underined', async () => {
+    it('pkg-dir - undefined', async () => {
         vi.mocked(packageDirectory).mockImplementationOnce(() => Promise.resolve(undefined));
         const pluginInstance = plugin();
         const result = await pluginInstance.resolveId('test');

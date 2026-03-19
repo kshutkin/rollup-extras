@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { getOptions, getOptionsObject } from '../src/options.js';
 
-describe('@rollup-extras/util/mutli-config-plugin-base', () => {
+describe('@rollup-extras/util/options', () => {
     it('smoke', () => {
         expect(getOptions).toBeDefined();
         expect(getOptionsObject).toBeDefined();

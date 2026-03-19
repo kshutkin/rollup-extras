@@ -164,7 +164,7 @@ describe('Todo Controller', () => {
             expect(scope.completedCount).toBe(5);
         });
 
-        it('revertTodo() get a Todo to its previous state', () => {
+        it('revertTodo() should get a Todo to its previous state', () => {
             var todo = store.todos[0];
             scope.editTodo(todo);
             todo.title = 'Unicorn sparkly skypuffles.';

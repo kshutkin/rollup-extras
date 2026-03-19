@@ -615,7 +615,7 @@ describe('@rollup-extras/plugin-copy', () => {
         );
     });
 
-    it('something else than file or symlink', async () => {
+    it('something other than file or symlink', async () => {
         vi.mocked(fs.stat).mockImplementation(() =>
             Promise.resolve({
                 mtime: new Date(),

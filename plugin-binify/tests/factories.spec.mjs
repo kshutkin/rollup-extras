@@ -11,7 +11,7 @@ describe('@rollup-extras/plugin-binify/factories', () => {
         expect(shebang({ shebang: 'sdfsdf' })).toEqual('sdfsdf\n');
     });
 
-    it('no new new line', () => {
+    it('no new line', () => {
         expect(shebang({ shebang: 'asdasasdasd\n' })).toEqual('asdasasdasd\n');
     });
 

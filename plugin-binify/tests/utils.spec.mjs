@@ -11,11 +11,11 @@ describe('@rollup-extras/plugin-binify/utils', () => {
         expect(count('', '1')).toBe(0);
     });
 
-    it('1 occurence', () => {
+    it('1 occurrence', () => {
         expect(count('1', '1')).toBe(1);
     });
 
-    it('2 occurence', () => {
+    it('2 occurrences', () => {
         expect(count('11', '1')).toBe(2);
     });
 

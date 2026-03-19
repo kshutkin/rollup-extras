@@ -16,7 +16,7 @@
  */
 
 import logger from '@rollup-extras/utils/logger';
-import { multiConfigPluginBase } from '@rollup-extras/utils/mutli-config-plugin-base';
+import { multiConfigPluginBase } from '@rollup-extras/utils/multi-config-plugin-base';
 import { getOptionsObject } from '@rollup-extras/utils/options';
 
 const factories = { logger };

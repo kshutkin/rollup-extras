@@ -22,7 +22,7 @@ import serveStatic from 'koa-static';
 
 import { LogLevel } from '@niceties/logger';
 import logger from '@rollup-extras/utils/logger';
-import { multiConfigPluginBase } from '@rollup-extras/utils/mutli-config-plugin-base';
+import { multiConfigPluginBase } from '@rollup-extras/utils/multi-config-plugin-base';
 import { getOptions } from '@rollup-extras/utils/options';
 
 /** @type {Server | undefined} */

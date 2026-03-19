@@ -2,7 +2,7 @@
 
 import { getOptions, getOptionsObject, multiConfigPluginBase } from '@rollup-extras/utils';
 import loggerFactory from '@rollup-extras/utils/logger';
-import { multiConfigPluginBase as mcpb } from '@rollup-extras/utils/mutli-config-plugin-base';
+import { multiConfigPluginBase as mcpb } from '@rollup-extras/utils/multi-config-plugin-base';
 import { getOptions as go, getOptionsObject as goo } from '@rollup-extras/utils/options';
 import statistics from '@rollup-extras/utils/statistics';
 

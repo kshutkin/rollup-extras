@@ -52,7 +52,7 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
-    it('happy path - two output targets (2)', async () => {
+    it('happy path - two output targets (3)', async () => {
         const pluginInstance = plugin();
         await pluginInstance.renderStart({ dir: '/dist2/subdir' });
         await pluginInstance.renderStart({ dir: '/dist2/subdir2' });

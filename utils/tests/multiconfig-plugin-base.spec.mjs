@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { multiConfigPluginBase as plugin } from '../src/index.js';
 
-describe('@rollup-extras/util/mutli-config-plugin-base', () => {
+describe('@rollup-extras/util/multi-config-plugin-base', () => {
     it('smoke', () => {
         expect(plugin).toBeDefined();
     });

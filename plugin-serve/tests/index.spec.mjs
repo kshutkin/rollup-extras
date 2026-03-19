@@ -215,7 +215,7 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(() => errorCb({})).toThrow();
     });
 
-    it('onListen => falthy', async () => {
+    it('onListen => falsy', async () => {
         const onListen = vi.fn();
         const pluginInstance = plugin({
             onListen,

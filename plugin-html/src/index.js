@@ -48,7 +48,7 @@ import path from 'node:path';
 
 import { createLogger, LogLevel } from '@niceties/logger';
 import logger from '@rollup-extras/utils/logger';
-import { multiConfigPluginBase } from '@rollup-extras/utils/mutli-config-plugin-base';
+import { multiConfigPluginBase } from '@rollup-extras/utils/multi-config-plugin-base';
 import { getOptionsObject } from '@rollup-extras/utils/options';
 
 import { getLinkElement, getModuleScriptElement, getNonModuleScriptElement, toAssetPredicate } from './shared.js';
@@ -210,14 +210,14 @@ export default function (options = {}) {
             fileName = path.relative(dir, fileNameInInitialDir);
         if (fileName in bundle) {
             if (useEmittedTemplate) {
-                logger(`using exiting emitted ${fileName} as an input for out templateFactory`, LogLevel.verbose);
+                logger(`using existing emitted ${fileName} as an input for our templateFactory`, LogLevel.verbose);
                 const source =
                     /** @type {OutputAsset | OutputChunk} */ (bundle[fileName]).type === 'asset'
                         ? /** @type {OutputAsset} */ (bundle[fileName]).source.toString()
                         : /** @type {OutputChunk} */ (bundle[fileName]).code;
                 useNewTemplate(source);
             } else {
-                logger(`removing exiting emitted ${fileName}`, LogLevel.verbose);
+                logger(`removing existing emitted ${fileName}`, LogLevel.verbose);
             }
             if (remainingConfigsCount === 0 && emitFile && !useWriteBundle) {
                 delete bundle[fileName];
@@ -253,7 +253,7 @@ export default function (options = {}) {
      */
     function handleTemplateReadError(e) {
         if (/** @type {NodeJS.ErrnoException} */ (e)?.code === 'ENOENT') {
-            logger('template nor a file or string', LogLevel.warn, e);
+            logger('template is neither a file nor a string', LogLevel.warn, e);
         } else {
             logger('error reading template', LogLevel.warn, e);
         }
