@@ -19,14 +19,8 @@ Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/
 
 ## Installation
 
-Using npm:
 ```
 npm install --save-dev @rollup-extras/plugin-copy
-```
-
-Using yarn:
-```
-yarn add --dev @rollup-extras/plugin-copy
 ```
 
 ## Examples
@@ -34,40 +28,41 @@ yarn add --dev @rollup-extras/plugin-copy
 Assuming you imported plugin using:
 
 ```javascript
-import copy from '@rollup-extras/plugin-copy';
+import copy from "@rollup-extras/plugin-copy";
 ```
 
 Next examples are equivalent:
+
 ```javascript
-copy('assets/*')
+copy("assets/*");
 ```
 
 ```javascript
-copy(['assets/*'])
+copy(["assets/*"]);
 ```
 
 ```javascript
-copy({ src: 'assets/*' })
+copy({ src: "assets/*" });
 ```
 
 ```javascript
-copy({ src: ['assets/*'] })
+copy({ src: ["assets/*"] });
 ```
 
 ```javascript
-copy([{ src: 'assets/*' }])
+copy([{ src: "assets/*" }]);
 ```
 
 ```javascript
-copy({ targets: 'assets/*' })
+copy({ targets: "assets/*" });
 ```
 
 ```javascript
-copy({ targets: ['assets/*'] })
+copy({ targets: ["assets/*"] });
 ```
 
 ```javascript
-copy({ targets: [{ src: 'assets/*' }] })
+copy({ targets: [{ src: "assets/*" }] });
 ```
 
 all of them will trigger a copy (through emitFile) of all files in assets in each output directory.
@@ -75,71 +70,71 @@ all of them will trigger a copy (through emitFile) of all files in assets in eac
 To copy files on every rebuild in watch mode use `copyOnce` = `false`:
 
 ```javascript
-copy({ src: 'assets/*', copyOnce: false })
+copy({ src: "assets/*", copyOnce: false });
 
 // or
 
-copy({ targets: ['assets/*'], copyOnce: false })
+copy({ targets: ["assets/*"], copyOnce: false });
 ```
 
 To stop triggering on changes in files use `watch` = `false`:
 
 ```javascript
-copy({ src: 'assets/*', watch: false })
+copy({ src: "assets/*", watch: false });
 
 // or
 
-copy({ targets: ['assets/*'], watch: false })
+copy({ targets: ["assets/*"], watch: false });
 ```
 
 To display more information in console use `verbose` = `true`:
 
 ```javascript
-copy({ src: 'assets/*', verbose: true })
+copy({ src: "assets/*", verbose: true });
 
 // or
 
-copy({ targets: ['assets/*'], verbose: true })
+copy({ targets: ["assets/*"], verbose: true });
 ```
 
 By default plugin uses `glob-parent` to preserve directory structure of assets (relative to glob parent path). To flatten files in assets directory use `flatten` = `true`:
 
 ```javascript
-copy({ src: 'assets/*', flatten: true })
+copy({ src: "assets/*", flatten: true });
 
 // or
 
-copy({ targets: ['assets/*'], flatten: true })
+copy({ targets: ["assets/*"], flatten: true });
 ```
 
 To add hashes to file names use `exactFileNames` = `false`, tweak `assetFileNames` option in rollup config if needed. Files with the same content will be deduplicated by `rollup` in this mode.
 
 ```javascript
-copy({ src: 'assets/*', exactFileNames: false })
+copy({ src: "assets/*", exactFileNames: false });
 
 // or
 
-copy({ targets: ['assets/*'], exactFileNames: false })
+copy({ targets: ["assets/*"], exactFileNames: false });
 ```
 
 To work as output plugin use `outputPlugin` = `true` option (watch mode will be disabled because of `rollup` limitations):
 
 ```javascript
-copy({ src: 'assets/*', outputPlugin: true })
+copy({ src: "assets/*", outputPlugin: true });
 
 // or
 
-copy({ targets: ['assets/*'], outputPlugin: true })
+copy({ targets: ["assets/*"], outputPlugin: true });
 ```
 
 To stop files being emitted through rollup pipeline use can use `emitFiles` = `false`. Please note that you need to specify `dest` and it will not be relative to the output directory, also the file will not be copied into each output directory.
 
 ```javascript
-copy({ src: 'assets/*', dest: 'public', emitFiles: false })
+copy({ src: "assets/*", dest: "public", emitFiles: false });
 
 // or
 
-copy({ targets: [{ src: 'assets/*', dest: 'public' }], emitFiles: false })
+copy({ targets: [{ src: "assets/*", dest: "public" }], emitFiles: false });
 ```
 
 ### `dest` and `exclude`
@@ -149,36 +144,45 @@ Use the `dest` option to put assets into the subfolder in the assets directory. 
 Use `exclude` option to filter out files in assets (passed to ignore option of glob options). For example `*.json` will filter out json files.
 
 ```javascript
-copy({ src: 'assets/*', dest: 'fonts', exclude: '*.json' })
+copy({ src: "assets/*", dest: "fonts", exclude: "*.json" });
 
 // or
 
-copy({ targets: [{ src: 'assets/*', dest: 'fonts', exclude: '*.json' }] })
+copy({ targets: [{ src: "assets/*", dest: "fonts", exclude: "*.json" }] });
 ```
 
 ## Configuration
 
 ```typescript
 type SingleTargetDesc = {
-    src: string | string[],
-    exclude?: string | string[],
-    dest?: string;
+  src: string | string[];
+  exclude?: string | string[];
+  dest?: string;
 };
 
-type MultipleTargetsDesc = string | string[] | SingleTargetDesc | SingleTargetDesc[];
+type MultipleTargetsDesc =
+  | string
+  | string[]
+  | SingleTargetDesc
+  | SingleTargetDesc[];
 
-type CopyPluginOptions = {
-    targets?: MultipleTargetsDesc,
-    pluginName?: string, // defaults to '@rollup-extras/plugin-copy'
-    copyOnce?: boolean, // true by default
-    watch?: boolean, // true by default
-    verbose?: boolean | 'list-filenames', // false by default
-    flatten?: boolean, // false by default
-    exactFileNames?: boolean, // true by default
-    outputPlugin?: boolean, // false by default
-    emitFiles?: boolean // true by default,
-    emitOriginalFileName?: 'absolute' | 'relative' | ((fileName: string) => string) // 'absolute' by default
-} | MultipleTargetsDesc;
+type CopyPluginOptions =
+  | {
+      targets?: MultipleTargetsDesc;
+      pluginName?: string; // defaults to '@rollup-extras/plugin-copy'
+      copyOnce?: boolean; // true by default
+      watch?: boolean; // true by default
+      verbose?: boolean | "list-filenames"; // false by default
+      flatten?: boolean; // false by default
+      exactFileNames?: boolean; // true by default
+      outputPlugin?: boolean; // false by default
+      emitFiles?: boolean; // true by default,
+      emitOriginalFileName?:
+        | "absolute"
+        | "relative"
+        | ((fileName: string) => string); // 'absolute' by default
+    }
+  | MultipleTargetsDesc;
 ```
 
 ## Prior Art
