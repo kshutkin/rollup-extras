@@ -1,6 +1,5 @@
 import fs from 'node:fs/promises';
 
-import glob from 'tiny-glob';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createLogger, LogLevel } from '@niceties/logger';
@@ -10,7 +9,6 @@ import plugin from '../src';
 let loggerStart, loggerFinish, logger;
 
 vi.mock('fs/promises');
-vi.mock('tiny-glob');
 vi.mock('@niceties/logger', () => ({
     LogLevel: { verbose: 0, info: 1, warn: 2, error: 3 },
     createLogger: vi.fn(() => {
@@ -34,8 +32,11 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             addWatchFile: vi.fn(),
             emitFile: vi.fn(),
         };
-        vi.mocked(glob).mockClear();
-        vi.mocked(glob).mockImplementation(() => Promise.resolve(['aFolder/test.html', 'aFolder/test2.html']));
+        vi.mocked(fs.glob).mockClear();
+        vi.mocked(fs.glob).mockImplementation(async function* () {
+            yield 'aFolder/test.html';
+            yield 'aFolder/test2.html';
+        });
         vi.mocked(fs.readFile).mockClear();
         vi.mocked(fs.readFile).mockImplementation(() => Promise.resolve('<html></html>'));
         vi.mocked(fs.stat).mockClear();
@@ -71,7 +72,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
             expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
             expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
-            expect(glob).toHaveBeenCalledWith('./**/*.html');
+            expect(fs.glob).toHaveBeenCalledWith('./**/*.html');
         });
 
         it('custom - string', async () => {
@@ -81,7 +82,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
             expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
             expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
-            expect(glob).toHaveBeenCalledWith('./views/**/*.html');
+            expect(fs.glob).toHaveBeenCalledWith('./views/**/*.html');
         });
 
         it('custom - array', async () => {
@@ -91,8 +92,8 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
             expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
             expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
-            expect(glob).toHaveBeenCalledWith('./views/**/*.html');
-            expect(glob).toHaveBeenCalledWith('./**/*.html');
+            expect(fs.glob).toHaveBeenCalledWith('./views/**/*.html');
+            expect(fs.glob).toHaveBeenCalledWith('./**/*.html');
         });
 
         it('custom templates property - string', async () => {
@@ -102,7 +103,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
             expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
             expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
-            expect(glob).toHaveBeenCalledWith('./views/**/*.html');
+            expect(fs.glob).toHaveBeenCalledWith('./views/**/*.html');
         });
 
         it('custom templates property - array', async () => {
@@ -112,8 +113,8 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
             expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
             expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
-            expect(glob).toHaveBeenCalledWith('./views/**/*.html');
-            expect(glob).toHaveBeenCalledWith('./**/*.html');
+            expect(fs.glob).toHaveBeenCalledWith('./views/**/*.html');
+            expect(fs.glob).toHaveBeenCalledWith('./**/*.html');
         });
 
         it('!isFile', async () => {
@@ -249,7 +250,14 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
         });
 
         it('more than 5 templates', async () => {
-            vi.mocked(glob).mockImplementation(() => Promise.resolve(['1', '2', '3', '4', '5', '6']));
+            vi.mocked(fs.glob).mockImplementation(async function* () {
+                yield '1';
+                yield '2';
+                yield '3';
+                yield '4';
+                yield '5';
+                yield '6';
+            });
             const pluginInstance = plugin();
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -327,20 +335,20 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
     it('autoImport: false - delay glob', async () => {
         const pluginInstance = plugin({ autoImport: false });
         await pluginInstance.buildStart.call(rollupContextMock);
-        expect(glob).not.toBeCalled();
+        expect(fs.glob).not.toBeCalled();
         await pluginInstance.resolveId.call(rollupContextMock, 'templates');
         await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
-        expect(glob).toBeCalled();
+        expect(fs.glob).toBeCalled();
     });
 
     it('autoImport - do not delay glob', async () => {
         const pluginInstance = plugin({ autoImport: true });
         await pluginInstance.buildStart.call(rollupContextMock);
-        expect(glob).toBeCalled();
-        vi.mocked(glob).mockReset();
+        expect(fs.glob).toBeCalled();
+        vi.mocked(fs.glob).mockReset();
         await pluginInstance.resolveId.call(rollupContextMock, '\0templates:templates');
         await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
-        expect(glob).not.toBeCalled();
+        expect(fs.glob).not.toBeCalled();
     });
 
     describe('importAngular', () => {

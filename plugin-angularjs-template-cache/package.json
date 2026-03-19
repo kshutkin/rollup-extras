@@ -19,7 +19,7 @@
         "types"
     ],
     "engines": {
-        "node": ">=15"
+        "node": ">=22"
     },
     "repository": {
         "type": "git",
@@ -44,7 +44,6 @@
     },
     "dependencies": {
         "@niceties/logger": "^2.1.0",
-        "tiny-glob": "^0.2.9",
         "@rollup-extras/utils": "workspace:^",
         "js-string-escape": "^1.0.1"
     },

@@ -1,8 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import glob from 'tiny-glob';
-
 /**
  * @import { PluginContext, Plugin } from 'rollup'
  * @import { Logger } from '@niceties/logger'
@@ -156,7 +154,9 @@ export default function (options = defaultTemplatesGlob) {
         templatesMap = new Map();
         templateFiles = [];
 
-        const results = [...new Set((await Promise.all([templates].flat(2).map(templateGlob => glob(templateGlob)))).flat(2))];
+        const results = [
+            ...new Set((await Promise.all([templates].flat(2).map(templateGlob => Array.fromAsync(fs.glob(templateGlob))))).flat(2)),
+        ];
 
         templateFiles = results;
 
