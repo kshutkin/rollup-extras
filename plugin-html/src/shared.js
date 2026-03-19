@@ -1,5 +1,5 @@
 /**
- * @import { AssetPredicate, PredicateSource } from './types.js'
+ * @import { AssetPredicate, PredicateSource } from './index.js'
  */
 
 /**

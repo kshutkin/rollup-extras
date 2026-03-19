@@ -1,5 +1,5 @@
 /**
- * @import { BinifyPluginOptions } from './types.js'
+ * @import { BinifyPluginOptions } from './index.js'
  */
 
 /**

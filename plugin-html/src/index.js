@@ -335,12 +335,7 @@ export default function (options = {}) {
                         /** @type {AssetDescriptor[]} */ (assets[options.format]).push({
                             html: (/** @type {Assets} */ assets) => {
                                 let useConditionalLoading = conditionalLoading;
-                                useConditionalLoading ??= !!(
-                                    /** @type {AssetDescriptor[]} */ (
-                                        (assets.iife.length || /** @type {AssetDescriptor[]} */ (assets.umd).length) &&
-                                            /** @type {AssetDescriptor[]} */ (assets.es).length
-                                    )
-                                );
+                                useConditionalLoading ??= !!((assets.iife?.length || assets.umd?.length) && assets.es?.length);
                                 return options.format === 'iife' || options.format === 'umd'
                                     ? getNonModuleScriptElement(assetPath, !!useConditionalLoading)
                                     : getModuleScriptElement(assetPath);

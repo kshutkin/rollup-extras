@@ -5,7 +5,6 @@ import { createServer as createHttpsServer } from 'node:https';
  * @import { Server } from 'node:http'
  * @import { AddressInfo } from 'node:net'
  * @import { NormalizedInputOptions, NormalizedOutputOptions, Plugin, PluginContext } from 'rollup'
- * @import Koa from 'koa'
  * @import serve from 'koa-static'
  */
 
