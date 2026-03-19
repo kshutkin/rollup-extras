@@ -1,5 +1,5 @@
-import oldFs from 'fs';
-import fs from 'fs/promises';
+import oldFs from 'node:fs';
+import fs from 'node:fs/promises';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -1,4 +1,4 @@
-import fs from 'fs/promises';
+import fs from 'node:fs/promises';
 
 import glob from 'tiny-glob';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

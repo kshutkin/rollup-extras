@@ -406,8 +406,7 @@ function predicateFactory(options, field) {
         if (predicate) {
             return predicate;
         } else {
-            options.logger &&
-                options.logger(`${field} option ignored because it is not a function, RegExp, string or boolean`, LogLevel.warn);
+            options.logger?.(`${field} option ignored because it is not a function, RegExp, string or boolean`, LogLevel.warn);
         }
     }
     return defaults[field];

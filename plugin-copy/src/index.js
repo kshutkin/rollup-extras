@@ -133,7 +133,7 @@ export default function (options) {
 
             const statisticsCollector = statistics(
                 verbose === listFilenames,
-                (/** @type {number | string[]} */ result) => `copied ${typeof result === 'number' ? result + ' files' : result.join(', ')}`
+                (/** @type {number | string[]} */ result) => `copied ${typeof result === 'number' ? `${result} files` : result.join(', ')}`
             );
             logger.start('copying files', verbose ? LogLevel.info : LogLevel.verbose);
             await Promise.all(
@@ -154,7 +154,7 @@ export default function (options) {
                             source = await fs.readFile(fileName);
                         }
                     } catch (/** @type {any} */ e) {
-                        const loglevel = /** @type {{ code: string }} */ (e)['code'] === 'ENOENT' ? undefined : LogLevel.warn;
+                        const loglevel = /** @type {{ code: string }} */ (e).code === 'ENOENT' ? undefined : LogLevel.warn;
                         logger(`error reading file ${fileName}`, loglevel, e);
                         return;
                     }

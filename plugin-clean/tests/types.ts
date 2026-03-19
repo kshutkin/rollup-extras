@@ -1,6 +1,7 @@
 // biome-ignore-all lint: test file
 
 import clean from '@rollup-extras/plugin-clean';
+
 import type { Plugin } from 'rollup';
 
 // --- default call ---

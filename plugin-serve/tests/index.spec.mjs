@@ -1,5 +1,5 @@
-import { createServer } from 'http';
-import { createServer as createHttpsServer } from 'https';
+import { createServer } from 'node:http';
+import { createServer as createHttpsServer } from 'node:https';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

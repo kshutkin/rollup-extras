@@ -1,6 +1,6 @@
-import fs_ from 'fs';
-import fs from 'fs/promises';
-import path from 'path';
+import fs_ from 'node:fs';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 import { glob } from 'glob';
 import globParent from 'glob-parent';

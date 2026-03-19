@@ -139,9 +139,11 @@ export default function (options = {}) {
         let parentsInProgress;
         if (hasChildrenInProgress.has(dir)) {
             removePromise = Promise.resolve(hasChildrenInProgress.get(dir)).then(() => doRemove(normalizedDir));
-        } else if ((parentsInProgress = Array.from(parentDirs(dir)).filter(item => inProgress.has(item))).length > 0) {
-            return inProgress.get(/** @type {string} */ (parentsInProgress[0]));
         } else {
+            parentsInProgress = Array.from(parentDirs(dir)).filter(item => inProgress.has(item));
+            if (parentsInProgress.length > 0) {
+                return inProgress.get(/** @type {string} */ (parentsInProgress[0]));
+            }
             removePromise = doRemove(normalizedDir);
         }
         inProgress.set(normalizedDir, removePromise);
@@ -170,7 +172,7 @@ export default function (options = {}) {
             await fs.rm(normalizedDir, { recursive: true });
             logger.finish(`cleaned '${normalizedDir}'`);
         } catch (/** @type {any} */ e) {
-            const loglevel = /** @type {{ code: string }} */ (e)['code'] === 'ENOENT' ? undefined : LogLevel.warn;
+            const loglevel = /** @type {{ code: string }} */ (e).code === 'ENOENT' ? undefined : LogLevel.warn;
             logger.finish(`failed cleaning '${normalizedDir}'`, loglevel, e);
         }
     }
@@ -198,7 +200,11 @@ function normalizeSlash(dir) {
  * @yields {string}
  */
 function* parentDirs(dir) {
-    while ((dir = path.dirname(dir)) !== '.' && dir !== '/') {
+    for (;;) {
+        dir = path.dirname(dir);
+        if (dir === '.' || dir === '/') {
+            break;
+        }
         yield dir;
     }
 }

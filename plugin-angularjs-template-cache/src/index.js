@@ -164,7 +164,7 @@ export default function (options = defaultTemplatesGlob) {
             const statisticsCollector = statistics(
                 verbose === listFilenames,
                 (/** @type {number | string[]} */ result) =>
-                    `inlined ${typeof result === 'number' ? result + ' templates' : result.join(', ')}`
+                    `inlined ${typeof result === 'number' ? `${result} templates` : result.join(', ')}`
             );
             logger.start('inlining templates', verbose ? LogLevel.info : LogLevel.verbose);
             await Promise.all(
@@ -177,7 +177,7 @@ export default function (options = defaultTemplatesGlob) {
                         }
                         templatesMap.set(templateUri, escapeString(processHtml((await fs.readFile(fileName)).toString())));
                     } catch (/** @type {any} */ e) {
-                        const loglevel = /** @type {{ code: string }} */ (e)['code'] === 'ENOENT' ? undefined : LogLevel.warn;
+                        const loglevel = /** @type {{ code: string }} */ (e).code === 'ENOENT' ? undefined : LogLevel.warn;
                         logger(`error reading file ${fileName}`, loglevel, e);
                         return;
                     }

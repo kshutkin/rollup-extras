@@ -2,7 +2,7 @@
 
 import binify from '@rollup-extras/plugin-binify';
 
-import type { Plugin, OutputChunk } from 'rollup';
+import type { OutputChunk, Plugin } from 'rollup';
 
 // --- default call ---
 const plugin: Plugin = binify();
@@ -13,7 +13,7 @@ const plugin2: Plugin = binify({
     verbose: true,
     shebang: '#!/usr/bin/env node\n',
     executableFlag: 0o755,
-    filter: (item) => item.type === 'chunk' && (item as OutputChunk).isEntry,
+    filter: item => item.type === 'chunk' && (item as OutputChunk).isEntry,
 });
 
 // --- with partial options ---

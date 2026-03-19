@@ -18,7 +18,7 @@ export type ServePluginOptionsObject = {
         ca?: string;
     };
     customizeKoa?: (koa: Koa) => void;
-    onListen?: (server: Server) => void | true;
+    onListen?: (server: Server) => undefined | true;
 };
 
 export type ServePluginOptions = ServePluginOptionsObject | string | string[];

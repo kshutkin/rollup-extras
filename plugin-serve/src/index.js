@@ -107,7 +107,8 @@ export default function (options = {}) {
                 app.use(serveStatic(dir, koaStaticOptions));
             }
 
-            const server = (globalServer = https ? createHttpsServer(https, app.callback()) : createServer(app.callback()));
+            const server = https ? createHttpsServer(https, app.callback()) : createServer(app.callback());
+            globalServer = server;
 
             const listenCb = () => internalOnListen(server);
 

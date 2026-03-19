@@ -2,26 +2,26 @@
 
 beforeEach(angular.mock.module('todomvc'));
 
-describe('todoFocus directive', function () {
-	var scope, compile, browser;
+describe('todoFocus directive', () => {
+    var scope, compile, browser;
 
-	beforeEach(inject(function ($rootScope, $compile, $browser) {
-		scope = $rootScope.$new();
-		compile = $compile;
-		browser = $browser;
-	}));
+    beforeEach(inject(($rootScope, $compile, $browser) => {
+        scope = $rootScope.$new();
+        compile = $compile;
+        browser = $browser;
+    }));
 
-	it('should focus on truthy expression', function () {
-		var el = angular.element('<input todo-focus="focus">');
-		scope.focus = false;
+    it('should focus on truthy expression', () => {
+        var el = angular.element('<input todo-focus="focus">');
+        scope.focus = false;
 
-		compile(el)(scope);
-		expect(browser.deferredFns.length).toBe(0);
+        compile(el)(scope);
+        expect(browser.deferredFns.length).toBe(0);
 
-		scope.$apply(function () {
-			scope.focus = true;
-		});
+        scope.$apply(() => {
+            scope.focus = true;
+        });
 
-		expect(browser.deferredFns.length).toBe(1);
-	});
+        expect(browser.deferredFns.length).toBe(1);
+    });
 });
