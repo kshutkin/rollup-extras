@@ -2,8 +2,6 @@ import fs_ from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { glob } from 'glob';
-import globParent from 'glob-parent';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createLogger, LogLevel } from '@niceties/logger';
@@ -13,8 +11,6 @@ import plugin from '../src';
 let loggerStart, loggerFinish, logger;
 
 vi.mock('fs/promises');
-vi.mock('glob');
-vi.mock('glob-parent');
 vi.mock('@niceties/logger', () => ({
     LogLevel: { verbose: 0, info: 1, warn: 2, error: 3 },
     createLogger: vi.fn(() => {
@@ -38,8 +34,10 @@ describe('@rollup-extras/plugin-copy', () => {
             emitFile: vi.fn(),
             addWatchFile: vi.fn(),
         };
-        vi.mocked(glob).mockImplementation(() => Promise.resolve(['assets/aFolder/test.json', 'assets/aFolder/test2.json']));
-        vi.mocked(globParent).mockImplementation(() => 'assets');
+        vi.mocked(fs.glob).mockImplementation(async function* () {
+            yield 'assets/aFolder/test.json';
+            yield 'assets/aFolder/test2.json';
+        });
         vi.mocked(fs.readFile).mockImplementation(() => Promise.resolve(''));
         vi.mocked(fs.stat).mockImplementation(() =>
             Promise.resolve({
@@ -395,7 +393,13 @@ describe('@rollup-extras/plugin-copy', () => {
     it('exclude', async () => {
         const pluginInstance = plugin({ src: 'assets/**/*.json', dest: 'folder', exclude: 'assets/**' });
         await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(glob).toHaveBeenCalledWith('assets/**/*.json', { ignore: 'assets/**' });
+        expect(fs.glob).toHaveBeenCalledWith('assets/**/*.json', { exclude: ['assets/**'] });
+    });
+
+    it('exclude as array', async () => {
+        const pluginInstance = plugin({ src: 'assets/**/*.json', dest: 'folder', exclude: ['assets/aFolder/**', 'assets/bFolder/**'] });
+        await pluginInstance.buildStart.apply(rollupContextMock);
+        expect(fs.glob).toHaveBeenCalledWith('assets/**/*.json', { exclude: ['assets/aFolder/**', 'assets/bFolder/**'] });
     });
 
     it('flatten', async () => {
@@ -583,10 +587,32 @@ describe('@rollup-extras/plugin-copy', () => {
     });
 
     it('statistics', async () => {
-        vi.mocked(glob).mockImplementation(() => Promise.resolve(['1', '2', '3', '4', '5', '6']));
+        vi.mocked(fs.glob).mockImplementation(async function* () {
+            yield '1';
+            yield '2';
+            yield '3';
+            yield '4';
+            yield '5';
+            yield '6';
+        });
         const pluginInstance = plugin('assets/**/*.json');
         await pluginInstance.buildStart.apply(rollupContextMock);
         expect(loggerFinish).toHaveBeenCalledWith('copied 6 files');
+    });
+
+    it('glob pattern starting with wildcard (globParent returns .)', async () => {
+        vi.mocked(fs.glob).mockImplementation(async function* () {
+            yield 'test.json';
+        });
+        const pluginInstance = plugin('*.json');
+        await pluginInstance.buildStart.apply(rollupContextMock);
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
+            expect.objectContaining({
+                fileName: 'test.json',
+                source: '',
+                type: 'asset',
+            })
+        );
     });
 
     it('something else than file or symlink', async () => {

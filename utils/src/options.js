@@ -1,4 +1,8 @@
 /**
+ * @import { DefaultsFactory } from './index.js'
+ */
+
+/**
  * @template {string | string[] | undefined | Record<string, unknown> | Record<string, unknown>[]} T
  * @template D
  * @template {DefaultsFactory<any>} F

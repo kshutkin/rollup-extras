@@ -19,7 +19,7 @@
         "types"
     ],
     "engines": {
-        "node": ">=15"
+        "node": ">=22.14"
     },
     "repository": {
         "type": "git",
@@ -43,8 +43,6 @@
     },
     "dependencies": {
         "@niceties/logger": "^2.1.0",
-        "glob": "^10.0.0",
-        "glob-parent": "^6.0.2",
         "@rollup-extras/utils": "workspace:^"
     },
     "peerDependencies": {

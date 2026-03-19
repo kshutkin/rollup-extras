@@ -2,9 +2,6 @@ import fs_ from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { glob } from 'glob';
-import globParent from 'glob-parent';
-
 /**
  * @import { PluginContext, Plugin, EmittedFile } from 'rollup'
  */
@@ -96,7 +93,7 @@ export default function (options) {
                             : target
                     )
                     .map(target =>
-                        glob(target.src, { ignore: target.exclude }).then(result => ({
+                        globFiles(/** @type {string} */ (target.src), target.exclude).then(result => ({
                             src: result,
                             dest: target.dest ? target.dest : '',
                             parent: globParent(/** @type {string} */ (target.src)),
@@ -207,6 +204,35 @@ function normalizeSlash(dir) {
 }
 
 /**
+ * @param {string} pattern
+ * @returns {string}
+ */
+function globParent(pattern) {
+    const parts = pattern.split('/');
+    const nonGlobParts = [];
+    for (const part of parts) {
+        if (/[*?{[(!]/.test(part)) break;
+        nonGlobParts.push(part);
+    }
+    return nonGlobParts.join('/') || '.';
+}
+
+/**
+ * @param {string} pattern
+ * @param {string | string[] | undefined} exclude
+ * @returns {Promise<string[]>}
+ */
+async function globFiles(pattern, exclude) {
+    /** @type {string[]} */
+    const result = [];
+    const options = exclude != null ? { exclude: Array.isArray(exclude) ? exclude : [exclude] } : undefined;
+    for await (const entry of options ? fs.glob(pattern, options) : fs.glob(pattern)) {
+        result.push(entry);
+    }
+    return result;
+}
+
+/**
  * @param {CopyPluginOptions} options
  * @param {string} field
  * @returns {SingleTargetDesc[]}
@@ -216,21 +242,19 @@ function targets(options, field) {
     if (targets == null) {
         targets = [options];
     }
-    if (Array.isArray(targets)) {
-        targets = targets
-            .map((/** @type {any} */ item) => {
-                if (item) {
-                    if (typeof item === 'string') {
-                        return { src: item };
-                    }
-                    if (typeof item === 'object' && 'src' in item) {
-                        return item;
-                    }
+    targets = targets
+        .map((/** @type {any} */ item) => {
+            if (item) {
+                if (typeof item === 'string') {
+                    return { src: item };
                 }
-                return undefined;
-            })
-            .filter(Boolean);
-    }
+                if (typeof item === 'object' && 'src' in item) {
+                    return item;
+                }
+            }
+            return undefined;
+        })
+        .filter(Boolean);
     return targets;
 }
 
