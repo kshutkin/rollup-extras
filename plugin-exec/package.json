@@ -45,7 +45,7 @@
         "@rollup-extras/utils": "workspace:^"
     },
     "peerDependencies": {
-        "rollup": "^2.60.1 || ^3.0.0 || ^4.0.0"
+        "rollup": "^4.0.0"
     },
     "peerDependenciesMeta": {
         "rollup": {

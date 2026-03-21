@@ -5,7 +5,9 @@
  * - retrieves and persists the model via the todoStorage service
  * - exposes the model to the template and provides event handlers
  */
-angular.module('todomvc').controller('TodoCtrl', ($scope, $routeParams, $filter, store) => {
+
+// biome-ignore lint/complexity/useArrowFunction: angular requires this
+angular.module('todomvc').controller('TodoCtrl', function($scope, $routeParams, $filter, store) {
     var todos = store.todos;
     $scope.todos = todos;
 

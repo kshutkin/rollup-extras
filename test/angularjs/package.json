@@ -13,10 +13,10 @@
         "lint": "eslint ./src"
     },
     "devDependencies": {
-        "rollup": "^3.21.2",
-        "@rollup/plugin-node-resolve": "^15.0.2",
-        "@rollup/plugin-commonjs": "^24.1.0",
-        "@rollup/plugin-terser": "^0.4.1",
+        "rollup": "^4.0.0",
+        "@rollup/plugin-node-resolve": "^16.0.3",
+        "@rollup/plugin-commonjs": "^29.0.2",
+        "@rollup/plugin-terser": "^1.0.0",
         "@rollup-extras/plugin-angularjs-template-cache": "workspace:^",
         "@rollup-extras/plugin-clean": "workspace:^",
         "@rollup-extras/plugin-copy": "workspace:^",
@@ -26,22 +26,22 @@
         "rollup-plugin-styles": "^4.0.0",
         "rollup-plugin-html": "^0.2.1",
         "rollup-plugin-glob-import": "^0.5.0",
-        "postcss-lightningcss": "^0.7.0",
-        "angular-mocks": "1.5.8",
-        "karma": "^6.4.2",
+        "postcss-lightningcss": "^1.0.2",
+        "angular-mocks": "1.8.3",
+        "karma": "^6.4.4",
         "karma-chrome-launcher": "^3.2.0",
         "karma-jasmine": "^5.1.0",
         "karma-rollup-preprocessor": "^7.0.8"
     },
     "overrides": {
         "rollup-plugin-styles@^4.0.0": {
-            "rollup": "^3.21.2"
+            "rollup": "^4.0.0"
         }
     },
     "dependencies": {
-        "angular": "1.5.8",
-        "todomvc-app-css": "^2.1.0",
-        "angular-route": "1.5.8",
-        "angular-resource": "1.5.8"
+        "angular": "1.8.3",
+        "todomvc-app-css": "^2.4.3",
+        "angular-route": "1.8.3",
+        "angular-resource": "1.8.3"
     }
 }
