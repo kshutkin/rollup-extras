@@ -26,6 +26,10 @@ const plugin4: Plugin = clean({
 const plugin5: Plugin = clean({ targets: 'dist' });
 const plugin6: Plugin = clean({ deleteOnce: true });
 
+// --- api.addInstance ---
+const pluginWithApi = clean();
+const childPlugin: Plugin = pluginWithApi.api.addInstance();
+
 // ============================================================================
 // Negative tests
 // ============================================================================

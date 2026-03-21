@@ -19,7 +19,7 @@ import { getOptions } from '@rollup-extras/utils/options';
 
 /**
  * @param {CleanPluginOptions} [options]
- * @returns {Plugin}
+ * @returns {Plugin & { api: { addInstance(): Plugin } }}
  */
 export default function (options = {}) {
     /** @type {Map<string, Promise<void>>} */
