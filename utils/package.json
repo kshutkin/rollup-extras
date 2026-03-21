@@ -54,7 +54,7 @@
     ],
     "scripts": {
         "build": "dts-buddy -m @rollup-extras/utils:src/exports.d.ts -m @rollup-extras/utils/multi-config-plugin-base:src/multi-config-plugin-base-exports.d.ts -m @rollup-extras/utils/options:src/options-exports.d.ts -m @rollup-extras/utils/logger:src/logger-exports.d.ts -m @rollup-extras/utils/statistics:src/statistics-exports.d.ts",
-        "prepack": "pkgprn-internal --flatten types,src --strip-comments",
+        "prepack": "pkgprn-internal --flatten types,src --strip-comments --remove-sourcemaps",
         "test": "vitest run --coverage --config ../vitest.config.js",
         "test:types": "tsc -p tsconfig.types.json"
     },
