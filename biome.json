@@ -1,0 +1,85 @@
+{
+    "$schema": "https://biomejs.dev/schemas/2.4.8/schema.json",
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "recommended": true
+        }
+    },
+    "assist": {
+        "actions": {
+            "source": {
+                "organizeImports": {
+                    "level": "on",
+                    "options": {
+                        "groups": [
+                            ":NODE:",
+                            ":BLANK_LINE:",
+                            {
+                                "type": false,
+                                "source": [":PACKAGE:", "!@rollup-extras/**", "!@niceties/**"]
+                            },
+                            ":BLANK_LINE:",
+                            {
+                                "type": false,
+                                "source": ["@rollup-extras/**", "@niceties/**"]
+                            },
+                            ":BLANK_LINE:",
+                            { "type": false, "source": ":PATH:" }
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "formatter": {
+        "enabled": true,
+        "formatWithErrors": false,
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineEnding": "lf",
+        "lineWidth": 140
+    },
+    "javascript": {
+        "formatter": {
+            "quoteStyle": "single",
+            "jsxQuoteStyle": "single",
+            "quoteProperties": "asNeeded",
+            "trailingCommas": "es5",
+            "semicolons": "always",
+            "arrowParentheses": "asNeeded",
+            "bracketSpacing": true,
+            "bracketSameLine": false,
+            "attributePosition": "auto"
+        }
+    },
+    "json": {
+        "formatter": {
+            "enabled": true,
+            "indentWidth": 4,
+            "lineWidth": 140
+        }
+    },
+    "html": {
+        "parser": {
+            "interpolation": true
+        }
+    },
+    "overrides": [
+        {
+            "includes": ["test/angularjs/src/views/todomvc-index.html"],
+            "linter": {
+                "rules": {
+                    "a11y": {
+                        "noAutofocus": "off"
+                    }
+                }
+            }
+        }
+    ],
+    "vcs": {
+        "enabled": true,
+        "clientKind": "git",
+        "useIgnoreFile": true
+    }
+}

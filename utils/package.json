@@ -1,109 +1,72 @@
 {
-  "type": "module",
-  "version": "1.4.6",
-  "name": "@rollup-extras/utils",
-  "description": "Utils to support creation of rollup plugins.",
-  "license": "MIT",
-  "author": "Konstantin Shutkin",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs",
-      "default": "./dist/index.mjs"
+    "version": "1.4.6",
+    "license": "MIT",
+    "name": "@rollup-extras/utils",
+    "author": "Konstantin Shutkin",
+    "type": "module",
+    "types": "./types/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./types/index.d.ts",
+            "default": "./src/index.js"
+        },
+        "./multi-config-plugin-base": {
+            "types": "./types/index.d.ts",
+            "default": "./src/multi-config-plugin-base.js"
+        },
+        "./options": {
+            "types": "./types/index.d.ts",
+            "default": "./src/options.js"
+        },
+        "./logger": {
+            "types": "./types/index.d.ts",
+            "default": "./src/logger.js"
+        },
+        "./statistics": {
+            "types": "./types/index.d.ts",
+            "default": "./src/statistics.js"
+        },
+        "./package.json": "./package.json"
     },
-    "./mutli-config-plugin-base": {
-      "types": "./dist/mutli-config-plugin-base.d.ts",
-      "require": "./dist/mutli-config-plugin-base.cjs",
-      "import": "./dist/mutli-config-plugin-base.mjs",
-      "default": "./dist/mutli-config-plugin-base.mjs"
+    "main": "./src/index.js",
+    "module": "./src/index.js",
+    "files": [
+        "src",
+        "types"
+    ],
+    "engines": {
+        "node": ">=15"
     },
-    "./options": {
-      "types": "./dist/options.d.ts",
-      "require": "./dist/options.cjs",
-      "import": "./dist/options.mjs",
-      "default": "./dist/options.mjs"
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/kshutkin/rollup-extras.git",
+        "directory": "utils"
     },
-    "./logger": {
-      "types": "./dist/logger.d.ts",
-      "require": "./dist/logger.cjs",
-      "import": "./dist/logger.mjs",
-      "default": "./dist/logger.mjs"
+    "bugs": "https://github.com/kshutkin/rollup-extras/issues",
+    "homepage": "https://github.com/kshutkin/rollup-extras/blob/main/utils/README.md",
+    "readme": "README.md",
+    "description": "Utils to support creation of rollup plugins.",
+    "keywords": [
+        "@rollup-extras",
+        "utils",
+        "options",
+        "multiple outputs"
+    ],
+    "scripts": {
+        "build": "dts-buddy -m @rollup-extras/utils:src/exports.d.ts -m @rollup-extras/utils/multi-config-plugin-base:src/multi-config-plugin-base-exports.d.ts -m @rollup-extras/utils/options:src/options-exports.d.ts -m @rollup-extras/utils/logger:src/logger-exports.d.ts -m @rollup-extras/utils/statistics:src/statistics-exports.d.ts",
+        "prepack": "pkgprn-internal --flatten types,src --strip-comments --remove-sourcemaps",
+        "test": "vitest run --coverage --config ../vitest.config.js",
+        "test:types": "tsc -p tsconfig.types.json"
     },
-    "./statistics": {
-      "types": "./dist/statistics.d.ts",
-      "require": "./dist/statistics.cjs",
-      "import": "./dist/statistics.mjs",
-      "default": "./dist/statistics.mjs"
+    "dependencies": {
+        "@niceties/logger": "^2.1.0"
     },
-    "./package.json": "./package.json"
-  },
-  "files": [
-    "dist",
-    "mutli-config-plugin-base",
-    "options",
-    "logger",
-    "LICENSE",
-    "statistics"
-  ],
-  "engines": {
-    "node": ">=15"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/kshutkin/rollup-extras.git",
-    "directory": "utils"
-  },
-  "bugs": "https://github.com/kshutkin/rollup-extras/issues",
-  "homepage": "https://github.com/kshutkin/rollup-extras/blob/main/utils/README.md",
-  "readme": "README.md",
-  "keywords": [
-    "@rollup-extras",
-    "utils",
-    "options",
-    "multiple outputs"
-  ],
-  "scripts": {
-    "build": "pkgbld-internal",
-    "test": "jest --collectCoverage",
-    "lint": "eslint ./src",
-    "prepack": "pkgbld-internal prune"
-  },
-  "dependencies": {
-    "@niceties/logger": "^1.1.5"
-  },
-  "peerDependencies": {
-    "rollup": "^2.60.1 || ^3.0.0 || ^4.0.0"
-  },
-  "peerDependenciesMeta": {
-    "rollup": {
-      "optional": true
+    "peerDependencies": {
+        "rollup": "^4.0.0"
+    },
+    "peerDependenciesMeta": {
+        "rollup": {
+            "optional": true
+        }
     }
-  },
-  "types": "./dist/index.d.ts",
-  "typesVersions": {
-    "*": {
-      ".": [
-        "dist/index.d.ts"
-      ],
-      "./mutli-config-plugin-base": [
-        "dist/mutli-config-plugin-base.d.ts"
-      ],
-      "./options": [
-        "dist/options.d.ts"
-      ],
-      "./logger": [
-        "dist/logger.d.ts"
-      ],
-      "./statistics": [
-        "dist/statistics.d.ts"
-      ],
-      "*": [
-        "dist/index.d.ts",
-        "dist/*"
-      ]
-    }
-  }
 }

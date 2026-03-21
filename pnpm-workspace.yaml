@@ -2,4 +2,7 @@ packages:
   - "utils"
   - "plugin-*"
   - "test/big-config"
-  # - "test/angularjs"
+  - "test/angularjs"
+
+overrides:
+  "rollup-plugin-styles>rollup": "^4.0.0"

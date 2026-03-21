@@ -1,0 +1,406 @@
+import fs from 'node:fs/promises';
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { createLogger, LogLevel } from '@niceties/logger';
+
+import plugin from '../src';
+
+let loggerStart, loggerFinish, logger;
+
+vi.mock('fs/promises');
+vi.mock('@niceties/logger', () => ({
+    LogLevel: { verbose: 0, info: 1, warn: 2, error: 3 },
+    createLogger: vi.fn(() => {
+        logger = vi.fn();
+        loggerStart = vi.fn();
+        loggerFinish = vi.fn();
+        return Object.assign(logger, {
+            start: loggerStart,
+            finish: loggerFinish,
+        });
+    }),
+}));
+
+describe('@rollup-extras/plugin-angularjs-template-cache', () => {
+    let rollupContextMock;
+
+    beforeEach(() => {
+        vi.mocked(fs.readFile).mockClear();
+        vi.mocked(createLogger).mockClear();
+        rollupContextMock = {
+            addWatchFile: vi.fn(),
+            emitFile: vi.fn(),
+        };
+        vi.mocked(fs.glob).mockClear();
+        vi.mocked(fs.glob).mockImplementation(async function* () {
+            yield 'aFolder/test.html';
+            yield 'aFolder/test2.html';
+        });
+        vi.mocked(fs.readFile).mockClear();
+        vi.mocked(fs.readFile).mockImplementation(() => Promise.resolve('<html></html>'));
+        vi.mocked(fs.stat).mockClear();
+        vi.mocked(fs.stat).mockImplementation(() =>
+            Promise.resolve({
+                mtime: new Date(),
+                isFile: () => true,
+            })
+        );
+    });
+
+    it('should be defined', () => {
+        expect(plugin).toBeDefined();
+    });
+
+    describe('pluginName', () => {
+        it('should use default plugin name', () => {
+            const pluginInstance = plugin('views/**/*.html');
+            expect(pluginInstance.name).toEqual('@rollup-extras/plugin-angularjs-template-cache');
+        });
+
+        it('should use changed plugin name', () => {
+            const pluginInstance = plugin({ templates: 'views/**/*.html', pluginName: 'test' });
+            expect(pluginInstance.name).toEqual('test');
+        });
+    });
+
+    describe('templates', () => {
+        it('should use default glob when no parameters provided', async () => {
+            const pluginInstance = plugin();
+            await pluginInstance.buildStart.apply(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
+            expect(fs.glob).toHaveBeenCalledWith('./**/*.html');
+        });
+
+        it('should accept custom glob as a string', async () => {
+            const pluginInstance = plugin('./views/**/*.html');
+            await pluginInstance.buildStart.apply(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
+            expect(fs.glob).toHaveBeenCalledWith('./views/**/*.html');
+        });
+
+        it('should accept custom glob as an array', async () => {
+            const pluginInstance = plugin(['./views/**/*.html', './**/*.html']);
+            await pluginInstance.buildStart.apply(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
+            expect(fs.glob).toHaveBeenCalledWith('./views/**/*.html');
+            expect(fs.glob).toHaveBeenCalledWith('./**/*.html');
+        });
+
+        it('should accept custom templates property as a string', async () => {
+            const pluginInstance = plugin({ templates: './views/**/*.html' });
+            await pluginInstance.buildStart.apply(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
+            expect(fs.glob).toHaveBeenCalledWith('./views/**/*.html');
+        });
+
+        it('should accept custom templates property as an array', async () => {
+            const pluginInstance = plugin({ templates: ['./views/**/*.html', './**/*.html'] });
+            await pluginInstance.buildStart.apply(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
+            expect(fs.glob).toHaveBeenCalledWith('./views/**/*.html');
+            expect(fs.glob).toHaveBeenCalledWith('./**/*.html');
+        });
+
+        it('should skip non-file entries', async () => {
+            vi.mocked(fs.stat).mockImplementation(() =>
+                Promise.resolve({
+                    isFile: () => false,
+                })
+            );
+            const pluginInstance = plugin();
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            const result = await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(result.includes('$templateCache.put')).toBe(false);
+        });
+    });
+
+    describe('rootDir', () => {
+        it('should use default root directory', async () => {
+            const pluginInstance = plugin();
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            const result = await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(result.includes('$templateCache.put("aFolder/test.html", "<html></html>");')).toBe(true);
+            expect(result.includes('$templateCache.put("aFolder/test2.html", "<html></html>");')).toBe(true);
+        });
+
+        it('should use custom root directory', async () => {
+            const pluginInstance = plugin({ rootDir: 'aFolder' });
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            const result = await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(result.includes('$templateCache.put("test.html", "<html></html>");')).toBe(true);
+            expect(result.includes('$templateCache.put("test2.html", "<html></html>");')).toBe(true);
+        });
+
+        it('should apply transformTemplateUri callback', async () => {
+            const transformTemplateUri = vi.fn(() => 'id');
+            const pluginInstance = plugin({ transformTemplateUri });
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            const result = await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(result.includes('$templateCache.put("id", "<html></html>");')).toBe(true);
+            expect(transformTemplateUri).toHaveBeenCalledWith('aFolder/test.html');
+            expect(transformTemplateUri).toHaveBeenCalledWith('aFolder/test2.html');
+        });
+    });
+
+    it('should apply processHtml callback', async () => {
+        const processHtml = vi.fn(() => 'some text');
+        const pluginInstance = plugin({ processHtml });
+        await pluginInstance.buildStart.call(rollupContextMock);
+        await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+        const result = await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+        expect(result.includes('$templateCache.put("aFolder/test.html", "some text");')).toBe(true);
+        expect(result.includes('$templateCache.put("aFolder/test2.html", "some text");')).toBe(true);
+        expect(processHtml).toHaveBeenCalledWith('<html></html>');
+        expect(processHtml).toBeCalledTimes(2);
+    });
+
+    describe('angularModule', () => {
+        it('should use default angular module name', async () => {
+            const pluginInstance = plugin();
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            const result = await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(result.includes('angular.module("templates", [])')).toBe(true);
+        });
+
+        it('should create non-standalone module when standalone is false', async () => {
+            const pluginInstance = plugin({ standalone: false });
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            const result = await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(result.includes('angular.module("templates")')).toBe(true);
+        });
+
+        it('should use custom angular module name', async () => {
+            const pluginInstance = plugin({ angularModule: 'ngt' });
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            const result = await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(result.includes('angular.module("ngt", [])')).toBe(true);
+        });
+    });
+
+    describe('module', () => {
+        it('should resolve custom module name', async () => {
+            const pluginInstance = plugin({ module: 'ngt' });
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'ngt');
+            const result = await pluginInstance.load.call(rollupContextMock, '\0templates:ngt');
+            expect(result.includes('angular.module("templates", [])')).toBe(true);
+        });
+
+        it('should return null for non-matching module name', async () => {
+            const pluginInstance = plugin({ module: 'ngt' });
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            const result = await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(result).toBe(null);
+        });
+    });
+
+    describe('watch', () => {
+        it('should add watch files by default', async () => {
+            const pluginInstance = plugin();
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test.html');
+            expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
+        });
+
+        it('should not add watch files when watch is false', async () => {
+            const pluginInstance = plugin({ watch: false });
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(rollupContextMock.addWatchFile).not.toHaveBeenCalledWith('aFolder/test.html');
+            expect(rollupContextMock.addWatchFile).not.toHaveBeenCalledWith('aFolder/test2.html');
+        });
+    });
+
+    describe('logger', () => {
+        it('should list filenames when less than 5 templates', async () => {
+            const pluginInstance = plugin();
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(createLogger).lastCalledWith('@rollup-extras/plugin-angularjs-template-cache');
+            expect(loggerStart).lastCalledWith('inlining templates', LogLevel.verbose);
+            expect(loggerFinish).toHaveBeenCalledWith('inlined aFolder/test.html, aFolder/test2.html');
+        });
+
+        it('should show count when more than 5 templates', async () => {
+            vi.mocked(fs.glob).mockImplementation(async function* () {
+                yield '1';
+                yield '2';
+                yield '3';
+                yield '4';
+                yield '5';
+                yield '6';
+            });
+            const pluginInstance = plugin();
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(createLogger).lastCalledWith('@rollup-extras/plugin-angularjs-template-cache');
+            expect(loggerStart).lastCalledWith('inlining templates', LogLevel.verbose);
+            expect(loggerFinish).toHaveBeenCalledWith('inlined 6 templates');
+        });
+
+        it('should use info log level when verbose is true', async () => {
+            const pluginInstance = plugin({ verbose: true });
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(loggerStart).lastCalledWith('inlining templates', LogLevel.info);
+        });
+
+        it('should list filenames when verbose is list-filenames', async () => {
+            const pluginInstance = plugin({ verbose: 'list-filenames' });
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(logger).toHaveBeenCalledWith('\taFolder/test.html → aFolder/test.html', LogLevel.info);
+            expect(logger).toHaveBeenCalledWith('\taFolder/test2.html → aFolder/test2.html', LogLevel.info);
+        });
+
+        it('should log warning on read file exception', async () => {
+            vi.mocked(fs.readFile).mockImplementationOnce(() => {
+                throw { stack: '' };
+            });
+            const pluginInstance = plugin();
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(logger).toHaveBeenCalledWith(
+                'error reading file aFolder/test.html',
+                LogLevel.warn,
+                expect.objectContaining({ stack: '' })
+            );
+        });
+
+        it('should log silently on missing directory exception', async () => {
+            vi.mocked(fs.readFile).mockImplementationOnce(() => {
+                throw { code: 'ENOENT', stack: '' };
+            });
+            const pluginInstance = plugin();
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(logger).toHaveBeenCalledWith(
+                'error reading file aFolder/test.html',
+                undefined,
+                expect.objectContaining({ code: 'ENOENT', stack: '' })
+            );
+        });
+    });
+
+    it('should use import statements when useImports is true', async () => {
+        const pluginInstance = plugin({ useImports: true });
+        await pluginInstance.buildStart.call(rollupContextMock);
+        await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+        const result = await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+        expect(result.includes("import template0 from './aFolder/test.html';")).toBe(true);
+        expect(result.includes('$templateCache.put("aFolder/test.html", template0);')).toBe(true);
+    });
+
+    it('should emit entry point when autoImport is true', async () => {
+        const pluginInstance = plugin({ autoImport: true });
+        await pluginInstance.buildStart.call(rollupContextMock);
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith({ id: '\0templates:templates', type: 'chunk' });
+        await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+        await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+    });
+
+    it('should delay glob when autoImport is false', async () => {
+        const pluginInstance = plugin({ autoImport: false });
+        await pluginInstance.buildStart.call(rollupContextMock);
+        expect(fs.glob).not.toBeCalled();
+        await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+        await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+        expect(fs.glob).toBeCalled();
+    });
+
+    it('should not delay glob when autoImport is true', async () => {
+        const pluginInstance = plugin({ autoImport: true });
+        await pluginInstance.buildStart.call(rollupContextMock);
+        expect(fs.glob).toBeCalled();
+        vi.mocked(fs.glob).mockReset();
+        await pluginInstance.resolveId.call(rollupContextMock, '\0templates:templates');
+        await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+        expect(fs.glob).not.toBeCalled();
+    });
+
+    describe('importAngular', () => {
+        it('should import angular by default', async () => {
+            const pluginInstance = plugin();
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            const result = await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(result.includes('import angular from "angular";')).toBe(true);
+        });
+
+        it('should not import angular when importAngular is false', async () => {
+            const pluginInstance = plugin({ importAngular: false });
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            const result = await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            expect(result.includes('import angular from "angular";')).toBe(false);
+        });
+    });
+
+    describe('transformHtmlImportsToUris', () => {
+        it('should not transform HTML imports by default', async () => {
+            const pluginInstance = plugin();
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            const resolved = await pluginInstance.resolveId.call(rollupContextMock, './aFolder/test.html');
+            await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            const result = await pluginInstance.load.call(rollupContextMock, 'aFolder/test.html');
+            expect(resolved).toBe(null);
+            expect(result).toBe(null);
+        });
+
+        it('should transform HTML imports to URIs when enabled', async () => {
+            const pluginInstance = plugin({ transformHtmlImportsToUris: true });
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            const resolved = await pluginInstance.resolveId.call(rollupContextMock, './aFolder/test.html');
+            await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            const result = await pluginInstance.load.call(rollupContextMock, resolved.id);
+            expect(resolved).toEqual(expect.objectContaining({ id: '\0template:./aFolder/test.html', moduleSideEffects: false }));
+            expect(result).toBe('export default "aFolder/test.html";');
+        });
+
+        it('should resolve HTML imports relative to importer', async () => {
+            const pluginInstance = plugin({ transformHtmlImportsToUris: true });
+            await pluginInstance.buildStart.call(rollupContextMock);
+            await pluginInstance.resolveId.call(rollupContextMock, 'templates');
+            const resolved = await pluginInstance.resolveId.call(rollupContextMock, './aFolder/test.html', 'app/app.js');
+            await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
+            const result = await pluginInstance.load.call(rollupContextMock, resolved.id);
+            expect(resolved).toEqual(expect.objectContaining({ id: '\0template:app/aFolder/test.html', moduleSideEffects: false }));
+            expect(result).toBe('export default "app/aFolder/test.html";');
+        });
+    });
+});

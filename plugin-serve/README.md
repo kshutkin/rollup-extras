@@ -4,7 +4,7 @@ Rollup plugin for a dev server.
 
 Points:
 
-- Uses `koa`, customizable through koa middleware
+- Uses `hono`, customizable through Hono middleware
 - Zero-config by default (works if you have `output.dir` defined)
 
 Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/README.md) to log messages, which can be configured through `@niceties/logger` API.
@@ -14,6 +14,7 @@ Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/
 ## Installation
 
 Using npm:
+
 ```
 npm install --save-dev @rollup-extras/plugin-serve
 ```
@@ -21,18 +22,18 @@ npm install --save-dev @rollup-extras/plugin-serve
 ## Usage
 
 ```javascript
-import serve from '@rollup-extras/plugin-serve';
+import serve from "@rollup-extras/plugin-serve";
 
 export default {
-    input: 'src/index.js',
+  input: "src/index.js",
 
-    output: {
-        format: 'es',
-        dir: 'dest'
-    },
+  output: {
+    format: "es",
+    dir: "dest",
+  },
 
-    plugins: [serve()],
-} 
+  plugins: [serve()],
+};
 ```
 
 ## Providing options
@@ -40,7 +41,7 @@ export default {
 Just pass options to the plugin function. The returned object is the plugin instance which can be passed to rollup.
 
 ```javascript
-serve({option: value, option2: value2})
+serve({ option: value, option2: value2 });
 ```
 
 For additional plugin instances (in case of multiple configs) please use `firstInstance.api.addInstance()`
@@ -63,7 +64,7 @@ Option to use `writeBundle` hook instead of `generateBundle`.
 
 Optional, `string` | `string[]`, default: `output.dir`.
 
-Defines what dir to serve using `koa-static` middleware. If you want to disable `koa-static` you can use `[]` (empty array) as `dirs`.
+Defines what dir to serve using Hono static middleware. If you want to disable static serving you can use `[]` (empty array) as `dirs`.
 
 ### port
 
@@ -75,19 +76,19 @@ Port to use for the server.
 
 Optional, `string`.
 
-Host to use, by default, does not provide a host to createServer and lets nodejs decide.
+Host to use, by default, does not provide a host to createServer and lets Node.js decide.
 
-### useKoaLogger
+### useLogger
 
 Optional, `boolean`, default: `true`.
 
-If the plugin should use koa-logger middleware.
+If the plugin should use Hono logger middleware.
 
-### koaStaticOptions
+### staticOptions
 
 Optional.
 
-Please check [`koa-static`](https://github.com/koajs/static) for options.
+Please check [`@hono/node-server/serve-static`](https://hono.dev/docs/getting-started/nodejs#serve-static-files) for options.
 
 ### https
 
@@ -95,11 +96,11 @@ Optional, `{ cert: string, key: string, ca?: string; }`.
 
 Key and certificate to use for https. The best way to generate a certificate and key (and to install ca) is [`mkcert`](https://github.com/FiloSottile/mkcert).
 
-### customizeKoa
+### customize
 
-Optional, `(koa: Koa) => void`
+Optional, `(app: Hono) => void`
 
-Extension point to customize `koa`.
+Extension point to customize the Hono app.
 
 ### onListen
 
@@ -115,15 +116,15 @@ type ServePluginOptions = {
     useWriteBundle?: boolean;
     dirs?: string | string[];
     port?: number;
-    useKoaLogger?: boolean;
-    koaStaticOptions?: 'koa-static'.Options;
+    useLogger?: boolean;
+    staticOptions?: object;
     host?: string;
     https?: {
-        cert: string;
-        key: string;
+      cert: string;
+      key: string;
         ca?: string;
-    },
-    customizeKoa?: (koa: Koa) => void;
+    };
+    customize?: (app: Hono) => void;
     onListen?: (server: Server) => void | true;
 } | string | string[]
 ```

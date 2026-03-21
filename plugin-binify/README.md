@@ -13,14 +13,8 @@ Points:
 
 ## Installation
 
-Using npm:
 ```
 npm install --save-dev @rollup-extras/plugin-binify
-```
-
-Using yarn:
-```
-yarn add --dev @rollup-extras/plugin-binify
 ```
 
 ## Example
@@ -28,18 +22,18 @@ yarn add --dev @rollup-extras/plugin-binify
 Normal usage:
 
 ```javascript
-import binify from '@rollup-extras/plugin-binify';
+import binify from "@rollup-extras/plugin-binify";
 
 export default {
-	input: 'src/index.js',
+  input: "src/index.js",
 
-    output: {
-        format: 'cjs',
-        dir: 'dest'
-    },
+  output: {
+    format: "cjs",
+    dir: "dest",
+  },
 
-	plugins: [binify()],
-}
+  plugins: [binify()],
+};
 ```
 
 ## Options
@@ -71,7 +65,7 @@ Optional, `number | false`.
 Default: `0o755`
 
 Number/string defines permissions for a file, passed to `fs.chmod`.
-`false` (falsy values not working) disables permissions settings.
+`false` disables permission changes (note: other falsy values do not work).
 
 ### filter
 
@@ -85,11 +79,11 @@ Filters chunks/assets before applying plugin transformation.
 
 ```typescript
 type BinifyPluginOptions = {
-    pluginName?: string,
-    verbose?: boolean,
-    shebang?: string,
-    executableFlag?: number | string | false,
-    filter?: (item: OutputAsset | OutputChunk) => boolean
+  pluginName?: string;
+  verbose?: boolean;
+  shebang?: string;
+  executableFlag?: number | string | false;
+  filter?: (item: OutputAsset | OutputChunk) => boolean;
 };
 ```
 

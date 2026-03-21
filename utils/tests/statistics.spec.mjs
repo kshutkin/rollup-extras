@@ -1,0 +1,47 @@
+import { describe, expect, it } from 'vitest';
+
+import statistics from '../src/statistics.js';
+
+describe('@rollup-extras/util/statistics', () => {
+    it('should be defined', () => {
+        expect(statistics).toBeDefined();
+    });
+
+    describe('statistics non verbose', () => {
+        it('should return items when less than cap', () => {
+            const collector = statistics(false, result => JSON.stringify(result));
+            collector('test1');
+            collector('test2');
+            expect(collector()).toEqual('["test1","test2"]');
+        });
+        it('should return count when more than cap', () => {
+            const collector = statistics(false, result => JSON.stringify(result));
+            collector('test1');
+            collector('test2');
+            collector('test3');
+            collector('test4');
+            collector('test5');
+            collector('test6');
+            expect(collector()).toEqual('6');
+        });
+    });
+
+    describe('statistics verbose', () => {
+        it('should return count when less than cap', () => {
+            const collector = statistics(true, result => JSON.stringify(result));
+            collector('test1');
+            collector('test2');
+            expect(collector()).toEqual('2');
+        });
+        it('should return count when more than cap', () => {
+            const collector = statistics(true, result => JSON.stringify(result));
+            collector('test1');
+            collector('test2');
+            collector('test3');
+            collector('test4');
+            collector('test5');
+            collector('test6');
+            expect(collector()).toEqual('6');
+        });
+    });
+});

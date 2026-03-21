@@ -4,7 +4,7 @@ Rollup plugin to clean a directory during the build.
 
 Points:
 
-- Uses fs.rm to remove directories that shipped with nodejs and has built-in retries
+- Uses `fs.rm` (shipped with Node.js) to remove directories, with built-in retries
 - Can be used with no configuration
 - Runs once per directory by default (good for watch mode)
 - A minimal amount of logs by default

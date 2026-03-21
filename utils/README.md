@@ -2,8 +2,7 @@
 
 Utils to support the development of rollup plugins.
 
-*Disclaimer: It is not a substitute for the `@rollup/pluginutils` package.*
-
+_Disclaimer: It is not a substitute for the `@rollup/pluginutils` package._
 
 [Changelog](./CHANGELOG.md)
 
@@ -12,10 +11,18 @@ Utils to support the development of rollup plugins.
 ```
 npm install --save-dev @rollup-extras/utils
 ```
+
 ## Options Utils
 
 ```typescript
-function getOptions<T extends string | string[] | undefined | Record<string, unknown>, D, F extends DefaultsFactory<Partial<{[K in C]: string[]}> & Partial<Exclude<T, SimpleOptions>>>, C extends string>(options: T | undefined, defaults: D | undefined, field: C, factory?: F);
+function getOptions<
+  T extends string | string[] | undefined | Record<string, unknown>,
+  D,
+  F extends DefaultsFactory<
+    Partial<{ [K in C]: string[] }> & Partial<Exclude<T, SimpleOptions>>
+  >,
+  C extends string
+>(options: T | undefined, defaults: D | undefined, field: C, factory?: F);
 ```
 
 Utility function to get options object.
@@ -30,8 +37,13 @@ Utility function to get options object.
 Utility to construct a plugin that should/can be executed when multiple configs are used to gather information for the plugin.
 
 ```typescript
-function multiConfigPluginBase(useWriteBundle: boolean, pluginName: string, execute: ExecuteFn): Partial<PluginHooks>
+function multiConfigPluginBase(
+  useWriteBundle: boolean,
+  pluginName: string,
+  execute: ExecuteFn
+): Partial<PluginHooks>;
 ```
+
 - `useWriteBundle` - truthy if `execute` function should be executed on the last `writeBundle`, falsy if it should be executed on `generateBundle`
 - `pluginName` - plugin name
 - `execute` - function to execute
@@ -40,10 +52,13 @@ Returns a plugin instance.
 
 ## Statistics
 
-Utility to construct a collector of data that reports count if verbose / more than 5 items. The assumption is that in case of verbose an external logger will take care of reporting. It is very niche and probably you don't need it. The main idea for this is that in case we report thousands of files we are not holding data in memory but discarding it / writing it to log.
+Utility to construct a collector of data that reports count if verbose / more than 5 items. The assumption is that in the case of verbose logging, an external logger will take care of reporting. It is very niche and probably you don't need it. The main idea for this is that in case we report thousands of files we are not holding data in memory but discarding it / writing it to log.
 
 ```typescript
-function statistics(verbose: boolean, messageFactory: (result: number | string[]) => string): (name?: string) => undefined | string
+function statistics(
+  verbose: boolean,
+  messageFactory: (result: number | string[]) => string
+): (name?: string) => undefined | string;
 ```
 
 Returns a collector that accepts new data if you pass a non-null/non-undefined parameter or constructs a message using the message factory.
@@ -53,13 +68,21 @@ Returns a collector that accepts new data if you pass a non-null/non-undefined p
 ```typescript
 type SimpleOptions = string | string[] | undefined;
 
-type DefaultsFactory<T extends {[key: string]: unknown}> = {
-    [key: string]: ((options: T | undefined, field: string) => unknown);
-}
+type DefaultsFactory<T extends { [key: string]: unknown }> = {
+  [key: string]: (options: T | undefined, field: string) => unknown;
+};
 
-type Result<T extends {[key: string]: unknown}, F extends DefaultsFactory<T>> = T & {
-    [key in keyof F]: F[key] extends ((options: T | undefined, field: string) => unknown) ? ReturnType<F[key]> : unknown;
-}
+type Result<
+  T extends { [key: string]: unknown },
+  F extends DefaultsFactory<T>
+> = T & {
+  [key in keyof F]: F[key] extends (
+    options: T | undefined,
+    field: string
+  ) => unknown
+    ? ReturnType<F[key]>
+    : unknown;
+};
 ```
 
 # License

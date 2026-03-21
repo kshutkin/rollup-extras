@@ -1,25 +1,25 @@
 {
-  "name": "test",
-  "version": "1.0.0",
-  "description": "",
-  "scripts": {
-    "test": "rollup -c"
-  },
-  "private": "true",
-  "author": "Konstantin Shutkin",
-  "license": "MIT",
-  "dependencies": {
-    "rollup": "^4.37.0",
-    "@niceties/logger": "^1.1.10",
-    "@niceties/draftlog-appender": "^1.1.0",
-    "@rollup-extras/plugin-clean": "workspace:^",
-    "@rollup-extras/plugin-copy": "workspace:^",
-    "@rollup-extras/plugin-html": "workspace:^",
-    "@rollup-extras/plugin-serve": "workspace:^",
-    "@rollup-extras/plugin-binify": "workspace:^",
-    "@rollup-extras/plugin-externals": "workspace:^",
-    "@rollup-extras/plugin-angularjs-template-cache": "workspace:^",
-    "rollup-plugin-html": "^0.2.1",
-    "simply-beautiful": "^0.2.10"
-  }
+    "name": "test",
+    "version": "1.0.0",
+    "description": "",
+    "scripts": {
+        "test": "rollup -c"
+    },
+    "private": "true",
+    "author": "Konstantin Shutkin",
+    "license": "MIT",
+    "dependencies": {
+        "rollup": "^4.37.0",
+        "@niceties/logger": "^2.1.0",
+        "@niceties/draftlog-appender": "^2.1.0",
+        "@rollup-extras/plugin-clean": "workspace:^",
+        "@rollup-extras/plugin-copy": "workspace:^",
+        "@rollup-extras/plugin-html": "workspace:^",
+        "@rollup-extras/plugin-serve": "workspace:^",
+        "@rollup-extras/plugin-binify": "workspace:^",
+        "@rollup-extras/plugin-externals": "workspace:^",
+        "@rollup-extras/plugin-angularjs-template-cache": "workspace:^",
+        "rollup-plugin-html": "^0.2.1",
+        "simply-beautiful": "^0.2.10"
+    }
 }
