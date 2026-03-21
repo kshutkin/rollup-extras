@@ -64,6 +64,10 @@ const es5Fallback = simpleES5FallbackScript('.js');
 const module_ = simpleModuleScript('.mjs');
 const combined = combineAssetFactories(es5, es5Fallback, module_);
 
+// --- api.addInstance ---
+const pluginWithApi = html();
+const childPlugin: Plugin = pluginWithApi.api.addInstance();
+
 // ============================================================================
 // Negative tests
 // ============================================================================

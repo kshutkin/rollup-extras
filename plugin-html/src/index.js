@@ -82,7 +82,7 @@ const factories = {
 
 /**
  * @param {HtmlPluginOptions} [options]
- * @returns {Plugin}
+ * @returns {Plugin & { api: { addInstance(): Plugin } }}
  */
 export default function (options = {}) {
     const {

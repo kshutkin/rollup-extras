@@ -8,7 +8,7 @@ export default function statistics(verbose, messageFactory) {
         names = verbose ? null : /** @type {string[]} */ ([]);
     return name => {
         if (name != null) {
-            count++;
+            ++count;
             if (names) {
                 if (count > 5) {
                     names = null;
