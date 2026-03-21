@@ -2,6 +2,8 @@ import fs_ from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { globFiles, globParent } from './glob.js';
+
 /**
  * @import { PluginContext, Plugin, EmittedFile } from 'rollup'
  */
@@ -201,35 +203,6 @@ function normalizeSlash(dir) {
         return `${dir.substring(0, dir.length - 1)}`;
     }
     return dir;
-}
-
-/**
- * @param {string} pattern
- * @returns {string}
- */
-function globParent(pattern) {
-    const parts = pattern.split('/');
-    const nonGlobParts = [];
-    for (const part of parts) {
-        if (/[*?{[(!]/.test(part)) break;
-        nonGlobParts.push(part);
-    }
-    return nonGlobParts.join('/') || '.';
-}
-
-/**
- * @param {string} pattern
- * @param {string | string[] | undefined} exclude
- * @returns {Promise<string[]>}
- */
-async function globFiles(pattern, exclude) {
-    /** @type {string[]} */
-    const result = [];
-    const options = exclude != null ? { exclude: Array.isArray(exclude) ? exclude : [exclude] } : undefined;
-    for await (const entry of options ? fs.glob(pattern, options) : fs.glob(pattern)) {
-        result.push(entry);
-    }
-    return result;
 }
 
 /**
