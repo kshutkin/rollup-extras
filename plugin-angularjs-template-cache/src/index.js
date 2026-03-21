@@ -1,5 +1,5 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import { glob, readFile, stat } from 'node:fs/promises';
+import { dirname, join, relative } from 'node:path';
 
 /**
  * @import { PluginContext, Plugin } from 'rollup'
@@ -100,7 +100,7 @@ export default function (options = defaultTemplatesGlob) {
         /** @this {PluginContext} */
         resolveId(/** @type {string} */ id, /** @type {string | undefined} */ importer) {
             if (transformHtmlImportsToUris && id.endsWith('.html')) {
-                return { id: templatePrefix + (importer ? path.join(path.dirname(importer), id) : id), moduleSideEffects: false };
+                return { id: templatePrefix + (importer ? join(dirname(importer), id) : id), moduleSideEffects: false };
             }
 
             if (id === module) {
@@ -154,7 +154,7 @@ export default function (options = defaultTemplatesGlob) {
         templateFiles = [];
 
         const results = [
-            ...new Set((await Promise.all([templates].flat(2).map(templateGlob => Array.fromAsync(fs.glob(templateGlob))))).flat(2)),
+            ...new Set((await Promise.all([templates].flat(2).map(templateGlob => Array.fromAsync(glob(templateGlob))))).flat(2)),
         ];
 
         templateFiles = results;
@@ -170,11 +170,11 @@ export default function (options = defaultTemplatesGlob) {
                 results.map(async fileName => {
                     const templateUri = getTemplateUri(fileName);
                     try {
-                        const fileStat = await fs.stat(fileName);
+                        const fileStat = await stat(fileName);
                         if (!fileStat.isFile()) {
                             return;
                         }
-                        templatesMap.set(templateUri, escapeString(processHtml((await fs.readFile(fileName)).toString())));
+                        templatesMap.set(templateUri, escapeString(processHtml((await readFile(fileName)).toString())));
                     } catch (e) {
                         const loglevel = /** @type {{ code: string }} */ (e).code === 'ENOENT' ? undefined : LogLevel.warn;
                         logger(`error reading file ${fileName}`, loglevel, e);
@@ -212,7 +212,7 @@ export default function (options = defaultTemplatesGlob) {
      * @returns {string}
      */
     function getTemplateUri(fileName) {
-        return transformTemplateUri(fixSlashes(path.relative(rootDir, fileName)));
+        return transformTemplateUri(fixSlashes(relative(rootDir, fileName)));
     }
 
     /**

@@ -1,4 +1,4 @@
-import path from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 
 /**
  * @import { Plugin, PluginContext } from 'rollup'
@@ -49,9 +49,8 @@ export default function (options = {}) {
             if (pkgDir === false) {
                 pkgDir = (await packageDirectory()) ?? '.';
             }
-            const importingFileName = path.resolve(path.dirname(importer || ''), id);
-            let isExternal =
-                id.includes('node_modules') || isBuiltinModule(id) || path.relative(pkgDir, importingFileName).startsWith('..');
+            const importingFileName = resolve(dirname(importer || ''), id);
+            let isExternal = id.includes('node_modules') || isBuiltinModule(id) || relative(pkgDir, importingFileName).startsWith('..');
             if (external) {
                 isExternal = external(id, isExternal, importer);
             }

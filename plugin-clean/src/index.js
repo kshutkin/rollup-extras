@@ -1,5 +1,5 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import { rm } from 'node:fs/promises';
+import { dirname, normalize } from 'node:path';
 
 /**
  * @import { NormalizedInputOptions, NormalizedOutputOptions, Plugin, PluginContext, RollupOptions } from 'rollup'
@@ -129,7 +129,7 @@ export default function (options = {}) {
      * @param {string} dir
      */
     async function removeDir(dir) {
-        const normalizedDir = normalizeSlash(path.normalize(dir));
+        const normalizedDir = normalizeSlash(normalize(dir));
         if (inProgress.has(normalizedDir)) {
             return outputPlugin && inProgress.get(normalizedDir);
         }
@@ -169,7 +169,7 @@ export default function (options = {}) {
         const logger = createLogger(pluginName);
         try {
             logger.start(`cleaning '${normalizedDir}'`, verbose ? LogLevel.info : LogLevel.verbose);
-            await fs.rm(normalizedDir, { recursive: true });
+            await rm(normalizedDir, { recursive: true });
             logger.finish(`cleaned '${normalizedDir}'`);
         } catch (/** @type {any} */ e) {
             const loglevel = /** @type {{ code: string }} */ (e).code === 'ENOENT' ? undefined : LogLevel.warn;
@@ -201,7 +201,7 @@ function normalizeSlash(dir) {
  */
 function* parentDirs(dir) {
     for (;;) {
-        dir = path.dirname(dir);
+        dir = dirname(dir);
         if (dir === '.' || dir === '/') {
             break;
         }

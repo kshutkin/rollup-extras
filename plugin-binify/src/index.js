@@ -1,5 +1,5 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import { chmod } from 'node:fs/promises';
+import { join } from 'node:path';
 
 /**
  * @import { NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, Plugin, PluginContext } from 'rollup'
@@ -76,9 +76,9 @@ export default function (options = {}) {
                     const item = /** @type {OutputAsset | OutputChunk} */ (bundle[key]);
                     if (filter(item)) {
                         --countFiles;
-                        const fileName = path.join(initialDir, item.fileName);
+                        const fileName = join(initialDir, item.fileName);
                         try {
-                            await fs.chmod(fileName, /** @type {number} */ (executableFlag));
+                            await chmod(fileName, /** @type {number} */ (executableFlag));
                             logger.update(`${item.fileName} made executable`);
                         } catch (e) {
                             logger(`fs failed setting executable flag on ${fileName}`, LogLevel.error, e);

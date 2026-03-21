@@ -1,6 +1,6 @@
-import fs_ from 'node:fs';
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import { constants } from 'node:fs';
+import { copyFile, mkdir, readFile, stat } from 'node:fs/promises';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 
 import { globFiles, globParent } from './glob.js';
 
@@ -117,9 +117,7 @@ export default function (options) {
                         };
                         files.set(file, fileDesc);
                     }
-                    const dest = flatten
-                        ? normalizeSlash(result.dest)
-                        : path.join(result.dest, path.relative(result.parent, path.dirname(file)));
+                    const dest = flatten ? normalizeSlash(result.dest) : join(result.dest, relative(result.parent, dirname(file)));
                     if (!fileDesc.dest.includes(dest)) {
                         fileDesc.dest.push(dest);
                     }
@@ -140,7 +138,7 @@ export default function (options) {
                     /** @type {Buffer | undefined} */
                     let source;
                     try {
-                        const fileStat = await fs.stat(fileName);
+                        const fileStat = await stat(fileName);
                         if (!fileStat.isFile()) {
                             return;
                         }
@@ -150,7 +148,7 @@ export default function (options) {
                             fileDesc.copied = [];
                         }
                         if (emitFiles) {
-                            source = await fs.readFile(fileName);
+                            source = await readFile(fileName);
                         }
                     } catch (/** @type {any} */ e) {
                         const loglevel = /** @type {{ code: string }} */ (e).code === 'ENOENT' ? undefined : LogLevel.warn;
@@ -161,9 +159,9 @@ export default function (options) {
                         if (copyOnce && fileDesc.copied.includes(dest)) {
                             continue;
                         }
-                        const baseName = path.basename(fileName);
-                        // path.join removes ./ from the beginning, that's needed for rollup name/fileName fields
-                        const destFileName = path.join(dest, baseName);
+                        const baseName = basename(fileName);
+                        // join removes ./ from the beginning, that's needed for rollup name/fileName fields
+                        const destFileName = join(dest, baseName);
                         try {
                             if (emitFiles) {
                                 /** @type {PluginContext} */ (/** @type {unknown} */ (this)).emitFile(
@@ -175,8 +173,8 @@ export default function (options) {
                                     })
                                 );
                             } else {
-                                await fs.mkdir(path.dirname(destFileName), { recursive: true });
-                                await fs.copyFile(fileName, destFileName, fs_.constants.COPYFILE_FICLONE);
+                                await mkdir(dirname(destFileName), { recursive: true });
+                                await copyFile(fileName, destFileName, constants.COPYFILE_FICLONE);
                             }
                             if (verbose === listFilenames) {
                                 logger(`\t${fileName} → ${destFileName}`, LogLevel.info);
@@ -241,7 +239,7 @@ function getOriginalFileName(fileName, emitOriginalFileName) {
         return fileName;
     }
     if (emitOriginalFileName === 'absolute') {
-        return path.resolve(fileName);
+        return resolve(fileName);
     }
     if (typeof emitOriginalFileName === 'function') {
         return emitOriginalFileName(fileName);

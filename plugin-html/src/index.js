@@ -1,6 +1,6 @@
-import oldStyleFs from 'node:fs';
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import { readFileSync } from 'node:fs';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, join, relative } from 'node:path';
 
 /**
  * @import { InternalModuleFormat, NormalizedInputOptions, NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, Plugin, PluginContext, PluginHooks } from 'rollup'
@@ -118,14 +118,14 @@ export default function (options = {}) {
             if (watch) {
                 try {
                     // using sync fs call because we need to return plugin object immediately
-                    useNewTemplate(oldStyleFs.readFileSync(template, { encoding: 'utf8' }));
+                    useNewTemplate(readFileSync(template, { encoding: 'utf8' }));
                     hasTemplateFile = true;
                 } catch (e) {
                     handleTemplateReadError(e);
                 }
             } else {
                 templateString = new Promise(resolve => {
-                    fs.readFile(template, { encoding: 'utf8' })
+                    readFile(template, { encoding: 'utf8' })
                         .then(newTemplateString => {
                             if (!isUsableByDefaultTemplateFactory(newTemplateString) && !hasCustomTemplateFactory) {
                                 warnAboutUsingDefaultTemplate();
@@ -159,7 +159,7 @@ export default function (options = {}) {
     ) {
         logger('started collecting information', LogLevel.verbose);
         initialDir = outputOptions.dir ?? '';
-        fileNameInInitialDir = path.join(initialDir, outputFile);
+        fileNameInInitialDir = join(initialDir, outputFile);
         return /** @type {(this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) => void | Promise<void>} */ (
             baseRenderStart
         ).call(this, outputOptions, inputOptions);
@@ -179,7 +179,7 @@ export default function (options = {}) {
         /** @this {PluginContext} */
         instance.buildStart = async function () {
             try {
-                useNewTemplate(await fs.readFile(/** @type {string} */ (template), { encoding: 'utf8' }));
+                useNewTemplate(await readFile(/** @type {string} */ (template), { encoding: 'utf8' }));
             } catch (e) {
                 handleTemplateReadError(e);
             }
@@ -207,7 +207,7 @@ export default function (options = {}) {
             LogLevel.verbose
         );
         const dir = options.dir ?? '',
-            fileName = path.relative(dir, fileNameInInitialDir);
+            fileName = relative(dir, fileNameInInitialDir);
         if (fileName in bundle) {
             if (useEmittedTemplate) {
                 logger(`using existing emitted ${fileName} as an input for our templateFactory`, LogLevel.verbose);
@@ -273,7 +273,7 @@ export default function (options = {}) {
         logger.start('generating html', logLevel);
         try {
             const dir = options.dir ?? '',
-                fileName = path.relative(dir, fileNameInInitialDir);
+                fileName = relative(dir, fileNameInInitialDir);
             const depromisifiedTemplateString = await templateString,
                 source = await templateFactory(depromisifiedTemplateString, assets, defaultTemplateFactory);
 
@@ -281,8 +281,8 @@ export default function (options = {}) {
                 if (emitFile && emitFile !== 'auto') {
                     logger('cannot emitFile because it is outside of current output.dir, using writeFile instead', LogLevel.verbose);
                 }
-                await fs.mkdir(path.dirname(fileNameInInitialDir), { recursive: true });
-                await fs.writeFile(fileNameInInitialDir, source);
+                await mkdir(dirname(fileNameInInitialDir), { recursive: true });
+                await writeFile(fileNameInInitialDir, source);
             } else {
                 this.emitFile({
                     type: 'asset',
@@ -306,8 +306,8 @@ export default function (options = {}) {
     async function getAssets(options, bundle) {
         const dir = options.dir ?? '';
         for (const fileName of Object.keys(bundle)) {
-            const relativeToRootAssetPath = path.join(dir, fileName);
-            const assetPath = path.relative(initialDir, relativeToRootAssetPath);
+            const relativeToRootAssetPath = join(dir, fileName);
+            const assetPath = relative(initialDir, relativeToRootAssetPath);
             if (ignore(relativeToRootAssetPath) || processedFiles.has(relativeToRootAssetPath)) {
                 continue;
             }
