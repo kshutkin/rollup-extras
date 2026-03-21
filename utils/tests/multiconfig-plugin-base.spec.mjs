@@ -3,11 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { multiConfigPluginBase as plugin } from '../src/index.js';
 
 describe('@rollup-extras/util/multi-config-plugin-base', () => {
-    it('smoke', () => {
+    it('should be defined', () => {
         expect(plugin).toBeDefined();
     });
 
-    it('single instance, generateBundle', async () => {
+    it('should execute on generateBundle for single instance', async () => {
         const execute = vi.fn();
         const pluginInstance = plugin(false, 'test', execute);
         await pluginInstance.renderStart();
@@ -16,7 +16,7 @@ describe('@rollup-extras/util/multi-config-plugin-base', () => {
         expect(execute).toHaveBeenCalledWith(1, 2);
     });
 
-    it('additional instance, generateBundle', async () => {
+    it('should execute on generateBundle for additional instance', async () => {
         const execute = vi.fn();
         const pluginInstance = plugin(false, 'test', execute);
         const additionalInstance = pluginInstance.api.addInstance();
@@ -28,7 +28,7 @@ describe('@rollup-extras/util/multi-config-plugin-base', () => {
         expect(execute).toHaveBeenCalledWith(1, 2);
     });
 
-    it('single instance, writeBundle', async () => {
+    it('should execute on writeBundle for single instance', async () => {
         const execute = vi.fn();
         const pluginInstance = plugin(true, 'test', execute);
         await pluginInstance.renderStart();
@@ -37,7 +37,7 @@ describe('@rollup-extras/util/multi-config-plugin-base', () => {
         expect(execute).toHaveBeenCalledWith(1, 2);
     });
 
-    it('additional instance, writeBundle', async () => {
+    it('should execute on writeBundle for additional instance', async () => {
         const execute = vi.fn();
         const pluginInstance = plugin(true, 'test', execute);
         const additionalInstance = pluginInstance.api.addInstance();
@@ -49,7 +49,7 @@ describe('@rollup-extras/util/multi-config-plugin-base', () => {
         expect(execute).toHaveBeenCalledWith(1, 2);
     });
 
-    it('exception (passed to rollup)', async () => {
+    it('should pass exception to rollup', async () => {
         const execute = vi.fn(() => {
             throw new Error('test');
         });
@@ -65,7 +65,7 @@ describe('@rollup-extras/util/multi-config-plugin-base', () => {
         expect(execute).toHaveBeenCalledWith(1, 2);
     });
 
-    it('recovery after exception', async () => {
+    it('should recover after exception', async () => {
         const execute = vi.fn(() => {
             throw new Error('test');
         });
@@ -86,7 +86,7 @@ describe('@rollup-extras/util/multi-config-plugin-base', () => {
         expect(execute).toBeCalledTimes(2);
     });
 
-    it('onFinalHook', async () => {
+    it('should call onFinalHook callback', async () => {
         const execute = vi.fn(() => {
             throw new Error('test');
         });

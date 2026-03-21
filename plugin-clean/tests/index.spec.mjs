@@ -24,18 +24,18 @@ describe('@rollup-extras/plugin-clean', () => {
         vi.mocked(createLogger).mockClear();
     });
 
-    it('smoke', () => {
+    it('should be defined', () => {
         expect(plugin).toBeDefined();
     });
 
-    it('happy path', async () => {
+    it('should clean output directory', async () => {
         const pluginInstance = plugin();
         await pluginInstance.renderStart({ dir: '/dist2' });
         expect(fs.rm).toBeCalledTimes(1);
         expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
-    it('happy path - two output targets (1)', async () => {
+    it('should clean parent directory only for nested output targets', async () => {
         const pluginInstance = plugin();
         await pluginInstance.renderStart({ dir: '/dist2' });
         await pluginInstance.renderStart({ dir: '/dist2/subdir' });
@@ -43,7 +43,7 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
-    it('happy path - two output targets (2)', async () => {
+    it('should clean both directories when parent comes second', async () => {
         const pluginInstance = plugin();
         await pluginInstance.renderStart({ dir: '/dist2/subdir' });
         await pluginInstance.renderStart({ dir: '/dist2' });
@@ -52,7 +52,7 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
-    it('happy path - two output targets (3)', async () => {
+    it('should clean both sibling directories', async () => {
         const pluginInstance = plugin();
         await pluginInstance.renderStart({ dir: '/dist2/subdir' });
         await pluginInstance.renderStart({ dir: '/dist2/subdir2' });
@@ -61,48 +61,48 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(fs.rm).toHaveBeenCalledWith('/dist2/subdir2', { recursive: true });
     });
 
-    it('unhappy path', async () => {
+    it('should handle invalid options gracefully', async () => {
         const pluginInstance = plugin(123);
         await pluginInstance.renderStart({ dir: '/dist2' });
         expect(fs.rm).toBeCalledTimes(1);
     });
 
-    it('with non default directory (string)', async () => {
+    it('should clean non-default directory passed as string', async () => {
         const pluginInstance = plugin('/dist2');
         await pluginInstance.renderStart({ dir: '/dist3' });
         expect(fs.rm).toBeCalledTimes(1);
         expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
-    it('with non default directory (string[])', async () => {
+    it('should clean non-default directory passed as string array', async () => {
         const pluginInstance = plugin(['/dist2']);
         await pluginInstance.renderStart({ dir: '/dist3' });
         expect(fs.rm).toBeCalledTimes(1);
         expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
-    it('happy path (with targets string)', async () => {
+    it('should clean target passed as string in options', async () => {
         const pluginInstance = plugin({ targets: '/dist2' });
         await pluginInstance.renderStart({});
         expect(fs.rm).toBeCalledTimes(1);
         expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
-    it('happy path (with targets string[])', async () => {
+    it('should clean target passed as string array in options', async () => {
         const pluginInstance = plugin({ targets: ['/dist2'] });
         await pluginInstance.renderStart({});
         expect(fs.rm).toBeCalledTimes(1);
         expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
-    it('strips ending slash', async () => {
+    it('should strip trailing slash from target path', async () => {
         const pluginInstance = plugin({ targets: '/dist2/' });
         await pluginInstance.renderStart({});
         expect(fs.rm).toBeCalledTimes(1);
         expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
-    it('deleteOnce by default', async () => {
+    it('should delete once by default', async () => {
         const pluginInstance = plugin();
         await pluginInstance.renderStart({ dir: '/dist2' });
         await pluginInstance.renderStart({ dir: '/dist2' });
@@ -110,7 +110,7 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
-    it('deleteOnce by default + addInstance', async () => {
+    it('should delete once by default with addInstance', async () => {
         const pluginInstance = plugin();
         const pluginInstance2 = pluginInstance.api.addInstance();
         await pluginInstance.renderStart({ dir: '/dist2' });
@@ -121,7 +121,7 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
-    it('deleteOnce by default (check timings)', async () => {
+    it('should wait for first delete to finish before returning second', async () => {
         vi.mocked(fs.rm).mockImplementation(
             () =>
                 new Promise(resolve => {
@@ -137,7 +137,7 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(rmFinished).toBeTruthy();
     });
 
-    it('deleteOnce by default (check timings) + outputPlugin (do not block here)', async () => {
+    it('should not block on buildStart when outputPlugin is false', async () => {
         vi.mocked(fs.rm).mockImplementation(
             () =>
                 new Promise(resolve => {
@@ -153,7 +153,7 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(rmFinished).toBeFalsy();
     });
 
-    it('deleteOnce by default (check timings) + subdir (block here)', async () => {
+    it('should block on subdirectory cleanup when parent is also cleaned', async () => {
         vi.mocked(fs.rm).mockImplementation(
             () =>
                 new Promise(resolve => {
@@ -175,7 +175,7 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(rmFinished).toBeTruthy();
     });
 
-    it('deleteOnce by default + outputPlugin + addInstance', async () => {
+    it('should delete once with outputPlugin false and addInstance', async () => {
         const pluginInstance = plugin({ outputPlugin: false, targets: '/dist2' });
         const pluginInstance2 = pluginInstance.api.addInstance();
         await pluginInstance.buildStart();
@@ -186,7 +186,7 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
-    it('deleteOnce false', async () => {
+    it('should delete on each build when deleteOnce is false', async () => {
         const pluginInstance = plugin({ deleteOnce: false });
         await pluginInstance.renderStart({ dir: '/dist2' });
         await pluginInstance.generateBundle();
@@ -195,7 +195,7 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
-    it('deleteOnce true', async () => {
+    it('should delete only once when deleteOnce is true', async () => {
         const pluginInstance = plugin({ deleteOnce: true });
         await pluginInstance.renderStart({ dir: '/dist2' });
         await pluginInstance.generateBundle();
@@ -204,7 +204,7 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
-    it('deleteOnce true + outputPlugin false + targets string', async () => {
+    it('should delete once with outputPlugin false and targets as string', async () => {
         const pluginInstance = plugin({ deleteOnce: true, outputPlugin: false, targets: '/dist2' });
         await pluginInstance.buildStart();
         await pluginInstance.renderStart();
@@ -215,7 +215,7 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
-    it('deleteOnce true + outputPlugin false', async () => {
+    it('should delete once with outputPlugin false and targets as array', async () => {
         const pluginInstance = plugin({ deleteOnce: true, outputPlugin: false, targets: ['/dist2'] });
         await pluginInstance.buildStart();
         await pluginInstance.renderStart();
@@ -226,28 +226,28 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(fs.rm).toHaveBeenCalledWith('/dist2', { recursive: true });
     });
 
-    it('pluginName', async () => {
+    it('should use custom plugin name', async () => {
         const pluginName = 'test-plugin';
         const pluginInstance = plugin({ pluginName });
         await pluginInstance.renderStart({ dir: '/dist2' });
         expect(createLogger).toHaveBeenCalledWith(pluginName);
     });
 
-    it('non verbose', async () => {
+    it('should use verbose log level by default', async () => {
         const pluginInstance = plugin();
         await pluginInstance.renderStart({ dir: '/dist2' });
         expect(loggerStart).toHaveBeenCalledWith("cleaning '/dist2'", LogLevel.verbose);
         expect(loggerFinish).toHaveBeenCalledWith("cleaned '/dist2'");
     });
 
-    it('verbose', async () => {
+    it('should use info log level when verbose is true', async () => {
         const pluginInstance = plugin({ verbose: true });
         await pluginInstance.renderStart({ dir: '/dist2' });
         expect(loggerStart).toHaveBeenCalledWith("cleaning '/dist2'", LogLevel.info);
         expect(loggerFinish).toHaveBeenCalledWith("cleaned '/dist2'");
     });
 
-    it('exception', async () => {
+    it('should log warning on exception', async () => {
         vi.mocked(fs.rm).mockImplementationOnce(() => {
             throw { stack: '' };
         });
@@ -256,7 +256,7 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(loggerFinish).toHaveBeenCalledWith("failed cleaning 'dist2'", LogLevel.warn, expect.objectContaining({ stack: '' }));
     });
 
-    it('missing directory exception', async () => {
+    it('should log silently on missing directory exception', async () => {
         vi.mocked(fs.rm).mockImplementationOnce(() => {
             throw { code: 'ENOENT', stack: '' };
         });
@@ -269,28 +269,28 @@ describe('@rollup-extras/plugin-clean', () => {
         );
     });
 
-    it('outputPlugin: false', async () => {
+    it('should clean on buildStart when outputPlugin is false', async () => {
         const pluginInstance = plugin({ targets: 'dist2', outputPlugin: false });
         await pluginInstance.buildStart();
         expect(fs.rm).toBeCalledTimes(1);
         expect(fs.rm).toHaveBeenCalledWith('dist2', { recursive: true });
     });
 
-    it('outputPlugin: false + options without dir', async () => {
+    it('should not clean when outputPlugin is false and no dir in options', async () => {
         const pluginInstance = plugin({ outputPlugin: false });
         await pluginInstance.options({});
         await pluginInstance.buildStart();
         expect(fs.rm).toBeCalledTimes(0);
     });
 
-    it('outputPlugin: false + options without dir 2', async () => {
+    it('should not clean when outputPlugin is false and empty output options', async () => {
         const pluginInstance = plugin({ outputPlugin: false });
         await pluginInstance.options({ output: {} });
         await pluginInstance.buildStart();
         expect(fs.rm).toBeCalledTimes(0);
     });
 
-    it('outputPlugin: false + options', async () => {
+    it('should clean dir from options when outputPlugin is false', async () => {
         const pluginInstance = plugin({ outputPlugin: false });
         await pluginInstance.options({ output: { dir: 'dist2' } });
         await pluginInstance.buildStart();
@@ -298,7 +298,7 @@ describe('@rollup-extras/plugin-clean', () => {
         expect(fs.rm).toHaveBeenCalledWith('dist2', { recursive: true });
     });
 
-    it('outputPlugin: false + options with outputs array', async () => {
+    it('should clean dir from output array when outputPlugin is false', async () => {
         const pluginInstance = plugin({ outputPlugin: false });
         await pluginInstance.options({ output: [{ dir: 'dist2' }] });
         await pluginInstance.buildStart();

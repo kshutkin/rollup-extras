@@ -28,18 +28,18 @@ describe('@rollup-extras/plugin-externals', () => {
         vi.mocked(packageDirectory).mockClear();
     });
 
-    it('smoke', () => {
+    it('should be defined', () => {
         expect(plugin).toBeDefined();
     });
 
-    it('not external', async () => {
+    it('should return null for non-external module', async () => {
         const pluginInstance = plugin();
         const result = await pluginInstance.resolveId('test');
         expect(result).toBe(null);
         expect(log).toHaveBeenCalledWith("'test' is not external", LogLevel.verbose);
     });
 
-    it('pkg-dir - undefined', async () => {
+    it('should return null when pkg-dir returns undefined', async () => {
         vi.mocked(packageDirectory).mockImplementationOnce(() => Promise.resolve(undefined));
         const pluginInstance = plugin();
         const result = await pluginInstance.resolveId('test');
@@ -47,46 +47,46 @@ describe('@rollup-extras/plugin-externals', () => {
         expect(log).toHaveBeenCalledWith("'test' is not external", LogLevel.verbose);
     });
 
-    it('external node module', async () => {
+    it('should mark node_modules path as external', async () => {
         const pluginInstance = plugin();
         const result = await pluginInstance.resolveId('node_modules/test');
         expect(result).toBe(false);
         expect(log).toHaveBeenCalledWith("'node_modules/test' is external", LogLevel.verbose);
     });
 
-    it('external linked module', async () => {
+    it('should mark linked module as external', async () => {
         const pluginInstance = plugin();
         const result = await pluginInstance.resolveId('../../some-module/src/test');
         expect(result).toBe(false);
     });
 
-    it('non external but in different folder', async () => {
+    it('should not mark module in different folder as external', async () => {
         const pluginInstance = plugin();
         const result = await pluginInstance.resolveId('../../test', './src/folder/folder2/test');
         expect(result).toBe(null);
     });
 
-    it('internal module', async () => {
+    it('should not mark internal module as external', async () => {
         const pluginInstance = plugin();
         const result = await pluginInstance.resolveId('./test');
         expect(result).toBe(null);
     });
 
-    it('external built in', async () => {
+    it('should mark built-in module as external', async () => {
         const pluginInstance = plugin();
         const result = await pluginInstance.resolveId('fs');
         expect(result).toBe(false);
         expect(log).toHaveBeenCalledWith("'fs' is external", LogLevel.verbose);
     });
 
-    it('verbose', async () => {
+    it('should use info log level when verbose is true', async () => {
         const pluginInstance = plugin({ verbose: true });
         const result = await pluginInstance.resolveId('test');
         expect(result).toBe(null);
         expect(log).toHaveBeenCalledWith("'test' is not external", LogLevel.info);
     });
 
-    it('custom predicate', async () => {
+    it('should use custom external predicate', async () => {
         const external = vi.fn(() => true);
         const pluginInstance = plugin({ external });
         const result = await pluginInstance.resolveId('test', 'importer');
@@ -95,7 +95,7 @@ describe('@rollup-extras/plugin-externals', () => {
         expect(external).toHaveBeenCalledWith('test', false, 'importer');
     });
 
-    it('different plugin name (for debug)', () => {
+    it('should use different plugin name for debug', () => {
         plugin({ pluginName: 'test' });
         expect(createLogger).toHaveBeenCalledWith('test');
     });

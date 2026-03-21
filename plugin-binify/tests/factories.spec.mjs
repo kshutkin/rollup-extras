@@ -3,23 +3,23 @@ import { describe, expect, it } from 'vitest';
 import { shebang } from '../src/factories';
 
 describe('@rollup-extras/plugin-binify/factories', () => {
-    it('smoke', () => {
+    it('should be defined', () => {
         expect(shebang).toBeDefined();
     });
 
-    it('at least one new line', () => {
+    it('should add at least one new line', () => {
         expect(shebang({ shebang: 'sdfsdf' })).toEqual('sdfsdf\n');
     });
 
-    it('no new line', () => {
+    it('should not add new line if already present', () => {
         expect(shebang({ shebang: 'asdasasdasd\n' })).toEqual('asdasasdasd\n');
     });
 
-    it('preserves new lines', () => {
+    it('should preserve existing new lines', () => {
         expect(shebang({ shebang: 'asdasasdasd\n\n' })).toEqual('asdasasdasd\n\n');
     });
 
-    it("don't care about newlines in the middle but care about line ending", () => {
+    it('should only care about line ending, not newlines in the middle', () => {
         expect(shebang({ shebang: 'asdasa\n\nsdasd' })).toEqual('asdasa\n\nsdasd\n');
     });
 });

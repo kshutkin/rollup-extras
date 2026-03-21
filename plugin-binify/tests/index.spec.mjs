@@ -42,11 +42,11 @@ describe('@rollup-extras/plugin-binify', () => {
         });
     });
 
-    it('smoke', () => {
+    it('should be defined', () => {
         expect(plugin).toBeDefined();
     });
 
-    it('happy path', async () => {
+    it('should add shebang and set executable flag', async () => {
         const pluginInstance = plugin();
         const chunk = {
             type: 'chunk',
@@ -83,7 +83,7 @@ describe('@rollup-extras/plugin-binify', () => {
         expect(chunk.code).toEqual('#!/usr/bin/env node\nconst test = 1;');
     });
 
-    it('executableFlag: false', async () => {
+    it('should not set executable flag when executableFlag is false', async () => {
         const pluginInstance = plugin({ executableFlag: false });
         const chunk = {
             type: 'chunk',
@@ -118,7 +118,7 @@ describe('@rollup-extras/plugin-binify', () => {
         expect(chunk.code).toEqual('#!/usr/bin/env node\nconst test = 1;');
     });
 
-    it('win32', async () => {
+    it('should not set executable flag on win32', async () => {
         Object.defineProperty(process, 'platform', {
             value: 'win32',
         });
@@ -156,7 +156,7 @@ describe('@rollup-extras/plugin-binify', () => {
         expect(chunk.code).toEqual('#!/usr/bin/env node\nconst test = 1;');
     });
 
-    it('filters out non entry chunks by default', async () => {
+    it('should filter out non-entry chunks by default', async () => {
         const pluginInstance = plugin();
         const chunk = {
             type: 'chunk',
@@ -189,7 +189,7 @@ describe('@rollup-extras/plugin-binify', () => {
         expect(fs.chmod).toHaveBeenCalledWith('/dist2/index.js', 0o755);
     });
 
-    it('filters out assets by default', async () => {
+    it('should filter out assets by default', async () => {
         const pluginInstance = plugin();
         const chunk = {
             type: 'chunk',
@@ -222,7 +222,7 @@ describe('@rollup-extras/plugin-binify', () => {
         expect(fs.chmod).toHaveBeenCalledWith('/dist2/index.js', 0o755);
     });
 
-    it('filter can be applied', async () => {
+    it('should apply custom filter', async () => {
         const pluginInstance = plugin({ filter: () => true });
         const chunk = {
             type: 'chunk',
@@ -254,13 +254,13 @@ describe('@rollup-extras/plugin-binify', () => {
         expect(fs.chmod).toBeCalledTimes(2);
     });
 
-    it('verbose: true raises loglevel to info', async () => {
+    it('should raise log level to info when verbose is true', async () => {
         const pluginInstance = plugin({ verbose: true });
         await pluginInstance.renderStart({ dir: '/dist2' });
         expect(loggerStart).toHaveBeenCalledWith(expect.any(String), LogLevel.info);
     });
 
-    it('no dir in output options', async () => {
+    it('should use filename directly when no dir in output options', async () => {
         const pluginInstance = plugin({ verbose: true });
         await pluginInstance.renderStart({});
         await pluginInstance.writeBundle(
@@ -276,13 +276,13 @@ describe('@rollup-extras/plugin-binify', () => {
         expect(fs.chmod).toHaveBeenCalledWith('index.js', 0o755);
     });
 
-    it('different plugin name (for debug)', async () => {
+    it('should use different plugin name for debug', async () => {
         const pluginInstance = plugin({ pluginName: 'test' });
         await pluginInstance.renderStart({});
         expect(createLogger).toHaveBeenCalledWith('test');
     });
 
-    it('shebang can be changed', async () => {
+    it('should use custom shebang', async () => {
         const pluginInstance = plugin({ shebang: 'test' });
         await pluginInstance.renderStart({});
         const chunk = {
@@ -313,7 +313,7 @@ describe('@rollup-extras/plugin-binify', () => {
         expect(chunk.code).toEqual('test\nconst test = 1;');
     });
 
-    it('shebang with several lines', async () => {
+    it('should handle shebang with multiple lines', async () => {
         const pluginInstance = plugin({ shebang: 'test\n\n' });
         await pluginInstance.renderStart({});
         const chunk = {
@@ -345,7 +345,7 @@ describe('@rollup-extras/plugin-binify', () => {
         expect(chunk.map.mappings).toEqual(';;;');
     });
 
-    it('executableFlag can be changed', async () => {
+    it('should use custom executable flag value', async () => {
         const pluginInstance = plugin({ executableFlag: 0 });
         await pluginInstance.renderStart({});
         const chunk = {
@@ -376,7 +376,7 @@ describe('@rollup-extras/plugin-binify', () => {
         expect(fs.chmod).toHaveBeenCalledWith('/dist2/index.js', 0);
     });
 
-    it('logs error on fs error', async () => {
+    it('should log error on filesystem error', async () => {
         const error = 'error';
         vi.mocked(fs.chmod).mockImplementationOnce(() => {
             throw error;

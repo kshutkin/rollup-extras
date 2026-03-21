@@ -88,28 +88,28 @@ describe('@rollup-extras/plugin-serve', () => {
         vi.mocked(koaLogger).mockClear();
     });
 
-    it('smoke', () => {
+    it('should be defined', () => {
         expect(plugin).toBeDefined();
     });
 
-    it('pluginName (default)', () => {
+    it('should use default plugin name', () => {
         const pluginInstance = plugin();
         expect(pluginInstance.name).toEqual('@rollup-extras/plugin-serve');
         expect(createLogger).toHaveBeenCalledWith('@rollup-extras/plugin-serve');
     });
 
-    it('pluginName (changed)', () => {
+    it('should use changed plugin name', () => {
         const pluginInstance = plugin({ pluginName: 'test' });
         expect(pluginInstance.name).toEqual('test');
         expect(createLogger).toHaveBeenCalledWith('test');
     });
 
-    it('useWriteBundle: true', () => {
+    it('should define writeBundle when useWriteBundle is true', () => {
         const pluginInstance = plugin({ useWriteBundle: true });
         expect(pluginInstance.writeBundle).toBeDefined();
     });
 
-    it('happy path', async () => {
+    it('should start server and serve static files', async () => {
         const pluginInstance = plugin();
         await pluginInstance.outputOptions.call({ meta: { watchMode: true } });
         await pluginInstance.renderStart({ dir: 'dist' });
@@ -122,7 +122,7 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(loggerFinish).toHaveBeenCalledWith('listening on http://localhost:8080', LogLevel.info);
     });
 
-    it('happy path (two configs)', async () => {
+    it('should start server once for two configs', async () => {
         const pluginInstance = plugin();
         const additionalInstance = pluginInstance.api.addInstance();
         await pluginInstance.outputOptions.call({ meta: { watchMode: true } });
@@ -138,7 +138,7 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(loggerFinish).toHaveBeenCalledWith('listening on http://localhost:8080', LogLevel.info);
     });
 
-    it('useKoaLogger: false', async () => {
+    it('should not use koa logger when disabled', async () => {
         const pluginInstance = plugin({ useKoaLogger: false });
         await pluginInstance.outputOptions.call({ meta: { watchMode: true } });
         await pluginInstance.renderStart({ dir: 'dist' });
@@ -151,7 +151,7 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(loggerFinish).toHaveBeenCalledWith('listening on http://localhost:8080', LogLevel.info);
     });
 
-    it('customizeKoa', async () => {
+    it('should call customizeKoa callback', async () => {
         const customizeKoa = vi.fn();
         const pluginInstance = plugin({
             customizeKoa,
@@ -162,7 +162,7 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(customizeKoa).toBeCalledTimes(1);
     });
 
-    it('https', async () => {
+    it('should create HTTPS server when https options provided', async () => {
         const pluginInstance = plugin({
             https: {
                 cert: '',
@@ -176,7 +176,7 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(loggerFinish).toHaveBeenCalledWith('listening on https://localhost:8080', LogLevel.info);
     });
 
-    it('host', async () => {
+    it('should pass host to listen', async () => {
         const pluginInstance = plugin({
             host: 'localhost',
         });
@@ -187,7 +187,7 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(listenArgs).toEqual([8080, 'localhost', expect.any(Function)]);
     });
 
-    it('port', async () => {
+    it('should pass port to listen', async () => {
         const pluginInstance = plugin({
             port: 1234,
         });
@@ -198,7 +198,7 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(listenArgs).toEqual([1234, expect.any(Function)]);
     });
 
-    it('error (EADDRINUSE)', async () => {
+    it('should log error on EADDRINUSE', async () => {
         const pluginInstance = plugin();
         await pluginInstance.renderStart({ dir: 'dist' });
         await pluginInstance.writeBundle();
@@ -207,7 +207,7 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(loggerFinish).toHaveBeenCalledWith('address in use, please try another port', LogLevel.error);
     });
 
-    it('error (not EADDRINUSE)', async () => {
+    it('should throw on non-EADDRINUSE error', async () => {
         const pluginInstance = plugin();
         await pluginInstance.renderStart({ dir: 'dist' });
         await pluginInstance.writeBundle();
@@ -215,7 +215,7 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(() => errorCb({})).toThrow();
     });
 
-    it('onListen => falsy', async () => {
+    it('should log address when onListen returns falsy', async () => {
         const onListen = vi.fn();
         const pluginInstance = plugin({
             onListen,
@@ -235,7 +235,7 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(loggerFinish).toHaveBeenCalledWith('listening on http://localhost:8080', LogLevel.info);
     });
 
-    it('onListen => truthy', async () => {
+    it('should not log address when onListen returns truthy', async () => {
         const onListen = vi.fn(() => true);
         const pluginInstance = plugin({
             onListen,
@@ -255,7 +255,7 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(loggerFinish).not.toBeCalled();
     });
 
-    it('address() => string', async () => {
+    it('should handle string address from server', async () => {
         vi.mocked(createServer).mockImplementationOnce(() => ({
             listen(...args) {
                 listenArgs = args.slice();
@@ -279,7 +279,7 @@ describe('@rollup-extras/plugin-serve', () => {
         expect(loggerFinish).toHaveBeenCalledWith('listening on some address', LogLevel.info);
     });
 
-    it('non IPv6 address', async () => {
+    it('should handle non-IPv6 address', async () => {
         vi.mocked(createServer).mockImplementationOnce(() => ({
             listen(...args) {
                 listenArgs = args.slice();

@@ -4,11 +4,11 @@ import { getOptionsObject } from '../src/index.js';
 import loggerFactory from '../src/logger.js';
 
 describe('@rollup-extras/util/logger', () => {
-    it('smoke', () => {
+    it('should be defined', () => {
         expect(loggerFactory).toBeDefined();
     });
 
-    it('logger factory', () => {
+    it('should create logger via factory', () => {
         const { logger } = getOptionsObject(
             {},
             {},

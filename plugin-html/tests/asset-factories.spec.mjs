@@ -19,14 +19,14 @@ describe('@rollup-extras/plugin-html/asset-factories', () => {
         vi.mocked(createLogger).mockClear();
     });
 
-    it('smoke', () => {
+    it('should be defined', () => {
         expect(simpleES5Script).toBeDefined();
         expect(simpleES5FallbackScript).toBeDefined();
         expect(simpleModuleScript).toBeDefined();
         expect(combineAssetFactories).toBeDefined();
     });
 
-    it('simpleES5Script', () => {
+    it('should create ES5 script tag', () => {
         const factory = simpleES5Script('.js');
 
         const result1 = factory('test.js');
@@ -36,7 +36,7 @@ describe('@rollup-extras/plugin-html/asset-factories', () => {
         expect(result2).toEqual(undefined);
     });
 
-    it('simpleES5FallbackScript', () => {
+    it('should create ES5 fallback script tag with nomodule', () => {
         const factory = simpleES5FallbackScript('.js');
 
         const result1 = factory('test.js');
@@ -46,7 +46,7 @@ describe('@rollup-extras/plugin-html/asset-factories', () => {
         expect(result2).toEqual(undefined);
     });
 
-    it('simpleModuleScript', () => {
+    it('should create module script tag', () => {
         const factory = simpleModuleScript('.js');
 
         const result1 = factory('test.js');
@@ -56,7 +56,7 @@ describe('@rollup-extras/plugin-html/asset-factories', () => {
         expect(result2).toEqual(undefined);
     });
 
-    it('invalid predicate', () => {
+    it('should warn on invalid predicate', () => {
         const factory = simpleES5Script(0);
 
         const result1 = factory('test.js');
@@ -68,7 +68,7 @@ describe('@rollup-extras/plugin-html/asset-factories', () => {
         expect(logger).toHaveBeenCalledWith('0 is not valid, using noopPredicate', LogLevel.warn);
     });
 
-    it('combineAssetFactories', () => {
+    it('should combine multiple asset factories', () => {
         const factory = combineAssetFactories(simpleES5FallbackScript('.js'), simpleModuleScript('.mjs'));
 
         const result1 = factory('test.js');

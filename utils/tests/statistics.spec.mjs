@@ -3,18 +3,18 @@ import { describe, expect, it } from 'vitest';
 import statistics from '../src/statistics.js';
 
 describe('@rollup-extras/util/statistics', () => {
-    it('smoke', () => {
+    it('should be defined', () => {
         expect(statistics).toBeDefined();
     });
 
     describe('statistics non verbose', () => {
-        it('less than cap', () => {
+        it('should return items when less than cap', () => {
             const collector = statistics(false, result => JSON.stringify(result));
             collector('test1');
             collector('test2');
             expect(collector()).toEqual('["test1","test2"]');
         });
-        it('more than cap', () => {
+        it('should return count when more than cap', () => {
             const collector = statistics(false, result => JSON.stringify(result));
             collector('test1');
             collector('test2');
@@ -27,13 +27,13 @@ describe('@rollup-extras/util/statistics', () => {
     });
 
     describe('statistics verbose', () => {
-        it('less than cap', () => {
+        it('should return count when less than cap', () => {
             const collector = statistics(true, result => JSON.stringify(result));
             collector('test1');
             collector('test2');
             expect(collector()).toEqual('2');
         });
-        it('more than cap', () => {
+        it('should return count when more than cap', () => {
             const collector = statistics(true, result => JSON.stringify(result));
             collector('test1');
             collector('test2');

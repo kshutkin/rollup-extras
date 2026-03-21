@@ -18,23 +18,23 @@ vi.mock('@niceties/logger', () => ({
 }));
 
 describe('@rollup-extras/plugin-exec', () => {
-    it('smoke', () => {
+    it('should be defined', () => {
         expect(plugin).toBeDefined();
     });
 
-    it('pluginName (default)', () => {
+    it('should use default plugin name', () => {
         const pluginInstance = plugin(() => undefined);
         expect(pluginInstance.name).toEqual('@rollup-extras/plugin-exec');
         expect(createLogger).toHaveBeenCalledWith('@rollup-extras/plugin-exec');
     });
 
-    it('pluginName (changed)', () => {
+    it('should use changed plugin name', () => {
         const pluginInstance = plugin({ pluginName: 'test' });
         expect(pluginInstance.name).toEqual('test');
         expect(createLogger).toHaveBeenCalledWith('test');
     });
 
-    it('exec', async () => {
+    it('should execute callback on writeBundle', async () => {
         const exec = vi.fn();
         const pluginInstance = plugin(exec);
         await pluginInstance.renderStart({ dir: 'dist' });
@@ -42,7 +42,7 @@ describe('@rollup-extras/plugin-exec', () => {
         expect(exec).toHaveBeenCalled();
     });
 
-    it('exec empty', async () => {
+    it('should not throw when exec is undefined', async () => {
         const pluginInstance = plugin(undefined);
         await pluginInstance.renderStart({ dir: 'dist' });
         expect(() => {
@@ -50,7 +50,7 @@ describe('@rollup-extras/plugin-exec', () => {
         }).not.toThrow();
     });
 
-    it('exec context', async () => {
+    it('should provide emitFile and logger in exec context', async () => {
         const exec = vi.fn(function () {
             this.emitFile({});
             this.logger('test');

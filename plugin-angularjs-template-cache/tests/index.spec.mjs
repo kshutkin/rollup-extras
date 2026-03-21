@@ -48,24 +48,24 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
         );
     });
 
-    it('smoke', () => {
+    it('should be defined', () => {
         expect(plugin).toBeDefined();
     });
 
     describe('pluginName', () => {
-        it('default', () => {
+        it('should use default plugin name', () => {
             const pluginInstance = plugin('views/**/*.html');
             expect(pluginInstance.name).toEqual('@rollup-extras/plugin-angularjs-template-cache');
         });
 
-        it('changed', () => {
+        it('should use changed plugin name', () => {
             const pluginInstance = plugin({ templates: 'views/**/*.html', pluginName: 'test' });
             expect(pluginInstance.name).toEqual('test');
         });
     });
 
     describe('templates', () => {
-        it('no parameters', async () => {
+        it('should use default glob when no parameters provided', async () => {
             const pluginInstance = plugin();
             await pluginInstance.buildStart.apply(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -75,7 +75,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(fs.glob).toHaveBeenCalledWith('./**/*.html');
         });
 
-        it('custom - string', async () => {
+        it('should accept custom glob as a string', async () => {
             const pluginInstance = plugin('./views/**/*.html');
             await pluginInstance.buildStart.apply(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -85,7 +85,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(fs.glob).toHaveBeenCalledWith('./views/**/*.html');
         });
 
-        it('custom - array', async () => {
+        it('should accept custom glob as an array', async () => {
             const pluginInstance = plugin(['./views/**/*.html', './**/*.html']);
             await pluginInstance.buildStart.apply(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -96,7 +96,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(fs.glob).toHaveBeenCalledWith('./**/*.html');
         });
 
-        it('custom templates property - string', async () => {
+        it('should accept custom templates property as a string', async () => {
             const pluginInstance = plugin({ templates: './views/**/*.html' });
             await pluginInstance.buildStart.apply(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -106,7 +106,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(fs.glob).toHaveBeenCalledWith('./views/**/*.html');
         });
 
-        it('custom templates property - array', async () => {
+        it('should accept custom templates property as an array', async () => {
             const pluginInstance = plugin({ templates: ['./views/**/*.html', './**/*.html'] });
             await pluginInstance.buildStart.apply(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -117,7 +117,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(fs.glob).toHaveBeenCalledWith('./**/*.html');
         });
 
-        it('!isFile', async () => {
+        it('should skip non-file entries', async () => {
             vi.mocked(fs.stat).mockImplementation(() =>
                 Promise.resolve({
                     isFile: () => false,
@@ -132,7 +132,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
     });
 
     describe('rootDir', () => {
-        it('default', async () => {
+        it('should use default root directory', async () => {
             const pluginInstance = plugin();
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -141,7 +141,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(result.includes('$templateCache.put("aFolder/test2.html", "<html></html>");')).toBe(true);
         });
 
-        it('custom', async () => {
+        it('should use custom root directory', async () => {
             const pluginInstance = plugin({ rootDir: 'aFolder' });
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -150,7 +150,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(result.includes('$templateCache.put("test2.html", "<html></html>");')).toBe(true);
         });
 
-        it('transformTemplateUri', async () => {
+        it('should apply transformTemplateUri callback', async () => {
             const transformTemplateUri = vi.fn(() => 'id');
             const pluginInstance = plugin({ transformTemplateUri });
             await pluginInstance.buildStart.call(rollupContextMock);
@@ -162,7 +162,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
         });
     });
 
-    it('processHtml', async () => {
+    it('should apply processHtml callback', async () => {
         const processHtml = vi.fn(() => 'some text');
         const pluginInstance = plugin({ processHtml });
         await pluginInstance.buildStart.call(rollupContextMock);
@@ -175,7 +175,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
     });
 
     describe('angularModule', () => {
-        it('default', async () => {
+        it('should use default angular module name', async () => {
             const pluginInstance = plugin();
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -183,7 +183,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(result.includes('angular.module("templates", [])')).toBe(true);
         });
 
-        it('standalone', async () => {
+        it('should create non-standalone module when standalone is false', async () => {
             const pluginInstance = plugin({ standalone: false });
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -191,7 +191,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(result.includes('angular.module("templates")')).toBe(true);
         });
 
-        it('custom name', async () => {
+        it('should use custom angular module name', async () => {
             const pluginInstance = plugin({ angularModule: 'ngt' });
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -201,7 +201,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
     });
 
     describe('module', () => {
-        it('custom name', async () => {
+        it('should resolve custom module name', async () => {
             const pluginInstance = plugin({ module: 'ngt' });
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'ngt');
@@ -209,7 +209,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(result.includes('angular.module("templates", [])')).toBe(true);
         });
 
-        it('custom name (negative)', async () => {
+        it('should return null for non-matching module name', async () => {
             const pluginInstance = plugin({ module: 'ngt' });
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -219,7 +219,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
     });
 
     describe('watch', () => {
-        it('default', async () => {
+        it('should add watch files by default', async () => {
             const pluginInstance = plugin();
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -228,7 +228,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('aFolder/test2.html');
         });
 
-        it('off', async () => {
+        it('should not add watch files when watch is false', async () => {
             const pluginInstance = plugin({ watch: false });
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -239,7 +239,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
     });
 
     describe('logger', () => {
-        it('less than 5 templates', async () => {
+        it('should list filenames when less than 5 templates', async () => {
             const pluginInstance = plugin();
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -249,7 +249,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(loggerFinish).toHaveBeenCalledWith('inlined aFolder/test.html, aFolder/test2.html');
         });
 
-        it('more than 5 templates', async () => {
+        it('should show count when more than 5 templates', async () => {
             vi.mocked(fs.glob).mockImplementation(async function* () {
                 yield '1';
                 yield '2';
@@ -267,7 +267,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(loggerFinish).toHaveBeenCalledWith('inlined 6 templates');
         });
 
-        it('true', async () => {
+        it('should use info log level when verbose is true', async () => {
             const pluginInstance = plugin({ verbose: true });
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -275,7 +275,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(loggerStart).lastCalledWith('inlining templates', LogLevel.info);
         });
 
-        it('list-filenames', async () => {
+        it('should list filenames when verbose is list-filenames', async () => {
             const pluginInstance = plugin({ verbose: 'list-filenames' });
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -284,7 +284,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(logger).toHaveBeenCalledWith('\taFolder/test2.html → aFolder/test2.html', LogLevel.info);
         });
 
-        it('exception', async () => {
+        it('should log warning on read file exception', async () => {
             vi.mocked(fs.readFile).mockImplementationOnce(() => {
                 throw { stack: '' };
             });
@@ -299,7 +299,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             );
         });
 
-        it('missing directory exception', async () => {
+        it('should log silently on missing directory exception', async () => {
             vi.mocked(fs.readFile).mockImplementationOnce(() => {
                 throw { code: 'ENOENT', stack: '' };
             });
@@ -315,7 +315,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
         });
     });
 
-    it('useImports', async () => {
+    it('should use import statements when useImports is true', async () => {
         const pluginInstance = plugin({ useImports: true });
         await pluginInstance.buildStart.call(rollupContextMock);
         await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -324,7 +324,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
         expect(result.includes('$templateCache.put("aFolder/test.html", template0);')).toBe(true);
     });
 
-    it('autoImport - emits entry point', async () => {
+    it('should emit entry point when autoImport is true', async () => {
         const pluginInstance = plugin({ autoImport: true });
         await pluginInstance.buildStart.call(rollupContextMock);
         expect(rollupContextMock.emitFile).toHaveBeenCalledWith({ id: '\0templates:templates', type: 'chunk' });
@@ -332,7 +332,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
         await pluginInstance.load.call(rollupContextMock, '\0templates:templates');
     });
 
-    it('autoImport: false - delay glob', async () => {
+    it('should delay glob when autoImport is false', async () => {
         const pluginInstance = plugin({ autoImport: false });
         await pluginInstance.buildStart.call(rollupContextMock);
         expect(fs.glob).not.toBeCalled();
@@ -341,7 +341,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
         expect(fs.glob).toBeCalled();
     });
 
-    it('autoImport - do not delay glob', async () => {
+    it('should not delay glob when autoImport is true', async () => {
         const pluginInstance = plugin({ autoImport: true });
         await pluginInstance.buildStart.call(rollupContextMock);
         expect(fs.glob).toBeCalled();
@@ -352,7 +352,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
     });
 
     describe('importAngular', () => {
-        it('default', async () => {
+        it('should import angular by default', async () => {
             const pluginInstance = plugin();
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -360,7 +360,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(result.includes('import angular from "angular";')).toBe(true);
         });
 
-        it('false', async () => {
+        it('should not import angular when importAngular is false', async () => {
             const pluginInstance = plugin({ importAngular: false });
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -370,7 +370,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
     });
 
     describe('transformHtmlImportsToUris', () => {
-        it('default', async () => {
+        it('should not transform HTML imports by default', async () => {
             const pluginInstance = plugin();
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -381,7 +381,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(result).toBe(null);
         });
 
-        it('true', async () => {
+        it('should transform HTML imports to URIs when enabled', async () => {
             const pluginInstance = plugin({ transformHtmlImportsToUris: true });
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');
@@ -392,7 +392,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
             expect(result).toBe('export default "aFolder/test.html";');
         });
 
-        it('true + importer', async () => {
+        it('should resolve HTML imports relative to importer', async () => {
             const pluginInstance = plugin({ transformHtmlImportsToUris: true });
             await pluginInstance.buildStart.call(rollupContextMock);
             await pluginInstance.resolveId.call(rollupContextMock, 'templates');

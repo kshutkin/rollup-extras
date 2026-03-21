@@ -43,23 +43,23 @@ describe('@rollup-extras/plugin-html', () => {
         };
     });
 
-    it('smoke', () => {
+    it('should be defined', () => {
         expect(plugin).toBeDefined();
     });
 
-    it('pluginName (default)', () => {
+    it('should use default plugin name', () => {
         const pluginInstance = plugin();
         expect(pluginInstance.name).toEqual('@rollup-extras/plugin-html');
         expect(createLogger).toHaveBeenCalledWith('@rollup-extras/plugin-html');
     });
 
-    it('pluginName (changed)', () => {
+    it('should use changed plugin name', () => {
         const pluginInstance = plugin({ pluginName: 'test' });
         expect(pluginInstance.name).toEqual('test');
         expect(createLogger).toHaveBeenCalledWith('test');
     });
 
-    it('happy path', async () => {
+    it('should generate HTML with script and stylesheet', async () => {
         const pluginInstance = plugin();
 
         pluginInstance.renderStart.call(rollupContextMock, {});
@@ -86,7 +86,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('happy path multiple configs', async () => {
+    it('should handle multiple configs', async () => {
         const pluginInstance = plugin();
         const additionalInstance = pluginInstance.api.addInstance();
 
@@ -117,7 +117,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('conditional loading by default (es + iife)', async () => {
+    it('should use conditional loading by default for es + iife', async () => {
         const pluginInstance = plugin();
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -151,7 +151,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('conditional loading by default (es + umd)', async () => {
+    it('should use conditional loading by default for es + umd', async () => {
         const pluginInstance = plugin();
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -185,7 +185,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('conditional loading by default (es + umd + iife)', async () => {
+    it('should use conditional loading by default for es + umd + iife', async () => {
         const pluginInstance = plugin();
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -230,7 +230,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('conditional loading by default (es + iife) (with false)', async () => {
+    it('should not use conditional loading when disabled', async () => {
         const pluginInstance = plugin({ conditionalLoading: false });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -264,7 +264,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('conditional loading by default (iife)', async () => {
+    it('should use conditional loading for iife when enabled', async () => {
         const pluginInstance = plugin({ conditionalLoading: true });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -288,7 +288,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('sync assets factory (js)', async () => {
+    it('should use sync assets factory for js', async () => {
         const assetsFactory = vi.fn(() => '<asset/>');
         const pluginInstance = plugin({ assetsFactory });
 
@@ -327,7 +327,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('sync assets factory (js amd)', async () => {
+    it('should use sync assets factory for amd', async () => {
         const assetsFactory = vi.fn(() => ({ html: '<asset/>', head: true, type: 'amd' }));
         const pluginInstance = plugin({ assetsFactory });
 
@@ -353,7 +353,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('async assets factory (js)', async () => {
+    it('should use async assets factory for js', async () => {
         const assetsFactory = vi.fn(() => Promise.resolve('<asset/>'));
         const pluginInstance = plugin({ assetsFactory });
 
@@ -392,7 +392,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('sync assets factory (css)', async () => {
+    it('should use sync assets factory for css', async () => {
         const assetsFactory = vi.fn(() => '<asset/>');
         const pluginInstance = plugin({ assetsFactory });
 
@@ -415,7 +415,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('sync assets factory (scss)', async () => {
+    it('should use sync assets factory for scss', async () => {
         const assetsFactory = vi.fn(() => ({ html: '<asset/>', head: false, type: 'scss' }));
         const pluginInstance = plugin({ assetsFactory });
 
@@ -438,7 +438,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('async assets factory (css)', async () => {
+    it('should use async assets factory for css', async () => {
         const assetsFactory = vi.fn(() => Promise.resolve('<asset/>'));
         const pluginInstance = plugin({ assetsFactory });
 
@@ -461,7 +461,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('exception in assets factory', async () => {
+    it('should fall back to default on exception in assets factory', async () => {
         const assetsFactory = vi.fn(() => {
             throw new Error('test');
         });
@@ -486,7 +486,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('ignore (function)', async () => {
+    it('should ignore assets matching function predicate', async () => {
         const pluginInstance = plugin({ ignore: fileName => fileName.endsWith('.css') });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -508,7 +508,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('ignore (RegExp)', async () => {
+    it('should ignore assets matching RegExp', async () => {
         const pluginInstance = plugin({ ignore: /^.*css$/ });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -530,7 +530,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('ignore (boolean)', async () => {
+    it('should ignore all assets when ignore is true', async () => {
         const pluginInstance = plugin({ ignore: true });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -552,7 +552,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('ignore (string)', async () => {
+    it('should ignore assets matching string extension', async () => {
         const pluginInstance = plugin({ ignore: '.css' });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -574,7 +574,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('ignore (number)', async () => {
+    it('should warn on invalid ignore option', async () => {
         const pluginInstance = plugin({ ignore: 123 });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -597,7 +597,7 @@ describe('@rollup-extras/plugin-html', () => {
         expect(logger).toHaveBeenCalledWith('ignore option ignored because it is not a function, RegExp, string or boolean', LogLevel.warn);
     });
 
-    it('injectIntoHead (function)', async () => {
+    it('should inject into head based on function predicate', async () => {
         const assetsFactory = () => '<asset/>';
         const pluginInstance = plugin({ assetsFactory, injectIntoHead: fileName => !fileName.endsWith('.css') });
 
@@ -620,7 +620,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('injectIntoHead (RegExp)', async () => {
+    it('should inject into head based on RegExp', async () => {
         const assetsFactory = () => '<asset/>';
         const pluginInstance = plugin({ assetsFactory, injectIntoHead: /^.*js$/ });
 
@@ -643,7 +643,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('injectIntoHead (boolean)', async () => {
+    it('should inject into body when injectIntoHead is false', async () => {
         const assetsFactory = () => '<asset/>';
         const pluginInstance = plugin({ assetsFactory, injectIntoHead: false });
 
@@ -666,7 +666,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('injectIntoHead (string)', async () => {
+    it('should inject into head based on string extension', async () => {
         const assetsFactory = () => '<asset/>';
         const pluginInstance = plugin({ assetsFactory, injectIntoHead: '.css' });
 
@@ -689,7 +689,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('injectIntoHead (number)', async () => {
+    it('should warn on invalid injectIntoHead option', async () => {
         const assetsFactory = () => '<asset/>';
         const pluginInstance = plugin({ assetsFactory, injectIntoHead: 123 });
 
@@ -716,7 +716,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('outputFile', async () => {
+    it('should use custom output file name', async () => {
         const pluginInstance = plugin({ outputFile: 'main.html' });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -742,7 +742,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('template', async () => {
+    it('should use custom template string', async () => {
         const pluginInstance = plugin({ template: '<html><head>Hi!</head><body>Hello!</body></html>' });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -768,7 +768,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('emitFile: false', async () => {
+    it('should write file directly when emitFile is false', async () => {
         const pluginInstance = plugin({ emitFile: false });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -791,7 +791,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('emitFile: auto', async () => {
+    it('should auto-detect emitFile behavior', async () => {
         const pluginInstance = plugin();
 
         pluginInstance.renderStart.apply(rollupContextMock, [{ dir: 'dest' }]);
@@ -818,7 +818,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('emitFile: true', async () => {
+    it('should fall back to writeFile when emitFile is true but dir differs', async () => {
         const pluginInstance = plugin({ emitFile: true });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{ dir: 'dest' }]);
@@ -845,7 +845,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('exception in generateBundle', async () => {
+    it('should log error on exception in generateBundle', async () => {
         const pluginInstance = plugin();
 
         vi.mocked(rollupContextMock.emitFile).mockImplementationOnce(() => {
@@ -870,7 +870,7 @@ describe('@rollup-extras/plugin-html', () => {
         expect(loggerFinish).toHaveBeenCalledWith('html generation failed', LogLevel.error, expect.any(Error));
     });
 
-    it('happy path with template file', async () => {
+    it('should load template from file', async () => {
         const pluginInstance = plugin({ template: 'index.html' });
 
         await pluginInstance.buildStart.apply(rollupContextMock, [{}]);
@@ -898,7 +898,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('exception with template file', async () => {
+    it('should log warning on template file read error', async () => {
         vi.mocked(oldFs.readFileSync).mockImplementationOnce(() => {
             throw new Error('test');
         });
@@ -906,15 +906,19 @@ describe('@rollup-extras/plugin-html', () => {
         expect(logger).toHaveBeenCalledWith('error reading template', LogLevel.warn, expect.any(Error));
     });
 
-    it('exception with template file (ENOENT)', async () => {
+    it('should log warning when template file not found', async () => {
         vi.mocked(oldFs.readFileSync).mockImplementationOnce(() => {
             throw { code: 'ENOENT' };
         });
         plugin({ template: 'index.html' });
-        expect(logger).toHaveBeenCalledWith('template nor a file or string', LogLevel.warn, expect.objectContaining({ code: 'ENOENT' }));
+        expect(logger).toHaveBeenCalledWith(
+            'template is neither a file nor a string',
+            LogLevel.warn,
+            expect.objectContaining({ code: 'ENOENT' })
+        );
     });
 
-    it('exception with template file (null)', async () => {
+    it('should log warning on null template file error', async () => {
         vi.mocked(oldFs.readFileSync).mockImplementationOnce(() => {
             throw null;
         });
@@ -922,7 +926,7 @@ describe('@rollup-extras/plugin-html', () => {
         expect(logger).toHaveBeenCalledWith('error reading template', LogLevel.warn, null);
     });
 
-    it('exception with template file (on reread)', async () => {
+    it('should log warning on template file reread error', async () => {
         const pluginInstance = plugin({ template: 'index.html' });
         vi.mocked(fs.readFile).mockImplementationOnce(() => {
             throw new Error('test');
@@ -934,7 +938,7 @@ describe('@rollup-extras/plugin-html', () => {
         expect(logger).toHaveBeenCalledWith('error reading template', LogLevel.warn, expect.any(Error));
     });
 
-    it('exception with template file (on reread, ENOENT)', async () => {
+    it('should log warning when template file not found on reread', async () => {
         const pluginInstance = plugin({ template: 'index.html' });
         vi.mocked(fs.readFile).mockImplementationOnce(() => {
             throw { code: 'ENOENT' };
@@ -943,10 +947,14 @@ describe('@rollup-extras/plugin-html', () => {
         await pluginInstance.buildStart.apply(rollupContextMock, [{}]);
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
 
-        expect(logger).toHaveBeenCalledWith('template nor a file or string', LogLevel.warn, expect.objectContaining({ code: 'ENOENT' }));
+        expect(logger).toHaveBeenCalledWith(
+            'template is neither a file nor a string',
+            LogLevel.warn,
+            expect.objectContaining({ code: 'ENOENT' })
+        );
     });
 
-    it('exception with template file (on reread, null)', async () => {
+    it('should log warning on null template file reread error', async () => {
         const pluginInstance = plugin({ template: 'index.html' });
         vi.mocked(fs.readFile).mockImplementationOnce(() => {
             throw null;
@@ -958,7 +966,7 @@ describe('@rollup-extras/plugin-html', () => {
         expect(logger).toHaveBeenCalledWith('error reading template', LogLevel.warn, null);
     });
 
-    it('empty template from file', async () => {
+    it('should use default template when file is empty', async () => {
         vi.mocked(oldFs.readFileSync).mockImplementationOnce(() => {
             return '';
         });
@@ -986,7 +994,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('empty template from file and templateFactory', async () => {
+    it('should use templateFactory with file content', async () => {
         vi.mocked(oldFs.readFileSync).mockImplementationOnce(() => {
             return 'html';
         });
@@ -1014,7 +1022,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('empty template from file, watch = false', async () => {
+    it('should use default template when file is empty and watch is false', async () => {
         vi.mocked(fs.readFile).mockImplementationOnce(() => {
             return Promise.resolve('');
         });
@@ -1042,7 +1050,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('empty template from file and templateFactory, watch = false', async () => {
+    it('should use templateFactory with file content and watch false', async () => {
         vi.mocked(fs.readFile).mockImplementationOnce(() => {
             return Promise.resolve('html');
         });
@@ -1071,7 +1079,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('happy path with template file and watch = false', async () => {
+    it('should load template from file with watch false', async () => {
         const pluginInstance = plugin({ template: 'index.html', watch: false });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -1097,7 +1105,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('happy path multiple configs and template file', async () => {
+    it('should handle multiple configs with template file', async () => {
         const pluginInstance = plugin({ template: 'index.html' });
         const additionalInstance = pluginInstance.api.addInstance();
 
@@ -1130,7 +1138,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('happy path multiple configs and template file and watch=false', async () => {
+    it('should handle multiple configs with template file and watch false', async () => {
         const pluginInstance = plugin({ template: 'index.html', watch: false });
         const additionalInstance = pluginInstance.api.addInstance();
 
@@ -1162,7 +1170,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('templateFactory', async () => {
+    it('should call templateFactory with template and assets', async () => {
         const templateFactory = vi.fn(() => 'test');
         const pluginInstance = plugin({ template: 'index.html', watch: false, templateFactory });
         const additionalInstance = pluginInstance.api.addInstance();
@@ -1202,7 +1210,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('defaultTemplateFactory', async () => {
+    it('should use defaultTemplateFactory when passed through', async () => {
         const templateFactory = vi.fn((template, assets, fn) => fn(template, assets));
         const pluginInstance = plugin({ template: 'index.html', watch: false, templateFactory });
         const additionalInstance = pluginInstance.api.addInstance();
@@ -1232,7 +1240,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('useEmittedTemplate: default', async () => {
+    it('should use emitted template by default', async () => {
         const pluginInstance = plugin();
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -1262,7 +1270,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('useEmittedTemplate: default + template', async () => {
+    it('should prefer custom template over emitted template', async () => {
         const pluginInstance = plugin({ template: '<!DOCTYPE html><html><head></head><body>Custom Template</body></html>' });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -1292,7 +1300,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('useEmittedTemplate: default (chunk)', async () => {
+    it('should use emitted template from chunk', async () => {
         const pluginInstance = plugin();
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -1322,7 +1330,7 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('useEmittedTemplate: false', async () => {
+    it('should not use emitted template when disabled', async () => {
         const pluginInstance = plugin({ useEmittedTemplate: false });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{}]);
@@ -1352,12 +1360,12 @@ describe('@rollup-extras/plugin-html', () => {
         );
     });
 
-    it('useWriteBundle', () => {
+    it('should define writeBundle when useWriteBundle is true', () => {
         const pluginInstance = plugin({ useWriteBundle: true });
         expect(pluginInstance.writeBundle).toBeDefined();
     });
 
-    it('verbose', async () => {
+    it('should use info log level when verbose is true', async () => {
         const pluginInstance = plugin({ verbose: true, emitFile: true });
 
         pluginInstance.renderStart.apply(rollupContextMock, [{ dir: 'dest' }]);
