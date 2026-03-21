@@ -72,7 +72,7 @@ export default function (options = defaultTemplatesGlob) {
         importAngular,
         transformHtmlImportsToUris,
         angularModule,
-        module: module_,
+        module,
         standalone,
         verbose,
         logger,
@@ -81,7 +81,7 @@ export default function (options = defaultTemplatesGlob) {
         useImports,
     } = normalizedOptions;
 
-    const prefixedModuleName = templatesPrefix + module_;
+    const prefixedModuleName = templatesPrefix + module;
 
     return /** @type {Plugin} */ ({
         name: pluginName,
@@ -103,7 +103,7 @@ export default function (options = defaultTemplatesGlob) {
                 return { id: templatePrefix + (importer ? path.join(path.dirname(importer), id) : id), moduleSideEffects: false };
             }
 
-            if (id === module_) {
+            if (id === module) {
                 scanPromise = scanForTemplates.apply(this);
                 return { id: prefixedModuleName, moduleSideEffects: standalone };
             }
@@ -175,7 +175,7 @@ export default function (options = defaultTemplatesGlob) {
                             return;
                         }
                         templatesMap.set(templateUri, escapeString(processHtml((await fs.readFile(fileName)).toString())));
-                    } catch (/** @type {any} */ e) {
+                    } catch (e) {
                         const loglevel = /** @type {{ code: string }} */ (e).code === 'ENOENT' ? undefined : LogLevel.warn;
                         logger(`error reading file ${fileName}`, loglevel, e);
                         return;
