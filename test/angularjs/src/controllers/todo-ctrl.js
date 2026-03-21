@@ -7,7 +7,7 @@
  */
 
 // biome-ignore lint/complexity/useArrowFunction: angular requires this
-angular.module('todomvc').controller('TodoCtrl', function($scope, $routeParams, $filter, store) {
+angular.module('todomvc').controller('TodoCtrl', function ($scope, $routeParams, $filter, store) {
     var todos = store.todos;
     $scope.todos = todos;
 

@@ -46,8 +46,7 @@ export default function (options = {}) {
         'dirs',
         factories
     );
-    const { pluginName, useWriteBundle, port, host, https, useLogger, customize, staticOptions, onListen, logger } =
-        normalizedOptions;
+    const { pluginName, useWriteBundle, port, host, https, useLogger, customize, staticOptions, onListen, logger } = normalizedOptions;
     const instance = multiConfigPluginBase(useWriteBundle, pluginName, serve);
 
     let { dirs } = normalizedOptions,

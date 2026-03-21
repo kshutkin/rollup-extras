@@ -1,10 +1,9 @@
 import { createServer as createHttpsServer } from 'node:https';
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { createAdaptorServer } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { logger as honoLogger } from 'hono/logger';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createLogger, LogLevel } from '@niceties/logger';
 
