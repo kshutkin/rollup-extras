@@ -44,7 +44,7 @@
     "dependencies": {
         "@niceties/logger": "^2.1.0",
         "is-builtin-module": "^3.2.0",
-        "pkg-dir": "5.0.0",
+        "pkg-dir": "9.0.0",
         "@rollup-extras/utils": "workspace:^"
     },
     "peerDependencies": {
