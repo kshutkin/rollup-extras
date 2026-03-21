@@ -1,31 +1,31 @@
-import { createServer } from 'node:http';
 import { createServer as createHttpsServer } from 'node:https';
 
 /**
  * @import { Server } from 'node:http'
  * @import { AddressInfo } from 'node:net'
  * @import { NormalizedInputOptions, NormalizedOutputOptions, Plugin, PluginContext } from 'rollup'
- * @import serve from 'koa-static'
+ * @import { ServerType } from '@hono/node-server'
  */
 
 /**
- * @typedef {{ pluginName?: string, useWriteBundle?: boolean, dirs?: string | string[], port?: number, useKoaLogger?: boolean, koaStaticOptions?: serve.Options, host?: string, https?: { cert: string, key: string, ca?: string }, customizeKoa?: (koa: Koa) => void, onListen?: (server: Server) => void | true }} ServePluginOptionsObject
+ * @typedef {{ pluginName?: string, useWriteBundle?: boolean, dirs?: string | string[], port?: number, useLogger?: boolean, staticOptions?: object, host?: string, https?: { cert: string, key: string, ca?: string }, customize?: (app: Hono) => void, onListen?: (server: Server) => true | void }} ServePluginOptionsObject
  */
 
 /**
  * @typedef {ServePluginOptionsObject | string | string[]} ServePluginOptions
  */
 
-import Koa from 'koa';
-import koaLogger from 'koa-logger';
-import serveStatic from 'koa-static';
+import { createAdaptorServer } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
+import { Hono } from 'hono';
+import { logger as honoLogger } from 'hono/logger';
 
 import { LogLevel } from '@niceties/logger';
 import logger from '@rollup-extras/utils/logger';
 import { multiConfigPluginBase } from '@rollup-extras/utils/multi-config-plugin-base';
 import { getOptions } from '@rollup-extras/utils/options';
 
-/** @type {Server | undefined} */
+/** @type {ServerType | undefined} */
 let globalServer;
 
 const factories = { logger };
@@ -41,12 +41,12 @@ export default function (options = {}) {
             pluginName: '@rollup-extras/plugin-serve',
             useWriteBundle: true,
             port: 8080,
-            useKoaLogger: true,
+            useLogger: true,
         },
         'dirs',
         factories
     );
-    const { pluginName, useWriteBundle, port, host, https, useKoaLogger, customizeKoa, koaStaticOptions, onListen, logger } =
+    const { pluginName, useWriteBundle, port, host, https, useLogger, customize, staticOptions, onListen, logger } =
         normalizedOptions;
     const instance = multiConfigPluginBase(useWriteBundle, pluginName, serve);
 
@@ -88,25 +88,28 @@ export default function (options = {}) {
             started = true;
 
             if (globalServer) {
-                await new Promise(resolve => /** @type {Server} */ (globalServer).close(resolve));
+                await new Promise(resolve => /** @type {ServerType} */ (globalServer).close(resolve));
                 globalServer = undefined;
             }
 
-            const app = new Koa();
+            const app = new Hono();
 
-            if (customizeKoa) {
-                customizeKoa(app);
+            if (customize) {
+                customize(app);
             }
 
-            if (useKoaLogger) {
-                app.use(koaLogger());
+            if (useLogger) {
+                app.use('*', honoLogger());
             }
 
             for (const dir of /** @type {string[]} */ (dirs)) {
-                app.use(serveStatic(dir, koaStaticOptions));
+                app.use('*', serveStatic({ root: dir, ...staticOptions }));
             }
 
-            const server = https ? createHttpsServer(https, app.callback()) : createServer(app.callback());
+            const server = createAdaptorServer({
+                fetch: app.fetch,
+                ...(https ? { createServer: createHttpsServer, serverOptions: https } : {}),
+            });
             globalServer = server;
 
             const listenCb = () => internalOnListen(server);
@@ -128,10 +131,10 @@ export default function (options = {}) {
     }
 
     /**
-     * @param {Server} server
+     * @param {ServerType} server
      */
     function internalOnListen(server) {
-        if (!onListen || !onListen(server)) {
+        if (!onListen || !onListen(/** @type {Server} */ (server))) {
             logger.finish(`listening on ${linkFromAddress(server.address(), !!https)}`, LogLevel.info);
         }
     }

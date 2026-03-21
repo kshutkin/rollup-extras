@@ -1,7 +1,7 @@
 import type { Server } from 'node:http';
 
-import type Koa from 'koa';
-import type { Options as KoaStaticOptions } from 'koa-static';
+import type { ServeStaticOptions } from '@hono/node-server/serve-static';
+import type { Hono } from 'hono';
 import type { Plugin } from 'rollup';
 
 export type ServePluginOptionsObject = {
@@ -9,15 +9,15 @@ export type ServePluginOptionsObject = {
     useWriteBundle?: boolean;
     dirs?: string | string[];
     port?: number;
-    useKoaLogger?: boolean;
-    koaStaticOptions?: KoaStaticOptions;
+    useLogger?: boolean;
+    staticOptions?: Omit<ServeStaticOptions, 'root' | 'path'>;
     host?: string;
     https?: {
         cert: string;
         key: string;
         ca?: string;
     };
-    customizeKoa?: (koa: Koa) => void;
+    customize?: (app: Hono) => void;
     onListen?: (server: Server) => undefined | true;
 };
 

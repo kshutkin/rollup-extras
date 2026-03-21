@@ -1,12 +1,10 @@
-import { createServer } from 'node:http';
 import { createServer as createHttpsServer } from 'node:https';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import 'koa';
-
-import koaLogger from 'koa-logger';
-import serveStatic from 'koa-static';
+import { createAdaptorServer } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
+import { logger as honoLogger } from 'hono/logger';
 
 import { createLogger, LogLevel } from '@niceties/logger';
 
@@ -14,8 +12,8 @@ import plugin from '../src';
 
 let listenArgs, errorCb;
 
-vi.mock('http', () => ({
-    createServer: vi.fn(() => ({
+vi.mock('@hono/node-server', () => ({
+    createAdaptorServer: vi.fn(() => ({
         listen(...args) {
             listenArgs = args.slice();
             args.pop()(this);
@@ -35,30 +33,12 @@ vi.mock('http', () => ({
         },
     })),
 }));
-vi.mock('https', () => ({
-    createServer: vi.fn(() => ({
-        listen(...args) {
-            listenArgs = args.slice();
-            args.pop()(this);
-        },
-        on(_event, cb) {
-            errorCb = cb;
-        },
-        address() {
-            return {
-                address: '::',
-                port: 8080,
-                family: 'IPv6',
-            };
-        },
-        close(cb) {
-            cb();
-        },
-    })),
+vi.mock('node:https', () => ({
+    createServer: vi.fn(),
 }));
-vi.mock('koa', () => ({
-    default: class {
-        callback() {
+vi.mock('hono', () => ({
+    Hono: class {
+        fetch() {
             /**/
         }
         use() {
@@ -66,8 +46,12 @@ vi.mock('koa', () => ({
         }
     },
 }));
-vi.mock('koa-logger');
-vi.mock('koa-static');
+vi.mock('hono/logger', () => ({
+    logger: vi.fn(() => 'hono-logger-middleware'),
+}));
+vi.mock('@hono/node-server/serve-static', () => ({
+    serveStatic: vi.fn(options => options),
+}));
 
 let loggerFinish;
 
@@ -84,8 +68,12 @@ vi.mock('@niceties/logger', () => ({
 describe('@rollup-extras/plugin-serve', () => {
     beforeEach(() => {
         vi.mocked(createLogger).mockClear();
-        vi.mocked(createServer).mockClear();
-        vi.mocked(koaLogger).mockClear();
+        vi.mocked(createAdaptorServer).mockClear();
+        vi.mocked(createHttpsServer).mockClear();
+        vi.mocked(honoLogger).mockClear();
+        vi.mocked(serveStatic).mockClear();
+        listenArgs = undefined;
+        errorCb = undefined;
     });
 
     it('should be defined', () => {
@@ -115,10 +103,11 @@ describe('@rollup-extras/plugin-serve', () => {
         await pluginInstance.renderStart({ dir: 'dist' });
         await pluginInstance.writeBundle();
 
-        expect(createServer).toBeCalledTimes(1);
+        expect(createAdaptorServer).toBeCalledTimes(1);
         expect(createHttpsServer).not.toBeCalled();
-        expect(koaLogger).toBeCalled();
-        expect(serveStatic).toHaveBeenCalledWith('dist', undefined);
+        expect(createAdaptorServer).toHaveBeenCalledWith({ fetch: expect.any(Function) });
+        expect(honoLogger).toBeCalled();
+        expect(serveStatic).toHaveBeenCalledWith({ root: 'dist' });
         expect(loggerFinish).toHaveBeenCalledWith('listening on http://localhost:8080', LogLevel.info);
     });
 
@@ -131,35 +120,35 @@ describe('@rollup-extras/plugin-serve', () => {
         await pluginInstance.writeBundle();
         await additionalInstance.writeBundle();
 
-        expect(createServer).toBeCalledTimes(1);
+        expect(createAdaptorServer).toBeCalledTimes(1);
         expect(createHttpsServer).not.toBeCalled();
-        expect(koaLogger).toBeCalled();
-        expect(serveStatic).toHaveBeenCalledWith('dist', undefined);
+        expect(honoLogger).toBeCalled();
+        expect(serveStatic).toHaveBeenCalledWith({ root: 'dist' });
         expect(loggerFinish).toHaveBeenCalledWith('listening on http://localhost:8080', LogLevel.info);
     });
 
-    it('should not use koa logger when disabled', async () => {
-        const pluginInstance = plugin({ useKoaLogger: false });
+    it('should not use logger when disabled', async () => {
+        const pluginInstance = plugin({ useLogger: false });
         await pluginInstance.outputOptions.call({ meta: { watchMode: true } });
         await pluginInstance.renderStart({ dir: 'dist' });
         await pluginInstance.writeBundle();
 
-        expect(createServer).toBeCalledTimes(1);
+        expect(createAdaptorServer).toBeCalledTimes(1);
         expect(createHttpsServer).not.toBeCalled();
-        expect(koaLogger).not.toBeCalled();
-        expect(serveStatic).toHaveBeenCalledWith('dist', undefined);
+        expect(honoLogger).not.toBeCalled();
+        expect(serveStatic).toHaveBeenCalledWith({ root: 'dist' });
         expect(loggerFinish).toHaveBeenCalledWith('listening on http://localhost:8080', LogLevel.info);
     });
 
-    it('should call customizeKoa callback', async () => {
-        const customizeKoa = vi.fn();
+    it('should call customize callback', async () => {
+        const customize = vi.fn();
         const pluginInstance = plugin({
-            customizeKoa,
+            customize,
         });
         await pluginInstance.renderStart({ dir: 'dist' });
         await pluginInstance.writeBundle();
 
-        expect(customizeKoa).toBeCalledTimes(1);
+        expect(customize).toBeCalledTimes(1);
     });
 
     it('should create HTTPS server when https options provided', async () => {
@@ -172,7 +161,14 @@ describe('@rollup-extras/plugin-serve', () => {
         await pluginInstance.renderStart({ dir: 'dist' });
         await pluginInstance.writeBundle();
 
-        expect(createHttpsServer).toBeCalledTimes(1);
+        expect(createAdaptorServer).toHaveBeenCalledWith({
+            fetch: expect.any(Function),
+            createServer: createHttpsServer,
+            serverOptions: {
+                cert: '',
+                key: '',
+            },
+        });
         expect(loggerFinish).toHaveBeenCalledWith('listening on https://localhost:8080', LogLevel.info);
     });
 
@@ -183,7 +179,7 @@ describe('@rollup-extras/plugin-serve', () => {
         await pluginInstance.renderStart({ dir: 'dist' });
         await pluginInstance.writeBundle();
 
-        expect(createServer).toBeCalledTimes(1);
+        expect(createAdaptorServer).toBeCalledTimes(1);
         expect(listenArgs).toEqual([8080, 'localhost', expect.any(Function)]);
     });
 
@@ -194,7 +190,7 @@ describe('@rollup-extras/plugin-serve', () => {
         await pluginInstance.renderStart({ dir: 'dist' });
         await pluginInstance.writeBundle();
 
-        expect(createServer).toBeCalledTimes(1);
+        expect(createAdaptorServer).toBeCalledTimes(1);
         expect(listenArgs).toEqual([1234, expect.any(Function)]);
     });
 
@@ -256,7 +252,7 @@ describe('@rollup-extras/plugin-serve', () => {
     });
 
     it('should handle string address from server', async () => {
-        vi.mocked(createServer).mockImplementationOnce(() => ({
+        vi.mocked(createAdaptorServer).mockImplementationOnce(() => ({
             listen(...args) {
                 listenArgs = args.slice();
                 args.pop()(this);
@@ -280,7 +276,7 @@ describe('@rollup-extras/plugin-serve', () => {
     });
 
     it('should handle non-IPv6 address', async () => {
-        vi.mocked(createServer).mockImplementationOnce(() => ({
+        vi.mocked(createAdaptorServer).mockImplementationOnce(() => ({
             listen(...args) {
                 listenArgs = args.slice();
                 args.pop()(this);

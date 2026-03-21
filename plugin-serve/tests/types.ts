@@ -4,8 +4,7 @@ import type { Server } from 'node:http';
 
 import serve from '@rollup-extras/plugin-serve';
 
-import type Koa from 'koa';
-import type { Options as KoaStaticOptions } from 'koa-static';
+import type { Hono } from 'hono';
 import type { Plugin } from 'rollup';
 
 // --- default call ---
@@ -24,35 +23,38 @@ const plugin4: Plugin = serve({
     dirs: ['dist'],
     port: 3000,
     host: 'localhost',
-    useKoaLogger: false,
+    useLogger: false,
     https: {
         cert: 'cert.pem',
         key: 'key.pem',
         ca: 'ca.pem',
     },
-    koaStaticOptions: { maxage: 1000, defer: true },
-    customizeKoa: koa => {},
-    onListen: server => {},
+    staticOptions: { precompressed: true },
+    customize: app => {},
+    onListen: server => undefined,
 });
 
 // --- with partial options ---
 const plugin5: Plugin = serve({ port: 9000 });
 const plugin6: Plugin = serve({ dirs: 'public' });
 
-// --- with koaStaticOptions ---
-const plugin7: Plugin = serve({ koaStaticOptions: { defer: true } });
+// --- with staticOptions ---
+const plugin7: Plugin = serve({ staticOptions: { precompressed: true } });
 const plugin8: Plugin = serve({
     dirs: 'public',
-    koaStaticOptions: { maxage: 60000, hidden: false, gzip: true },
+    staticOptions: { rewriteRequestPath: (path: string) => path.replace(/^\/assets/, '') },
 });
 
 // --- verify callback parameter types ---
 serve({
-    customizeKoa: (koa: Koa) => {
-        koa.use(async (ctx, next) => next());
+    customize: (app: Hono) => {
+        app.use('*', async (_c, next) => {
+            await next();
+        });
     },
     onListen: (server: Server) => {
         server.close();
+        return undefined;
     },
 });
 
@@ -66,8 +68,8 @@ serve(123);
 // @ts-expect-error - boolean is not valid
 serve(true);
 
-// @ts-expect-error - koaStaticOptions should not accept a string
-serve({ koaStaticOptions: 'invalid' });
+// @ts-expect-error - staticOptions should not accept a string
+serve({ staticOptions: 'invalid' });
 
-// @ts-expect-error - koaStaticOptions should not accept a number
-serve({ koaStaticOptions: 42 });
+// @ts-expect-error - staticOptions should not accept a number
+serve({ staticOptions: 42 });
