@@ -1,11 +1,11 @@
 /**
- * @import { DefaultsFactory } from './index.js'
+ * @import { DefaultsFactory, Result } from './index.js'
  */
 
 /**
  * @template {string | string[] | undefined | Record<string, unknown> | Record<string, unknown>[]} T
  * @template D
- * @template {DefaultsFactory<any>} F
+ * @template {DefaultsFactory<Record<string, unknown>>} F
  * @template {string} C
  * @param {T | undefined} options
  * @param {D | undefined} defaults
@@ -15,7 +15,7 @@
 export function getOptions(options, defaults, field, factory) {
     const newOptions = recursiveArrayOptions(options, field);
 
-    return getOptionsObject(/** @type {any} */ (newOptions ? newOptions : options), defaults, factory);
+    return getOptionsObject(/** @type {Record<string, unknown>} */ (newOptions ?? options), defaults, factory);
 }
 
 /**
@@ -31,9 +31,18 @@ function recursiveArrayOptions(options, field) {
     } else if (Array.isArray(options)) {
         return { [field]: options };
     } else if (typeof options === 'object') {
+        const optionsObj = /** @type {Record<string, unknown>} */ (options);
         return field in options
-            ? { .../** @type {any} */ (options), ...recursiveArrayOptions(/** @type {any} */ (options)[field], field) }
-            : /** @type {any} */ (options);
+            ? {
+                  ...optionsObj,
+                  ...recursiveArrayOptions(
+                      /** @type {string | string[] | undefined | Record<string, unknown> | Record<string, unknown>[]} */ (
+                          optionsObj[field]
+                      ),
+                      field
+                  ),
+              }
+            : optionsObj;
     }
     console.warn(`cannot process options: '${options}', reverting to defaults`);
 }
@@ -45,7 +54,7 @@ function recursiveArrayOptions(options, field) {
  * @param {T} options
  * @param {D} [defaults]
  * @param {F} [factory]
- * @returns {any}
+ * @returns {Result<T, F> & D}
  */
 export function getOptionsObject(options, defaults, factory) {
     const result = { ...defaults, ...options };
@@ -56,5 +65,5 @@ export function getOptionsObject(options, defaults, factory) {
         }
     }
 
-    return result;
+    return /** @type {Result<T, F> & D} */ (/** @type {unknown} */ (result));
 }

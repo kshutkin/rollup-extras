@@ -35,7 +35,12 @@ import statistics from '@rollup-extras/utils/statistics';
 
 /** @typedef {ReturnType<typeof createLogger>} Logger */
 
-const factories = /** @type {any} */ ({ targets, logger });
+const factories = {
+    targets,
+    logger: /** @type {(options: Record<string, unknown>, field: string) => ReturnType<typeof createLogger>} */ (
+        /** @type {unknown} */ (logger)
+    ),
+};
 
 const listFilenames = 'list-filenames';
 
@@ -150,9 +155,9 @@ export default function (options) {
                         if (emitFiles) {
                             source = await readFile(fileName);
                         }
-                    } catch (/** @type {any} */ e) {
+                    } catch (/** @type {unknown} */ e) {
                         const loglevel = /** @type {{ code: string }} */ (e).code === 'ENOENT' ? undefined : LogLevel.warn;
-                        logger(`error reading file ${fileName}`, loglevel, e);
+                        logger(`error reading file ${fileName}`, loglevel, /** @type {Error | undefined} */ (e));
                         return;
                     }
                     for (const dest of fileDesc.dest) {
@@ -209,24 +214,24 @@ function normalizeSlash(dir) {
  * @returns {SingleTargetDesc[]}
  */
 function targets(options, field) {
-    let targets = /** @type {any} */ (options)[field];
-    if (targets == null) {
-        targets = [options];
-    }
-    targets = targets
-        .map((/** @type {any} */ item) => {
-            if (item) {
-                if (typeof item === 'string') {
-                    return { src: item };
+    const optionsRecord = /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (options));
+    const rawTargets = /** @type {(string | SingleTargetDesc)[] | undefined} */ (optionsRecord[field]);
+    const normalizedTargets = rawTargets ?? [/** @type {SingleTargetDesc} */ (/** @type {unknown} */ (options))];
+    return /** @type {SingleTargetDesc[]} */ (
+        normalizedTargets
+            .map((/** @type {string | SingleTargetDesc} */ item) => {
+                if (item) {
+                    if (typeof item === 'string') {
+                        return { src: item };
+                    }
+                    if (typeof item === 'object' && 'src' in item) {
+                        return item;
+                    }
                 }
-                if (typeof item === 'object' && 'src' in item) {
-                    return item;
-                }
-            }
-            return undefined;
-        })
-        .filter(Boolean);
-    return targets;
+                return undefined;
+            })
+            .filter(Boolean)
+    );
 }
 
 /**

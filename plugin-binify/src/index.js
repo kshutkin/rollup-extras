@@ -18,7 +18,7 @@ import { count } from './utils.js';
 
 /** @typedef {ReturnType<typeof createLogger>} Logger */
 
-const factories = /** @type {any} */ ({ logger, shebang });
+const factories = { logger, shebang };
 
 /**
  * @param {BinifyPluginOptions} [options]

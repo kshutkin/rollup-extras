@@ -171,9 +171,9 @@ export default function (options = {}) {
             logger.start(`cleaning '${normalizedDir}'`, verbose ? LogLevel.info : LogLevel.verbose);
             await rm(normalizedDir, { recursive: true });
             logger.finish(`cleaned '${normalizedDir}'`);
-        } catch (/** @type {any} */ e) {
+        } catch (/** @type {unknown} */ e) {
             const loglevel = /** @type {{ code: string }} */ (e).code === 'ENOENT' ? undefined : LogLevel.warn;
-            logger.finish(`failed cleaning '${normalizedDir}'`, loglevel, e);
+            logger.finish(`failed cleaning '${normalizedDir}'`, loglevel, /** @type {Error | undefined} */ (e));
         }
     }
 

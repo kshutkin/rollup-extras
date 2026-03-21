@@ -74,7 +74,11 @@ const defaults = {
     ),
 };
 
-const factories = { logger, injectIntoHead: /** @type {any} */ (predicateFactory), ignore: /** @type {any} */ (predicateFactory) };
+const factories = {
+    logger,
+    injectIntoHead: /** @type {(options: Partial<HtmlPluginOptions>, field: string) => AssetPredicate} */ (predicateFactory),
+    ignore: /** @type {(options: Partial<HtmlPluginOptions>, field: string) => AssetPredicate} */ (predicateFactory),
+};
 
 /**
  * @param {HtmlPluginOptions} [options]

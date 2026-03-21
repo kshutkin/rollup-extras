@@ -22,7 +22,7 @@ import statistics from '@rollup-extras/utils/statistics';
 
 const listFilenames = 'list-filenames';
 
-const factories = /** @type {any} */ ({ logger });
+const factories = { logger };
 
 const templatesPrefix = '\0templates:';
 const templatePrefix = '\0template:';
