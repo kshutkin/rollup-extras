@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { globParent } from '../src/glob.js';
+import globParent from 'glob-parent';
 
 describe('globParent', () => {
     it('should return parent directory for glob pattern', () => {
