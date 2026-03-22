@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import globParent from 'glob-parent';
+import { describe, expect, it } from 'vitest';
 
 describe('globParent', () => {
     it('should return parent directory for glob pattern', () => {
