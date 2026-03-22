@@ -1,5 +1,19 @@
 Changelog
 
+## 2.0.0
+
+### Major Changes
+
+- 1fc485c: Changes:
+  - ship ESM only
+  - support rollup 4+ only
+  - upgrade @niceties/logger to ^2.1.0
+
+### Patch Changes
+
+- Updated dependencies [1fc485c]
+  - @rollup-extras/utils@2.0.0
+
 ## 1.1.10
 
 ### Patch Changes

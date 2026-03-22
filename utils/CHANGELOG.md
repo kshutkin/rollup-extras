@@ -1,5 +1,14 @@
 Changelog
 
+## 2.0.0
+
+### Major Changes
+
+- 1fc485c: Changes:
+  - ship ESM only
+  - support rollup 4+ only
+  - upgrade @niceties/logger to ^2.1.0
+
 ## 1.4.6
 
 ### Patch Changes
