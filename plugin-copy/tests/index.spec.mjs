@@ -628,4 +628,58 @@ describe('@rollup-extras/plugin-copy', () => {
         await pluginInstance.buildStart.apply(rollupContextMock);
         expect(rollupContextMock.emitFile).toBeCalledTimes(0);
     });
+
+    it('should handle literal file paths (no glob characters)', async () => {
+        vi.mocked(fs.glob).mockImplementation(async function* (pattern) {
+            yield /** @type {string} */ (pattern);
+        });
+        const pluginInstance = plugin({ targets: ['src/test.css', 'src/index2.js'], verbose: 'list-filenames' });
+        await pluginInstance.buildStart.apply(rollupContextMock);
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
+            expect.objectContaining({
+                fileName: 'test.css',
+                source: '',
+                type: 'asset',
+            })
+        );
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
+            expect.objectContaining({
+                fileName: 'index2.js',
+                source: '',
+                type: 'asset',
+            })
+        );
+        expect(logger).toHaveBeenCalledWith('\tsrc/test.css → test.css', LogLevel.info);
+        expect(logger).toHaveBeenCalledWith('\tsrc/index2.js → index2.js', LogLevel.info);
+    });
+
+    it('should handle nested literal file path', async () => {
+        vi.mocked(fs.glob).mockImplementation(async function* (pattern) {
+            yield /** @type {string} */ (pattern);
+        });
+        const pluginInstance = plugin('src/test/index.html');
+        await pluginInstance.buildStart.apply(rollupContextMock);
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
+            expect.objectContaining({
+                fileName: 'index.html',
+                source: '',
+                type: 'asset',
+            })
+        );
+    });
+
+    it('should handle literal file path with dest', async () => {
+        vi.mocked(fs.glob).mockImplementation(async function* (pattern) {
+            yield /** @type {string} */ (pattern);
+        });
+        const pluginInstance = plugin({ src: 'src/test.css', dest: 'vendor' });
+        await pluginInstance.buildStart.apply(rollupContextMock);
+        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
+            expect.objectContaining({
+                fileName: 'vendor/test.css',
+                source: '',
+                type: 'asset',
+            })
+        );
+    });
 });
