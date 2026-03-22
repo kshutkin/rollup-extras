@@ -116,4 +116,17 @@ export default [
             sourcemap: true,
         },
     },
+    {
+        input,
+        output: {
+            format: 'es',
+            dir: './dest6',
+        },
+        plugins: [
+            clean.api.addInstance(),
+            copy({ src: './assets/**/*.json', exclude: './assets/bFolder/**' }),
+            htmlPluginInstance.api.addInstance(),
+            server.api.addInstance(),
+        ],
+    },
 ];
