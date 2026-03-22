@@ -2,7 +2,9 @@ import { constants } from 'node:fs';
 import { copyFile, mkdir, readFile, stat } from 'node:fs/promises';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 
-import { globFiles, globParent } from './glob.js';
+import globParent from 'glob-parent';
+
+import { globFiles } from './glob.js';
 
 /**
  * @import { PluginContext, Plugin, EmittedFile } from 'rollup'

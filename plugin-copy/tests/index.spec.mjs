@@ -631,7 +631,7 @@ describe('@rollup-extras/plugin-copy', () => {
 
     it('should handle literal file paths (no glob characters)', async () => {
         vi.mocked(fs.glob).mockImplementation(async function* (pattern) {
-            yield /** @type {string} */ (pattern);
+            yield/** @type {string} */ (pattern);
         });
         const pluginInstance = plugin({ targets: ['src/test.css', 'src/index2.js'], verbose: 'list-filenames' });
         await pluginInstance.buildStart.apply(rollupContextMock);
@@ -655,7 +655,7 @@ describe('@rollup-extras/plugin-copy', () => {
 
     it('should handle nested literal file path', async () => {
         vi.mocked(fs.glob).mockImplementation(async function* (pattern) {
-            yield /** @type {string} */ (pattern);
+            yield/** @type {string} */ (pattern);
         });
         const pluginInstance = plugin('src/test/index.html');
         await pluginInstance.buildStart.apply(rollupContextMock);
@@ -670,7 +670,7 @@ describe('@rollup-extras/plugin-copy', () => {
 
     it('should handle literal file path with dest', async () => {
         vi.mocked(fs.glob).mockImplementation(async function* (pattern) {
-            yield /** @type {string} */ (pattern);
+            yield/** @type {string} */ (pattern);
         });
         const pluginInstance = plugin({ src: 'src/test.css', dest: 'vendor' });
         await pluginInstance.buildStart.apply(rollupContextMock);

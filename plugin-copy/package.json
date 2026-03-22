@@ -43,7 +43,8 @@
     },
     "dependencies": {
         "@niceties/logger": "^2.1.0",
-        "@rollup-extras/utils": "workspace:^"
+        "@rollup-extras/utils": "workspace:^",
+        "glob-parent": "^6.0.2"
     },
     "peerDependencies": {
         "rollup": "^4.0.0"
@@ -52,5 +53,8 @@
         "rollup": {
             "optional": true
         }
+    },
+    "devDependencies": {
+        "@types/glob-parent": "^5.1.3"
     }
 }
