@@ -10,5 +10,7 @@
 "@rollup-extras/utils": major
 ---
 
+Changes:
 - ship ESM only
 - support rollup 4+ only 
+- upgrade @niceties/logger to ^2.1.0
