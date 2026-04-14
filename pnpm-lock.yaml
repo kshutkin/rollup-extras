@@ -163,7 +163,7 @@ importers:
     dependencies:
       '@hono/node-server':
         specifier: ^1.19.11
-        version: 1.19.11(hono@4.12.12)
+        version: 1.19.13(hono@4.12.12)
       '@niceties/logger':
         specifier: ^2.1.0
         version: 2.1.0
@@ -221,7 +221,7 @@ importers:
         version: 1.8.3
       postcss-lightningcss:
         specifier: ^1.0.2
-        version: 1.0.2(postcss@8.5.8)
+        version: 1.0.2(postcss@8.5.9)
       rollup:
         specifier: ^4.0.0
         version: 4.37.0
@@ -438,8 +438,8 @@ packages:
   '@emnapi/wasi-threads@1.2.0':
     resolution: {integrity: sha512-N10dEJNSsUx41Z6pZsXU8FjPjpBEplgH24sfkmITrBED1/U2Esum9F3lfLrMjKHHjmi557zQn7kR9R+XWXu5Rg==}
 
-  '@hono/node-server@1.19.11':
-    resolution: {integrity: sha512-dr8/3zEaB+p0D2n/IUrlPF1HZm586qgJNXK1a9fhg/PzdtkK7Ksd5l312tJX2yBuALqDYBlG20QEbayqPyxn+g==}
+  '@hono/node-server@1.19.13':
+    resolution: {integrity: sha512-TsQLe4i2gvoTtrHje625ngThGBySOgSK3Xo2XRYOdqGN1teR8+I7vchQC46uLJi8OF62YTYA3AhSpumtkhsaKQ==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
@@ -2423,7 +2423,7 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
-  '@hono/node-server@1.19.11(hono@4.12.12)':
+  '@hono/node-server@1.19.13(hono@4.12.12)':
     dependencies:
       hono: 4.12.12
 
@@ -3486,11 +3486,11 @@ snapshots:
     dependencies:
       postcss: 8.5.8
 
-  postcss-lightningcss@1.0.2(postcss@8.5.8):
+  postcss-lightningcss@1.0.2(postcss@8.5.9):
     dependencies:
       browserslist: 4.28.1
       lightningcss: 1.32.0
-      postcss: 8.5.8
+      postcss: 8.5.9
 
   postcss-merge-longhand@5.1.7(postcss@8.5.8):
     dependencies:
