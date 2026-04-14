@@ -137,6 +137,28 @@ importers:
         specifier: ^4.0.0
         version: 4.37.0
 
+  plugin-mangle:
+    dependencies:
+      '@niceties/logger':
+        specifier: ^2.1.0
+        version: 2.1.0
+      '@rollup-extras/utils':
+        specifier: workspace:^
+        version: link:../utils
+      estree-walker:
+        specifier: ^3.0.3
+        version: 3.0.3
+      magic-string:
+        specifier: ^0.30.21
+        version: 0.30.21
+      rollup:
+        specifier: ^4.0.0
+        version: 4.37.0
+    devDependencies:
+      '@types/estree':
+        specifier: ^1.0.8
+        version: 1.0.8
+
   plugin-serve:
     dependencies:
       '@hono/node-server':
@@ -771,6 +793,9 @@ packages:
 
   '@types/estree@1.0.7':
     resolution: {integrity: sha512-w28IoSUCJpidD/TGviZwwMJckNESJZXFu7NBZ5YJ4mEUnNraUn9Pm8HSZm/jDF1pDWYKspWE7oVphigUPRakIQ==}
+
+  '@types/estree@1.0.8':
+    resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
   '@types/glob-parent@5.1.3':
     resolution: {integrity: sha512-p+NciRH8TRvrgISOCQ55CP+lktMmDpOXsp4spULIIz0L4aJ6G9zFX+N0UZ2xulmJRgaQLRxXIp4xHdL6YOQjDg==}
@@ -2649,6 +2674,8 @@ snapshots:
 
   '@types/estree@1.0.7': {}
 
+  '@types/estree@1.0.8': {}
+
   '@types/glob-parent@5.1.3': {}
 
   '@types/js-string-escape@1.0.3': {}
@@ -2992,7 +3019,7 @@ snapshots:
 
   estree-walker@3.0.3:
     dependencies:
-      '@types/estree': 1.0.7
+      '@types/estree': 1.0.8
 
   eventemitter3@4.0.7: {}
 
