@@ -37,7 +37,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^2.1.0
-        version: 2.1.0
+        version: 2.1.1
       '@rollup-extras/utils':
         specifier: workspace:^
         version: link:../utils
@@ -56,7 +56,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^2.1.0
-        version: 2.1.0
+        version: 2.1.1
       '@rollup-extras/utils':
         specifier: workspace:^
         version: link:../utils
@@ -68,7 +68,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^2.1.0
-        version: 2.1.0
+        version: 2.1.1
       '@rollup-extras/utils':
         specifier: workspace:^
         version: link:../utils
@@ -80,7 +80,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^2.1.0
-        version: 2.1.0
+        version: 2.1.1
       '@rollup-extras/utils':
         specifier: workspace:^
         version: link:../utils
@@ -99,7 +99,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^2.1.0
-        version: 2.1.0
+        version: 2.1.1
       '@rollup-extras/utils':
         specifier: workspace:^
         version: link:../utils
@@ -111,7 +111,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^2.1.0
-        version: 2.1.0
+        version: 2.1.1
       '@rollup-extras/utils':
         specifier: workspace:^
         version: link:../utils
@@ -129,7 +129,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^2.1.0
-        version: 2.1.0
+        version: 2.1.1
       '@rollup-extras/utils':
         specifier: workspace:^
         version: link:../utils
@@ -141,7 +141,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^2.1.0
-        version: 2.1.0
+        version: 2.1.1
       '@rollup-extras/utils':
         specifier: workspace:^
         version: link:../utils
@@ -166,7 +166,7 @@ importers:
         version: 1.19.11(hono@4.12.12)
       '@niceties/logger':
         specifier: ^2.1.0
-        version: 2.1.0
+        version: 2.1.1
       '@rollup-extras/utils':
         specifier: workspace:^
         version: link:../utils
@@ -242,10 +242,10 @@ importers:
     dependencies:
       '@niceties/draftlog-appender':
         specifier: ^2.1.0
-        version: 2.1.0(@niceties/logger@2.1.0)
+        version: 2.1.0(@niceties/logger@2.1.1)
       '@niceties/logger':
         specifier: ^2.1.0
-        version: 2.1.0
+        version: 2.1.1
       '@rollup-extras/plugin-angularjs-template-cache':
         specifier: workspace:^
         version: link:../../plugin-angularjs-template-cache
@@ -281,7 +281,7 @@ importers:
     dependencies:
       '@niceties/logger':
         specifier: ^2.1.0
-        version: 2.1.0
+        version: 2.1.1
       rollup:
         specifier: ^4.0.0
         version: 4.37.0
@@ -486,8 +486,8 @@ packages:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
 
-  '@niceties/ansi@1.1.1':
-    resolution: {integrity: sha512-4nQvmZqQxfBFGZbF15EKGOUbmsAMEPSsmv3RupWP7YvBKBky51+y4QmqEhJ3fAqpriIQW4x5krAOQppbPEgKfw==}
+  '@niceties/ansi@1.1.2':
+    resolution: {integrity: sha512-4SZgmseZqfGAIrcXmfVes+Uj51KMUQNZ3X31faRB8g2tyebDzW+zlkeg1qmhilrgJOi3nm6EOMlkfJVrgiBzZg==}
     engines: {node: '>=15'}
 
   '@niceties/draftlog-appender@2.1.0':
@@ -500,8 +500,8 @@ packages:
     resolution: {integrity: sha512-3hdOdIoczeaxjNj2X8fc2lK3XT8omi8LPEEGadrSb7I9vnYuau6aP1fk+78TwRAZvQWxHkCLxe+RmDD2p6RTEA==}
     engines: {node: '>=15'}
 
-  '@niceties/logger@2.1.0':
-    resolution: {integrity: sha512-yZY0M4hG7LwYc+2/1nm2FTzZG99m4fxnDSyKjENOW8PoPKw1G382VB0AQVH5h1+huFIXYGEUyuvGXpoY4CFHZA==}
+  '@niceties/logger@2.1.1':
+    resolution: {integrity: sha512-taqDVn4TRCh3j5QJQNlWKE9MSHxGh7nr9zE8SkdHMvsijp6Vx6qd3XYSV7bF7nnYYC/JYjJILxfqDeEUeEjtfQ==}
     engines: {node: '>=15'}
 
   '@nodelib/fs.scandir@2.1.5':
@@ -2479,21 +2479,21 @@ snapshots:
       '@tybys/wasm-util': 0.10.1
     optional: true
 
-  '@niceties/ansi@1.1.1': {}
+  '@niceties/ansi@1.1.2': {}
 
-  '@niceties/draftlog-appender@2.1.0(@niceties/logger@2.1.0)':
+  '@niceties/draftlog-appender@2.1.0(@niceties/logger@2.1.1)':
     dependencies:
       '@niceties/draftlog': 1.0.0
-      '@niceties/logger': 2.1.0
+      '@niceties/logger': 2.1.1
       '@slimlib/list': 2.0.2
 
   '@niceties/draftlog@1.0.0':
     dependencies:
       string-width: 8.2.0
 
-  '@niceties/logger@2.1.0':
+  '@niceties/logger@2.1.1':
     dependencies:
-      '@niceties/ansi': 1.1.1
+      '@niceties/ansi': 1.1.2
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
