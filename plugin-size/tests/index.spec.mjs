@@ -115,6 +115,11 @@ async function runMultiConfigOutputs(configs) {
     }
 }
 
+/** Helper to parse the JSON written to the stats file. */
+function getWrittenStats() {
+    return JSON.parse(fsMock.writeFile.mock.calls[0][1]);
+}
+
 describe('@rollup-extras/plugin-size', () => {
     beforeEach(() => {
         fsMock.readFile.mockReset().mockRejectedValue(new Error('ENOENT'));
@@ -322,7 +327,7 @@ describe('@rollup-extras/plugin-size', () => {
             expect(parsed.entries.es).toBeDefined();
             expect(parsed.entries.es.raw).toBeGreaterThan(0);
             expect(parsed.entries.es.minified).toBeGreaterThan(0);
-            expect(parsed.entries.es.compressed).toBeGreaterThan(0);
+            expect(parsed.entries.es.gzip).toBeGreaterThan(0);
         });
 
         it('should not write stats file when updateStats is false', async () => {
@@ -348,7 +353,7 @@ describe('@rollup-extras/plugin-size', () => {
         it('should load previous stats and show delta', async () => {
             const previousStats = {
                 entries: {
-                    es: { raw: 100, minified: 50, compressed: 30 },
+                    es: { raw: 100, minified: 50, gzip: 30 },
                 },
             };
             fsMock.readFile.mockResolvedValue(JSON.stringify(previousStats));
@@ -368,7 +373,7 @@ describe('@rollup-extras/plugin-size', () => {
         it('should show removed entries from previous stats', async () => {
             const previousStats = {
                 entries: {
-                    umd: { raw: 500, minified: 300, compressed: 150 },
+                    umd: { raw: 500, minified: 300, gzip: 150 },
                 },
             };
             fsMock.readFile.mockResolvedValue(JSON.stringify(previousStats));
@@ -386,7 +391,7 @@ describe('@rollup-extras/plugin-size', () => {
         it('should show removed chunks from previous stats', async () => {
             const previousStats = {
                 chunks: {
-                    cjs: { raw: 800, minified: 400, compressed: 200 },
+                    cjs: { raw: 800, minified: 400, gzip: 200 },
                 },
             };
             fsMock.readFile.mockResolvedValue(JSON.stringify(previousStats));
@@ -402,7 +407,7 @@ describe('@rollup-extras/plugin-size', () => {
         it('should show removed assets from previous stats', async () => {
             const previousStats = {
                 assets: {
-                    '.css': { raw: 2000, compressed: 1000 },
+                    '.css': { raw: 2000, gzip: 1000 },
                 },
             };
             fsMock.readFile.mockResolvedValue(JSON.stringify(previousStats));
@@ -438,17 +443,16 @@ describe('@rollup-extras/plugin-size', () => {
 
             await runOutput(p, 'cjs', bundle);
 
-            const [, content] = fsMock.writeFile.mock.calls[0];
-            const parsed = JSON.parse(content);
+            const parsed = getWrittenStats();
             expect(parsed.chunks).toBeDefined();
             expect(parsed.chunks.cjs).toBeDefined();
             expect(parsed.chunks.cjs.raw).toBeGreaterThan(0);
             expect(parsed.chunks.cjs.minified).toBeGreaterThan(0);
-            expect(parsed.chunks.cjs.compressed).toBeGreaterThan(0);
+            expect(parsed.chunks.cjs.gzip).toBeGreaterThan(0);
             expect(parsed.assets).toBeDefined();
             expect(parsed.assets['.css']).toBeDefined();
             expect(parsed.assets['.css'].raw).toBeGreaterThan(0);
-            expect(parsed.assets['.css'].compressed).toBeGreaterThan(0);
+            expect(parsed.assets['.css'].gzip).toBeGreaterThan(0);
         });
     });
 
@@ -456,7 +460,7 @@ describe('@rollup-extras/plugin-size', () => {
         it('should show green for size decrease', async () => {
             const previousStats = {
                 entries: {
-                    es: { raw: 99999, minified: 50000, compressed: 30000 },
+                    es: { raw: 99999, minified: 50000, gzip: 30000 },
                 },
             };
             fsMock.readFile.mockResolvedValue(JSON.stringify(previousStats));
@@ -474,7 +478,7 @@ describe('@rollup-extras/plugin-size', () => {
         it('should show red for size increase', async () => {
             const previousStats = {
                 entries: {
-                    es: { raw: 1, minified: 1, compressed: 1 },
+                    es: { raw: 1, minified: 1, gzip: 1 },
                 },
             };
             fsMock.readFile.mockResolvedValue(JSON.stringify(previousStats));
@@ -510,7 +514,7 @@ describe('@rollup-extras/plugin-size', () => {
 
             await runOutput(p1, 'es', bundle1);
 
-            const writtenStats = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
+            const writtenStats = getWrittenStats();
 
             // Phase 2: feed the exact same stats back as previous, run same input
             fsMock.readFile.mockResolvedValue(JSON.stringify(writtenStats));
@@ -526,6 +530,176 @@ describe('@rollup-extras/plugin-size', () => {
             expect(entryLine).toBeDefined();
             expect(entryLine).toContain('<dim>');
             expect(entryLine).toContain('(=)');
+        });
+    });
+
+    describe('compression flags', () => {
+        it('should enable gzip by default', async () => {
+            const p = plugin();
+            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
+
+            await runOutput(p, 'es', bundle);
+
+            const parsed = getWrittenStats();
+            expect(parsed.entries.es.gzip).toBeGreaterThan(0);
+            expect(parsed.entries.es.brotli).toBeUndefined();
+
+            expect(loggerMessages[0]).toContain('gzip');
+            expect(loggerMessages[0]).not.toContain('brotli');
+        });
+
+        it('should not enable brotli by default', async () => {
+            const p = plugin();
+            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
+
+            await runOutput(p, 'es', bundle);
+
+            const parsed = getWrittenStats();
+            expect(parsed.entries.es.brotli).toBeUndefined();
+        });
+
+        it('should support brotli when enabled', async () => {
+            const p = plugin({ brotli: true, gzip: false });
+            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
+
+            await runOutput(p, 'es', bundle);
+
+            const parsed = getWrittenStats();
+            expect(parsed.entries.es.brotli).toBeGreaterThan(0);
+            expect(parsed.entries.es.gzip).toBeUndefined();
+
+            expect(loggerMessages[0]).toContain('brotli');
+            expect(loggerMessages[0]).not.toContain('gzip');
+        });
+
+        it('should support both gzip and brotli simultaneously', async () => {
+            const p = plugin({ gzip: true, brotli: true });
+            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
+
+            await runOutput(p, 'es', bundle);
+
+            const parsed = getWrittenStats();
+            expect(parsed.entries.es.gzip).toBeGreaterThan(0);
+            expect(parsed.entries.es.brotli).toBeGreaterThan(0);
+
+            expect(loggerMessages[0]).toContain('gzip');
+            expect(loggerMessages[0]).toContain('brotli');
+        });
+
+        it('should show both deltas when both algorithms are enabled', async () => {
+            const previousStats = {
+                entries: {
+                    es: { raw: 99999, minified: 50000, gzip: 30000, brotli: 25000 },
+                },
+            };
+            fsMock.readFile.mockResolvedValue(JSON.stringify(previousStats));
+
+            const p = plugin({ gzip: true, brotli: true });
+            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
+
+            await runOutput(p, 'es', bundle);
+
+            const entryLine = loggerMessages.find(m => m.includes('entry'));
+            expect(entryLine).toBeDefined();
+            expect(entryLine).toContain('gzip');
+            expect(entryLine).toContain('brotli');
+            // Both should show green since previous was much larger
+            const greenCount = (entryLine.match(/<green>/g) || []).length;
+            expect(greenCount).toBe(2);
+        });
+
+        it('should show only raw and minified when both algorithms are disabled', async () => {
+            const p = plugin({ gzip: false, brotli: false });
+            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
+
+            await runOutput(p, 'es', bundle);
+
+            const parsed = getWrittenStats();
+            expect(parsed.entries.es.raw).toBeGreaterThan(0);
+            expect(parsed.entries.es.minified).toBeGreaterThan(0);
+            expect(parsed.entries.es.gzip).toBeUndefined();
+            expect(parsed.entries.es.brotli).toBeUndefined();
+
+            expect(loggerMessages[0]).not.toContain('gzip');
+            expect(loggerMessages[0]).not.toContain('brotli');
+            // Should still show raw → minified
+            expect(loggerMessages[0]).toContain('entry');
+            expect(loggerMessages[0]).toContain('B');
+        });
+
+        it('should compress assets with brotli when enabled', async () => {
+            const p = plugin({ brotli: true });
+            const bundle = createMockBundle([makeAsset('styles.css', 'body { color: red; }\n')]);
+
+            await runOutput(p, 'es', bundle);
+
+            const parsed = getWrittenStats();
+            expect(parsed.assets['.css'].gzip).toBeGreaterThan(0);
+            expect(parsed.assets['.css'].brotli).toBeGreaterThan(0);
+
+            expect(loggerMessages[0]).toContain('gzip');
+            expect(loggerMessages[0]).toContain('brotli');
+        });
+
+        it('should compress non-entry chunks with brotli when enabled', async () => {
+            const p = plugin({ brotli: true });
+            const bundle = createMockBundle([makeChunk('chunk-abc.mjs', 'const y = 2;\n')]);
+
+            await runOutput(p, 'es', bundle);
+
+            const parsed = getWrittenStats();
+            expect(parsed.chunks.es.gzip).toBeGreaterThan(0);
+            expect(parsed.chunks.es.brotli).toBeGreaterThan(0);
+        });
+
+        it('should accumulate brotli sizes across multiple chunks', async () => {
+            const p = plugin({ brotli: true, gzip: false });
+            const bundle = createMockBundle([makeEntryChunk('a.mjs', 'const a = 1;\n'), makeEntryChunk('b.mjs', 'const b = 2;\n')]);
+
+            await runOutput(p, 'es', bundle);
+
+            const parsed = getWrittenStats();
+            // Both chunks' brotli sizes should be accumulated into one entry
+            expect(parsed.entries.es.brotli).toBeGreaterThan(0);
+            expect(parsed.entries.es.gzip).toBeUndefined();
+        });
+
+        it('should accumulate brotli sizes across multiple assets of same extension', async () => {
+            const p = plugin({ brotli: true, gzip: false });
+            const bundle = createMockBundle([makeAsset('a.css', 'body { color: red; }\n'), makeAsset('b.css', 'h1 { font-size: 2em; }\n')]);
+
+            await runOutput(p, 'es', bundle);
+
+            const parsed = getWrittenStats();
+            expect(parsed.assets['.css'].brotli).toBeGreaterThan(0);
+            expect(parsed.assets['.css'].gzip).toBeUndefined();
+        });
+
+        it('should show dim (=) for brotli when size is unchanged', async () => {
+            // Phase 1: run with brotli to capture the actual brotli compressed size
+            const p1 = plugin({ brotli: true, gzip: false });
+            const code = 'const x = 1;\n';
+            const bundle1 = createMockBundle([makeEntryChunk('index.mjs', code)]);
+
+            await runOutput(p1, 'es', bundle1);
+
+            const writtenStats = getWrittenStats();
+
+            // Phase 2: feed the exact same stats back as previous, run same input
+            fsMock.readFile.mockResolvedValue(JSON.stringify(writtenStats));
+            fsMock.writeFile.mockReset().mockResolvedValue(undefined);
+            loggerMessages = [];
+
+            const p2 = plugin({ brotli: true, gzip: false });
+            const bundle2 = createMockBundle([makeEntryChunk('index.mjs', code)]);
+
+            await runOutput(p2, 'es', bundle2);
+
+            const entryLine = loggerMessages.find(m => m.includes('entry'));
+            expect(entryLine).toBeDefined();
+            expect(entryLine).toContain('<dim>');
+            expect(entryLine).toContain('(=)');
+            expect(entryLine).toContain('brotli');
         });
     });
 
@@ -604,7 +778,7 @@ describe('@rollup-extras/plugin-size', () => {
 
             // Stats file should be written exactly once
             expect(fsMock.writeFile).toHaveBeenCalledTimes(1);
-            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
+            const parsed = getWrittenStats();
             expect(parsed.entries.es).toBeDefined();
             expect(parsed.entries.cjs).toBeDefined();
         });

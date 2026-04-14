@@ -15,12 +15,17 @@ const plugin3: Plugin = size({
     statsFile: '.my-stats.json',
     updateStats: false,
     pluginName: 'my-size',
+    gzip: true,
+    brotli: true,
 });
 
 // --- with partial options ---
 const plugin4: Plugin = size({ statsFile: 'stats.json' });
 const plugin5: Plugin = size({ updateStats: true });
 const plugin6: Plugin = size({ pluginName: 'custom' });
+const plugin7: Plugin = size({ gzip: false });
+const plugin8: Plugin = size({ brotli: true });
+const plugin9: Plugin = size({ gzip: true, brotli: false });
 
 // ============================================================================
 // Negative tests

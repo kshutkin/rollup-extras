@@ -5,7 +5,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { extname, resolve } from 'node:path';
 import { promisify } from 'node:util';
-import { gzip as gzipCb } from 'node:zlib';
+import { brotliCompress as brotliCb, gzip as gzipCb } from 'node:zlib';
 
 import { minify } from 'oxc-minify';
 
@@ -15,21 +15,26 @@ import { multiConfigPluginBase } from '@rollup-extras/utils/multi-config-plugin-
 import { getOptionsObject } from '@rollup-extras/utils/options';
 
 const gzip = promisify(gzipCb);
+const brotli = promisify(brotliCb);
 
 /**
- * @typedef {{ pluginName?: string, statsFile?: string, updateStats?: boolean }} SizePluginOptions
+ * @typedef {{ pluginName?: string, statsFile?: string, updateStats?: boolean, gzip?: boolean, brotli?: boolean }} SizePluginOptions
  */
 
 /**
- * @typedef {{ raw: number, minified: number, compressed: number }} ChunkSizeStats
+ * @typedef {{ raw: number, minified: number, gzip?: number, brotli?: number }} ChunkSizeStats
  */
 
 /**
- * @typedef {{ raw: number, compressed: number }} AssetSizeStats
+ * @typedef {{ raw: number, gzip?: number, brotli?: number }} AssetSizeStats
  */
 
 /**
  * @typedef {{ entries?: Record<string, ChunkSizeStats>, chunks?: Record<string, ChunkSizeStats>, assets?: Record<string, AssetSizeStats> }} StatsData
+ */
+
+/**
+ * @typedef {{ gzip: boolean, brotli: boolean }} CompressionFlags
  */
 
 const factories = { logger };
@@ -46,7 +51,7 @@ function formatSize(bytes) {
 }
 
 /**
- * Format the delta between current and previous compressed size.
+ * Format the delta between current and previous size for one algorithm.
  * @param {number} current
  * @param {number | undefined} previous
  * @returns {string}
@@ -57,6 +62,27 @@ function formatDelta(current, previous) {
     if (delta === 0) return dim(' (=)');
     if (delta > 0) return red(` (+${formatSize(delta)})`);
     return green(` (-${formatSize(Math.abs(delta))})`);
+}
+
+/**
+ * Build the compressed-size segment of a report line.
+ * Shows each enabled algorithm that has data in the current stats, with deltas
+ * from the previous stats when available.
+ *
+ * @param {{ gzip?: number, brotli?: number }} cur
+ * @param {{ gzip?: number, brotli?: number }} [prev]
+ * @returns {string}
+ */
+function formatCompressed(cur, prev) {
+    const parts = [];
+    if (cur.gzip != null) {
+        parts.push(`${bold(formatSize(cur.gzip))} gzip${formatDelta(cur.gzip, prev?.gzip)}`);
+    }
+    if (cur.brotli != null) {
+        parts.push(`${bold(formatSize(cur.brotli))} brotli${formatDelta(cur.brotli, prev?.brotli)}`);
+    }
+    if (parts.length === 0) return '';
+    return ` → ${parts.join(' / ')}`;
 }
 
 /**
@@ -89,9 +115,7 @@ function printReport(current, previous, log) {
         const cur = current.entries?.[format];
         const prev = previous.entries?.[format];
         if (cur) {
-            log(
-                `${bold(cyan(format))} entry: ${formatSize(cur.raw)} → ${formatSize(cur.minified)} → ${bold(formatSize(cur.compressed))} gzip${formatDelta(cur.compressed, prev?.compressed)}`
-            );
+            log(`${bold(cyan(format))} entry: ${formatSize(cur.raw)} → ${formatSize(cur.minified)}${formatCompressed(cur, prev)}`);
         } else {
             log(`${bold(cyan(format))} entry: ${dim('removed')}`);
         }
@@ -101,9 +125,7 @@ function printReport(current, previous, log) {
         const cur = current.chunks?.[format];
         const prev = previous.chunks?.[format];
         if (cur) {
-            log(
-                `${bold(cyan(format))} chunks: ${formatSize(cur.raw)} → ${formatSize(cur.minified)} → ${bold(formatSize(cur.compressed))} gzip${formatDelta(cur.compressed, prev?.compressed)}`
-            );
+            log(`${bold(cyan(format))} chunks: ${formatSize(cur.raw)} → ${formatSize(cur.minified)}${formatCompressed(cur, prev)}`);
         } else {
             log(`${bold(cyan(format))} chunks: ${dim('removed')}`);
         }
@@ -113,9 +135,7 @@ function printReport(current, previous, log) {
         const cur = current.assets?.[ext];
         const prev = previous.assets?.[ext];
         if (cur) {
-            log(
-                `${bold(yellow(ext))} assets: ${formatSize(cur.raw)} → ${bold(formatSize(cur.compressed))} gzip${formatDelta(cur.compressed, prev?.compressed)}`
-            );
+            log(`${bold(yellow(ext))} assets: ${formatSize(cur.raw)}${formatCompressed(cur, prev)}`);
         } else {
             log(`${bold(yellow(ext))} assets: ${dim('removed')}`);
         }
@@ -123,12 +143,44 @@ function printReport(current, previous, log) {
 }
 
 /**
+ * Compress a buffer with all enabled algorithms and return the sizes.
+ * @param {Buffer} buf
+ * @param {CompressionFlags} flags
+ * @returns {Promise<{ gzip?: number, brotli?: number }>}
+ */
+async function compressSizes(buf, flags) {
+    /** @type {{ gzip?: number, brotli?: number }} */
+    const result = {};
+
+    const tasks = [];
+
+    if (flags.gzip) {
+        tasks.push(
+            gzip(buf).then(compressed => {
+                result.gzip = compressed.byteLength;
+            })
+        );
+    }
+    if (flags.brotli) {
+        tasks.push(
+            brotli(buf).then(compressed => {
+                result.brotli = compressed.byteLength;
+            })
+        );
+    }
+
+    await Promise.all(tasks);
+    return result;
+}
+
+/**
  * Process a single output bundle and accumulate sizes into currentStats.
  * @param {StatsData} currentStats
  * @param {NormalizedOutputOptions} outputOptions
  * @param {OutputBundle} bundle
+ * @param {CompressionFlags} flags
  */
-async function collectStats(currentStats, outputOptions, bundle) {
+async function collectStats(currentStats, outputOptions, bundle, flags) {
     const format = outputOptions.format;
 
     await Promise.all(
@@ -143,8 +195,7 @@ async function collectStats(currentStats, outputOptions, bundle) {
                     codegen: { removeWhitespace: true },
                 });
                 const minifiedSize = Buffer.byteLength(minResult.code, 'utf8');
-                const compressed = await gzip(Buffer.from(minResult.code, 'utf8'));
-                const compressedSize = compressed.byteLength;
+                const sizes = await compressSizes(Buffer.from(minResult.code, 'utf8'), flags);
 
                 const category = /** @type {OutputChunk} */ (item).isEntry ? 'entries' : 'chunks';
                 if (!currentStats[category]) {
@@ -152,27 +203,36 @@ async function collectStats(currentStats, outputOptions, bundle) {
                 }
                 const bucket = /** @type {Record<string, ChunkSizeStats>} */ (currentStats[category]);
                 if (!bucket[format]) {
-                    bucket[format] = { raw: 0, minified: 0, compressed: 0 };
+                    bucket[format] = { raw: 0, minified: 0 };
                 }
                 bucket[format].raw += raw;
                 bucket[format].minified += minifiedSize;
-                bucket[format].compressed += compressedSize;
+                if (sizes.gzip != null) {
+                    bucket[format].gzip = (bucket[format].gzip ?? 0) + sizes.gzip;
+                }
+                if (sizes.brotli != null) {
+                    bucket[format].brotli = (bucket[format].brotli ?? 0) + sizes.brotli;
+                }
             } else {
                 const source = /** @type {OutputAsset} */ (item).source;
                 const raw = typeof source === 'string' ? Buffer.byteLength(source, 'utf8') : source.byteLength;
                 const ext = extname(fileName) || fileName;
                 const buf = typeof source === 'string' ? Buffer.from(source, 'utf8') : Buffer.from(source);
-                const compressed = await gzip(buf);
-                const compressedSize = compressed.byteLength;
+                const sizes = await compressSizes(buf, flags);
 
                 if (!currentStats.assets) {
                     currentStats.assets = {};
                 }
                 if (!currentStats.assets[ext]) {
-                    currentStats.assets[ext] = { raw: 0, compressed: 0 };
+                    currentStats.assets[ext] = { raw: 0 };
                 }
                 currentStats.assets[ext].raw += raw;
-                currentStats.assets[ext].compressed += compressedSize;
+                if (sizes.gzip != null) {
+                    currentStats.assets[ext].gzip = (currentStats.assets[ext].gzip ?? 0) + sizes.gzip;
+                }
+                if (sizes.brotli != null) {
+                    currentStats.assets[ext].brotli = (currentStats.assets[ext].brotli ?? 0) + sizes.brotli;
+                }
             }
         })
     );
@@ -195,9 +255,10 @@ async function loadPreviousStats(statsPath) {
 /**
  * Rollup plugin that reports the size of generated artifacts.
  *
- * Chunks are minified with oxc-minify and then gzip-compressed to produce the
- * reported sizes. Assets are gzip-compressed only. Results are compared against
- * a persisted JSON stats file so that size regressions are easy to spot.
+ * Chunks are minified with oxc-minify and then compressed with gzip and / or
+ * brotli to produce the reported sizes. Assets are compressed only (no JS
+ * minification). Results are compared against a persisted JSON stats file so
+ * that size regressions are easy to spot.
  *
  * @param {SizePluginOptions} [options]
  * @returns {Plugin & { api: { addInstance(): Plugin } }}
@@ -209,11 +270,16 @@ export default function (options) {
             pluginName: '@rollup-extras/plugin-size',
             statsFile: '.stats.json',
             updateStats: true,
+            gzip: true,
+            brotli: false,
         },
         factories
     );
 
     const { pluginName, statsFile, updateStats, logger } = normalizedOptions;
+
+    /** @type {CompressionFlags} */
+    const flags = { gzip: normalizedOptions.gzip, brotli: normalizedOptions.brotli };
 
     /** @type {StatsData} */
     const currentStats = {};
@@ -228,7 +294,7 @@ export default function (options) {
      * @param {OutputBundle} bundle
      */
     async function onEachOutput(outputOptions, bundle) {
-        await collectStats(currentStats, outputOptions, bundle);
+        await collectStats(currentStats, outputOptions, bundle, flags);
     }
 
     /**
