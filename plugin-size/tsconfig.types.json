@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "lib": ["ES2022"],
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "strict": true,
+        "noEmit": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "paths": {
+            "@rollup-extras/plugin-size": ["./types/index.d.ts"],
+            "@rollup-extras/plugin-size/*": ["./types/index.d.ts"]
+        }
+    },
+    "include": ["tests/types.ts"],
+    "exclude": ["node_modules"]
+}
