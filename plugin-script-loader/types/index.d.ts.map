@@ -1,0 +1,15 @@
+{
+	"version": 3,
+	"file": "index.d.ts",
+	"names": [
+		"ScriptLoaderPluginOptions"
+	],
+	"sources": [
+		"../src/index.js"
+	],
+	"sourcesContent": [
+		null
+	],
+	"mappings": ";;;aAO+FA,yBAAyBA",
+	"ignoreList": []
+}

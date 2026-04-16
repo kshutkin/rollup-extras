@@ -20,7 +20,9 @@
         "@rollup-extras/plugin-clean": "workspace:^",
         "@rollup-extras/plugin-copy": "workspace:^",
         "@rollup-extras/plugin-html": "workspace:^",
+        "@rollup-extras/plugin-script-loader": "workspace:^",
         "@rollup-extras/plugin-serve": "workspace:^",
+        "@rollup-extras/plugin-size": "workspace:^",
         "rollup-plugin-livereload": "^2.0.5",
         "rollup-plugin-styles": "^4.0.0",
         "rollup-plugin-html": "^0.2.1",
@@ -35,6 +37,7 @@
     },
     "dependencies": {
         "angular": "1.8.3",
+        "d3": "^5",
         "todomvc-app-css": "^2.4.3",
         "angular-route": "1.8.3",
         "angular-resource": "1.8.3"

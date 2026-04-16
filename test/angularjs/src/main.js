@@ -1,3 +1,4 @@
+import 'script!d3/dist/d3.min.js';
 import 'angular';
 import 'angular-resource';
 import 'angular-route';

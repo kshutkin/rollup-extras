@@ -9,7 +9,9 @@ import styles from 'rollup-plugin-styles';
 import templateCache from '@rollup-extras/plugin-angularjs-template-cache';
 import clean from '@rollup-extras/plugin-clean';
 import html from '@rollup-extras/plugin-html';
+import scriptLoader from '@rollup-extras/plugin-script-loader';
 import serve from '@rollup-extras/plugin-serve';
+import size from '@rollup-extras/plugin-size';
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -25,6 +27,8 @@ export default {
     },
     plugins: [
         clean(),
+
+        scriptLoader({ useStrict: false }),
 
         globImport({
             format: 'import',
@@ -55,6 +59,8 @@ export default {
         !production && livereload({ watch: 'dist', delay: 500 }),
 
         production && terser(),
+
+        size(),
 
         html({
             template: 'index.html',
