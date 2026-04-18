@@ -320,7 +320,7 @@ describe('@rollup-extras/plugin-script-loader emit asset mode', () => {
         });
 
         it('should use minified code in output', async () => {
-            const minifyFn = vi.fn(async code => ({
+            const minifyFn = vi.fn(async _code => ({
                 code: 'MINIFIED',
             }));
 

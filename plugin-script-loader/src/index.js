@@ -103,7 +103,7 @@ export default function (options = {}) {
         const externalMatch = code.match(/\/\/[#@]\s*sourceMappingURL=(.+?)\s*$/);
         if (externalMatch && !externalMatch[1].startsWith('data:')) {
             try {
-                const mapPath = filePath + '.map';
+                const mapPath = `${filePath}.map`;
                 const mapContent = await readFile(mapPath, 'utf8');
                 return JSON.parse(mapContent);
             } catch {
@@ -232,7 +232,7 @@ export default function (options = {}) {
             // In both cases moduleSideEffects: true ensures the code is never
             // tree-shaken.
             return {
-                code: useStrict ? code + '\nexport {}\n' : code,
+                code: useStrict ? `${code}\nexport {}\n` : code,
                 map: null,
                 moduleSideEffects: true,
             };
@@ -318,7 +318,7 @@ export default function (options = {}) {
             // Emit sourcemap and update main asset (if enabled)
             if (sourcemap && generatedMap) {
                 // Compute sourcemap filename based on the (possibly hashed) main filename
-                const mapFileName = finalFileName + '.map';
+                const mapFileName = `${finalFileName}.map`;
 
                 // Update the sourcemap's file property to match the actual filename
                 generatedMap.file = basename(finalFileName);
