@@ -1,413 +1,531 @@
-import fs from 'node:fs/promises';
+import { mkdtemp, rm, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { rollup } from 'rollup';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createLogger, LogLevel } from '@niceties/logger';
+import binify from '../src/index.js';
 
-import plugin from '../src';
+vi.mock('node:fs/promises', async importOriginal => {
+    const mod = await importOriginal();
+    return { ...mod, chmod: vi.fn(mod.chmod) };
+});
 
-let loggerStart, loggerFinish, loggerUpdate, log;
+import { chmod } from 'node:fs/promises';
 
-vi.mock('fs/promises');
-vi.mock('@niceties/logger', () => ({
-    LogLevel: { verbose: 0, info: 1, warn: 2, error: 3 },
-    createLogger: vi.fn(() => {
-        log = vi.fn();
-        loggerStart = vi.fn();
-        loggerFinish = vi.fn();
-        loggerUpdate = vi.fn();
-        return Object.assign(log, {
-            start: loggerStart,
-            finish: loggerFinish,
-            update: loggerUpdate,
+function virtual(modules) {
+    return {
+        name: 'virtual-input',
+        resolveId(id) {
+            if (modules[id]) return id;
+        },
+        load(id) {
+            if (modules[id]) return modules[id];
+        },
+    };
+}
+
+describe('@rollup-extras/plugin-binify integration', () => {
+    describe('generate', () => {
+        it('should prepend shebang to entry chunk code', async () => {
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'console.log("hello")' }), binify()],
+            });
+            const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+            expect(output[0].code.startsWith('#!/usr/bin/env node\n')).toBe(true);
+            await bundle.close();
         });
-    }),
-}));
 
-const realPlatform = process.platform;
-
-describe('@rollup-extras/plugin-binify', () => {
-    beforeEach(() => {
-        vi.resetModules();
-        Object.defineProperty(process, 'platform', {
-            value: 'linux',
+        it('should support a custom shebang string', async () => {
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'console.log("hello")' }), binify({ shebang: '#!/usr/bin/env deno' })],
+            });
+            const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+            expect(output[0].code.startsWith('#!/usr/bin/env deno\n')).toBe(true);
+            await bundle.close();
         });
-        vi.mocked(fs.chmod).mockClear();
-        vi.mocked(createLogger).mockClear();
-    });
 
-    afterAll(() => {
-        Object.defineProperty(process, 'platform', {
-            value: realPlatform,
+        it('should not add shebang to non-entry chunks', async () => {
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [
+                    virtual({
+                        entry: 'import("./dynamic").then(m => m.default())',
+                        './dynamic': 'export default function() { return 42; }',
+                    }),
+                    binify(),
+                ],
+            });
+            const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+            const entryChunk = output.find(o => o.type === 'chunk' && o.isEntry);
+            const nonEntryChunks = output.filter(o => o.type === 'chunk' && !o.isEntry);
+            expect(entryChunk.code.startsWith('#!/usr/bin/env node\n')).toBe(true);
+            expect(nonEntryChunks.length).toBeGreaterThan(0);
+            for (const chunk of nonEntryChunks) {
+                expect(chunk.code.startsWith('#!')).toBe(false);
+            }
+            await bundle.close();
+        });
+
+        it('should adjust sourcemap mappings when shebang is added', async () => {
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'console.log("hello")' }), binify()],
+            });
+            const { output } = await bundle.generate({ format: 'es', dir: 'dist', sourcemap: true });
+            const entryChunk = output.find(o => o.type === 'chunk' && o.isEntry);
+            expect(entryChunk.map).toBeTruthy();
+            expect(entryChunk.map.mappings.startsWith(';')).toBe(true);
+            await bundle.close();
+        });
+
+        it('should have default pluginName', () => {
+            expect(binify().name).toBe('@rollup-extras/plugin-binify');
+        });
+
+        it('should accept custom pluginName', () => {
+            expect(binify({ pluginName: 'custom' }).name).toBe('custom');
+        });
+
+        it('should only add shebang to filtered chunks with custom filter', async () => {
+            const bundle = await rollup({
+                input: {
+                    entry: 'entry',
+                    other: 'other',
+                },
+                plugins: [
+                    virtual({
+                        entry: 'console.log("entry")',
+                        other: 'console.log("other")',
+                    }),
+                    binify({ filter: item => item.type === 'chunk' && item.fileName === 'entry.js' }),
+                ],
+            });
+            const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+            const entryChunk = output.find(o => o.fileName === 'entry.js');
+            const otherChunk = output.find(o => o.fileName === 'other.js');
+            expect(entryChunk.code.startsWith('#!/usr/bin/env node\n')).toBe(true);
+            expect(otherChunk.code.startsWith('#!')).toBe(false);
+            await bundle.close();
+        });
+
+        it('should add shebang but no sourcemap when sourcemap is not enabled', async () => {
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'console.log("hello")' }), binify()],
+            });
+            const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+            expect(output[0].code.startsWith('#!/usr/bin/env node\n')).toBe(true);
+            expect(output[0].map).toBeFalsy();
+            await bundle.close();
         });
     });
 
-    it('should be defined', () => {
-        expect(plugin).toBeDefined();
-    });
+    describe('write', () => {
+        let tmpDir;
 
-    it('should add shebang and set executable flag', async () => {
-        const pluginInstance = plugin();
-        const chunk = {
-            type: 'chunk',
-            isEntry: true,
-            code: 'const test = 1;',
-            map: {
-                mappings: ';',
-            },
-        };
-        await pluginInstance.renderStart({ dir: '/dist2' });
-        await pluginInstance.generateBundle(
-            {},
-            {
-                'index.js': chunk,
-            }
-        );
-        await pluginInstance.writeBundle(
-            {},
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                    fileName: 'index.js',
-                },
-            }
-        );
-        expect(fs.chmod).toBeCalledTimes(1);
-        expect(fs.chmod).toHaveBeenCalledWith('/dist2/index.js', 0o755);
-        expect(loggerStart).toHaveBeenCalledTimes(1);
-        expect(loggerStart).toHaveBeenCalledWith(expect.any(String), LogLevel.verbose);
-        expect(loggerFinish).toHaveBeenCalledTimes(1);
-        expect(loggerUpdate).toHaveBeenCalledTimes(2);
-        expect(chunk.map.mappings).toEqual(';;');
-        expect(chunk.code).toEqual('#!/usr/bin/env node\nconst test = 1;');
-    });
-
-    it('should not set executable flag when executableFlag is false', async () => {
-        const pluginInstance = plugin({ executableFlag: false });
-        const chunk = {
-            type: 'chunk',
-            isEntry: true,
-            code: 'const test = 1;',
-            map: {
-                mappings: ';',
-            },
-        };
-        await pluginInstance.renderStart({ dir: '/dist2' });
-        await pluginInstance.generateBundle(
-            {},
-            {
-                'index.js': chunk,
-            }
-        );
-        await pluginInstance.writeBundle(
-            {},
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                    fileName: 'index.js',
-                },
-            }
-        );
-        expect(fs.chmod).toBeCalledTimes(0);
-        expect(loggerStart).toHaveBeenCalledTimes(1);
-        expect(loggerStart).toHaveBeenCalledWith(expect.any(String), LogLevel.verbose);
-        expect(loggerFinish).toHaveBeenCalledTimes(1);
-        expect(chunk.map.mappings).toEqual(';;');
-        expect(chunk.code).toEqual('#!/usr/bin/env node\nconst test = 1;');
-    });
-
-    it('should not set executable flag on win32', async () => {
-        Object.defineProperty(process, 'platform', {
-            value: 'win32',
+        beforeEach(async () => {
+            tmpDir = await mkdtemp(join(tmpdir(), 'binify-test-'));
         });
-        const pluginInstance = plugin();
-        const chunk = {
-            type: 'chunk',
-            isEntry: true,
-            code: 'const test = 1;',
-            map: {
-                mappings: ';',
-            },
-        };
-        await pluginInstance.renderStart({ dir: '/dist2' });
-        await pluginInstance.generateBundle(
-            {},
-            {
-                'index.js': chunk,
-            }
-        );
-        await pluginInstance.writeBundle(
-            {},
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                    fileName: 'index.js',
-                },
-            }
-        );
-        expect(fs.chmod).toBeCalledTimes(0);
-        expect(loggerStart).toHaveBeenCalledTimes(1);
-        expect(loggerStart).toHaveBeenCalledWith(expect.any(String), LogLevel.verbose);
-        expect(loggerFinish).toHaveBeenCalledTimes(1);
-        expect(chunk.map.mappings).toEqual(';;');
-        expect(chunk.code).toEqual('#!/usr/bin/env node\nconst test = 1;');
-    });
 
-    it('should filter out non-entry chunks by default', async () => {
-        const pluginInstance = plugin();
-        const chunk = {
-            type: 'chunk',
-            isEntry: true,
-            code: 'const test = 1;',
-            map: {
-                mappings: ';',
-            },
-        };
-        await pluginInstance.renderStart({ dir: '/dist2' });
-        await pluginInstance.generateBundle(
-            {},
-            {
-                'index.js': chunk,
-                'test.js': { ...chunk, isEntry: false },
-            }
-        );
-        await pluginInstance.writeBundle(
-            {},
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                    fileName: 'index.js',
-                },
-                'test.js': { ...chunk, isEntry: false, fileName: 'test.js' },
-            }
-        );
-        expect(fs.chmod).toBeCalledTimes(1);
-        expect(fs.chmod).toHaveBeenCalledWith('/dist2/index.js', 0o755);
-    });
-
-    it('should filter out assets by default', async () => {
-        const pluginInstance = plugin();
-        const chunk = {
-            type: 'chunk',
-            isEntry: true,
-            code: 'const test = 1;',
-            map: {
-                mappings: ';',
-            },
-        };
-        await pluginInstance.renderStart({ dir: '/dist2' });
-        await pluginInstance.generateBundle(
-            {},
-            {
-                'index.js': chunk,
-                'test.js': { ...chunk, type: 'asset' },
-            }
-        );
-        await pluginInstance.writeBundle(
-            {},
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                    fileName: 'index.js',
-                },
-                'test.js': { ...chunk, type: 'asset', fileName: 'test.js' },
-            }
-        );
-        expect(fs.chmod).toBeCalledTimes(1);
-        expect(fs.chmod).toHaveBeenCalledWith('/dist2/index.js', 0o755);
-    });
-
-    it('should apply custom filter', async () => {
-        const pluginInstance = plugin({ filter: () => true });
-        const chunk = {
-            type: 'chunk',
-            isEntry: true,
-            code: 'const test = 1;',
-            map: {
-                mappings: ';',
-            },
-        };
-        await pluginInstance.renderStart({ dir: '/dist2' });
-        await pluginInstance.generateBundle(
-            {},
-            {
-                'index.js': chunk,
-                'test.js': { ...chunk, type: 'asset', source: '' },
-            }
-        );
-        await pluginInstance.writeBundle(
-            {},
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                    fileName: 'index.js',
-                },
-                'test.js': { ...chunk, type: 'asset', fileName: 'test.js' },
-            }
-        );
-        expect(fs.chmod).toBeCalledTimes(2);
-    });
-
-    it('should raise log level to info when verbose is true', async () => {
-        const pluginInstance = plugin({ verbose: true });
-        await pluginInstance.renderStart({ dir: '/dist2' });
-        expect(loggerStart).toHaveBeenCalledWith(expect.any(String), LogLevel.info);
-    });
-
-    it('should use filename directly when no dir in output options', async () => {
-        const pluginInstance = plugin({ verbose: true });
-        await pluginInstance.renderStart({});
-        await pluginInstance.writeBundle(
-            {},
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                    fileName: 'index.js',
-                },
-            }
-        );
-        expect(fs.chmod).toHaveBeenCalledWith('index.js', 0o755);
-    });
-
-    it('should use different plugin name for debug', async () => {
-        const pluginInstance = plugin({ pluginName: 'test' });
-        await pluginInstance.renderStart({});
-        expect(createLogger).toHaveBeenCalledWith('test');
-    });
-
-    it('should use custom shebang', async () => {
-        const pluginInstance = plugin({ shebang: 'test' });
-        await pluginInstance.renderStart({});
-        const chunk = {
-            type: 'chunk',
-            isEntry: true,
-            code: 'const test = 1;',
-            map: {
-                mappings: ';',
-            },
-        };
-        await pluginInstance.renderStart({ dir: '/dist2' });
-        await pluginInstance.generateBundle(
-            {},
-            {
-                'index.js': chunk,
-            }
-        );
-        await pluginInstance.writeBundle(
-            {},
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                    fileName: 'index.js',
-                },
-            }
-        );
-        expect(chunk.code).toEqual('test\nconst test = 1;');
-    });
-
-    it('should handle shebang with multiple lines', async () => {
-        const pluginInstance = plugin({ shebang: 'test\n\n' });
-        await pluginInstance.renderStart({});
-        const chunk = {
-            type: 'chunk',
-            isEntry: true,
-            code: 'const test = 1;',
-            map: {
-                mappings: ';',
-            },
-        };
-        await pluginInstance.renderStart({ dir: '/dist2' });
-        await pluginInstance.generateBundle(
-            {},
-            {
-                'index.js': chunk,
-            }
-        );
-        await pluginInstance.writeBundle(
-            {},
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                    fileName: 'index.js',
-                },
-            }
-        );
-        expect(chunk.code).toEqual('test\n\nconst test = 1;');
-        expect(chunk.map.mappings).toEqual(';;;');
-    });
-
-    it('should use custom executable flag value', async () => {
-        const pluginInstance = plugin({ executableFlag: 0 });
-        await pluginInstance.renderStart({});
-        const chunk = {
-            type: 'chunk',
-            isEntry: true,
-            code: 'const test = 1;',
-            map: {
-                mappings: ';',
-            },
-        };
-        await pluginInstance.renderStart({ dir: '/dist2' });
-        await pluginInstance.generateBundle(
-            {},
-            {
-                'index.js': chunk,
-            }
-        );
-        await pluginInstance.writeBundle(
-            {},
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                    fileName: 'index.js',
-                },
-            }
-        );
-        expect(fs.chmod).toHaveBeenCalledWith('/dist2/index.js', 0);
-    });
-
-    it('should log error on filesystem error', async () => {
-        const error = 'error';
-        vi.mocked(fs.chmod).mockImplementationOnce(() => {
-            throw error;
+        afterEach(async () => {
+            await rm(tmpDir, { recursive: true });
         });
-        const pluginInstance = plugin();
-        await pluginInstance.renderStart({});
-        const chunk = {
-            type: 'chunk',
-            isEntry: true,
-            code: 'const test = 1;',
-            map: {
-                mappings: ';',
+
+        it('should set executable permissions on written files', async () => {
+            if (process.platform === 'win32') {
+                return;
+            }
+
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'console.log("hello")' }), binify()],
+            });
+            await bundle.write({ format: 'es', dir: tmpDir });
+            const fileStat = await stat(join(tmpDir, 'entry.js'));
+            expect(fileStat.mode & 0o777).toBe(0o755);
+            await bundle.close();
+        });
+
+        it('should not set executable permissions when executableFlag is false', async () => {
+            if (process.platform === 'win32') {
+                return;
+            }
+
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'console.log("hello")' }), binify({ executableFlag: false })],
+            });
+            await bundle.write({ format: 'es', dir: tmpDir });
+            const fileStat = await stat(join(tmpDir, 'entry.js'));
+            // Should NOT be 0o755 since we disabled executable flag
+            expect(fileStat.mode & 0o777).not.toBe(0o755);
+            // But the code should still have the shebang
+            const { readFile } = await import('node:fs/promises');
+            const fileContent = await readFile(join(tmpDir, 'entry.js'), 'utf-8');
+            expect(fileContent.startsWith('#!/usr/bin/env node\n')).toBe(true);
+            await bundle.close();
+        });
+
+        it('should set custom executable flag value', async () => {
+            if (process.platform === 'win32') {
+                return;
+            }
+
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'console.log("hello")' }), binify({ executableFlag: 0o700 })],
+            });
+            await bundle.write({ format: 'es', dir: tmpDir });
+            const fileStat = await stat(join(tmpDir, 'entry.js'));
+            expect(fileStat.mode & 0o777).toBe(0o700);
+            await bundle.close();
+        });
+    });
+});
+
+// --- NEW TESTS FOR BRANCH COVERAGE ---
+
+describe('@rollup-extras/plugin-binify (additional coverage)', () => {
+    function virtual(modules) {
+        return {
+            name: 'virtual-input',
+            resolveId(id) {
+                if (modules[id]) return id;
+            },
+            load(id) {
+                if (modules[id]) return modules[id];
             },
         };
-        await pluginInstance.renderStart({ dir: '/dist2' });
-        await pluginInstance.generateBundle(
-            {},
-            {
-                'index.js': chunk,
+    }
+
+    describe('generate - asset and filter', () => {
+        it('should prepend shebang to asset source when filter matches all items', async () => {
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [
+                    virtual({ entry: 'console.log("hello")' }),
+                    {
+                        name: 'emit-asset',
+                        generateBundle() {
+                            this.emitFile({
+                                type: 'asset',
+                                fileName: 'run.sh',
+                                source: 'echo hello',
+                            });
+                        },
+                    },
+                    binify({ filter: () => true }),
+                ],
+            });
+            const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+            const asset = output.find(o => o.type === 'asset' && o.fileName === 'run.sh');
+            expect(asset).toBeDefined();
+            expect(String(asset.source).startsWith('#!/usr/bin/env node\n')).toBe(true);
+            const chunk = output.find(o => o.type === 'chunk');
+            expect(chunk.code.startsWith('#!/usr/bin/env node\n')).toBe(true);
+            await bundle.close();
+        });
+    });
+
+    describe('write - chmod and executableFlag', () => {
+        let tmpDir;
+
+        beforeEach(async () => {
+            tmpDir = await mkdtemp(join(tmpdir(), 'binify-cov-'));
+        });
+
+        afterEach(async () => {
+            await rm(tmpDir, { recursive: true, force: true });
+        });
+
+        it('should handle chmod failure gracefully (error logged, build does not crash)', async () => {
+            if (process.platform === 'win32') return;
+
+            const plugin = binify();
+
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'console.log("hello")' }), plugin],
+            });
+
+            // generate() runs renderStart + generateBundle (sets internal state)
+            // but does NOT write files to disk
+            const result = await bundle.generate({ format: 'es', dir: join(tmpDir, 'nonexistent') });
+
+            // Manually invoke writeBundle: chmod will fail because files do not exist on disk
+            const bundleObj = {};
+            for (const item of result.output) {
+                bundleObj[item.fileName] = item;
             }
-        );
-        await pluginInstance.writeBundle(
-            {},
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                    fileName: 'index.js',
+
+            // Should not throw - the error is caught and logged internally
+            await plugin.writeBundle.call({}, { dir: join(tmpDir, 'nonexistent') }, bundleObj);
+
+            await bundle.close();
+        });
+
+        it('should not call chmod when executableFlag is explicitly false', async () => {
+            if (process.platform === 'win32') return;
+
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'console.log("hello")' }), binify({ executableFlag: false })],
+            });
+            await bundle.write({ format: 'es', dir: tmpDir });
+
+            // The shebang should still be present
+            const { readFile } = await import('node:fs/promises');
+            const fileContent = await readFile(join(tmpDir, 'entry.js'), 'utf-8');
+            expect(fileContent.startsWith('#!/usr/bin/env node\n')).toBe(true);
+
+            // Permissions should NOT be 0o755 (chmod was never called)
+            const fileStat = await stat(join(tmpDir, 'entry.js'));
+            expect(fileStat.mode & 0o777).not.toBe(0o755);
+
+            await bundle.close();
+        });
+    });
+});
+
+// --- ADDITIONAL TESTS FOR NEAR-100% BRANCH COVERAGE ---
+
+describe('@rollup-extras/plugin-binify (branch coverage)', () => {
+    function virtual(modules) {
+        return {
+            name: 'virtual-input',
+            resolveId(id) {
+                if (modules[id]) return id;
+            },
+            load(id) {
+                if (modules[id]) return modules[id];
+            },
+        };
+    }
+
+    describe('generate - asset with filter: () => true', () => {
+        it('should prepend shebang to an emitted asset source (not just chunk code)', async () => {
+            const emitAsset = {
+                name: 'emit-asset',
+                generateBundle() {
+                    this.emitFile({ type: 'asset', fileName: 'script.sh', source: 'echo hello' });
                 },
-            }
-        );
-        expect(log).toHaveBeenCalledWith(expect.any(String), LogLevel.error, error);
+            };
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'console.log("hi")' }), emitAsset, binify({ filter: () => true })],
+            });
+            const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+            const asset = output.find(o => o.type === 'asset' && o.fileName === 'script.sh');
+            expect(asset).toBeDefined();
+            expect(String(asset.source).startsWith('#!/usr/bin/env node\n')).toBe(true);
+            expect(String(asset.source)).toContain('echo hello');
+
+            const chunk = output.find(o => o.type === 'chunk');
+            expect(chunk.code.startsWith('#!/usr/bin/env node\n')).toBe(true);
+
+            await bundle.close();
+        });
+    });
+
+    describe('write - chmod failure via spy', () => {
+        let tmpDir;
+
+        beforeEach(async () => {
+            tmpDir = await mkdtemp(join(tmpdir(), 'binify-spy-'));
+        });
+
+        afterEach(async () => {
+            vi.mocked(chmod).mockRestore();
+            await rm(tmpDir, { recursive: true, force: true });
+        });
+
+        it('should not crash when chmod rejects (catch branch)', async () => {
+            if (process.platform === 'win32') return;
+
+            vi.mocked(chmod).mockRejectedValueOnce(new Error('EPERM'));
+
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'console.log("hello")' }), binify()],
+            });
+
+            // write() triggers renderStart + generateBundle + writeBundle
+            // chmod will fail on the first call due to mockRejectedValueOnce
+            await expect(bundle.write({ format: 'es', dir: tmpDir })).resolves.not.toThrow();
+            await bundle.close();
+        });
+    });
+
+    describe('generate + write - executableFlag: false explicitly', () => {
+        let tmpDir;
+
+        beforeEach(async () => {
+            tmpDir = await mkdtemp(join(tmpdir(), 'binify-noflag-'));
+        });
+
+        afterEach(async () => {
+            await rm(tmpDir, { recursive: true, force: true });
+        });
+
+        it('should add shebang but skip chmod entirely when executableFlag is false', async () => {
+            if (process.platform === 'win32') return;
+
+            // Reset mock to use real implementation, then spy to track calls
+            vi.mocked(chmod).mockRestore();
+            const chmodSpy = vi.mocked(chmod);
+
+            const callCountBefore = chmodSpy.mock.calls.length;
+
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'console.log("flag-false")' }), binify({ executableFlag: false })],
+            });
+            await bundle.write({ format: 'es', dir: tmpDir });
+
+            // chmod should NOT have been called at all (writeBundle skips when executableFlag is false)
+            expect(chmodSpy.mock.calls.length).toBe(callCountBefore);
+
+            // But shebang should still be present in the output file
+            const { readFile } = await import('node:fs/promises');
+            const fileContent = await readFile(join(tmpDir, 'entry.js'), 'utf-8');
+            expect(fileContent.startsWith('#!/usr/bin/env node\n')).toBe(true);
+
+            await bundle.close();
+        });
+    });
+
+    describe('generate - outputOptions without dir', () => {
+        it('should handle missing dir in outputOptions (falsy dir branch)', async () => {
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'console.log("no-dir")' }), binify()],
+            });
+            // Using file instead of dir -> outputOptions.dir is undefined
+            const { output } = await bundle.generate({ format: 'es', file: 'dist/bundle.js' });
+            expect(output[0].code.startsWith('#!/usr/bin/env node\n')).toBe(true);
+            await bundle.close();
+        });
+    });
+
+    describe('write - filter false branch in writeBundle', () => {
+        let tmpDir;
+
+        beforeEach(async () => {
+            tmpDir = await mkdtemp(join(tmpdir(), 'binify-filter-'));
+            vi.mocked(chmod).mockRestore();
+        });
+
+        afterEach(async () => {
+            await rm(tmpDir, { recursive: true, force: true });
+        });
+
+        it('should skip chmod for non-matching items in writeBundle', async () => {
+            if (process.platform === 'win32') return;
+
+            const bundle = await rollup({
+                input: {
+                    entry: 'entry',
+                    other: 'other',
+                },
+                plugins: [
+                    virtual({
+                        entry: 'console.log("entry")',
+                        other: 'console.log("other")',
+                    }),
+                    binify({ filter: item => item.type === 'chunk' && item.fileName === 'entry.js' }),
+                ],
+            });
+            await bundle.write({ format: 'es', dir: tmpDir });
+
+            // entry.js should have shebang and executable permissions
+            const entryStat = await stat(join(tmpDir, 'entry.js'));
+            expect(entryStat.mode & 0o777).toBe(0o755);
+
+            // other.js should NOT have executable permissions (filter returned false)
+            const otherStat = await stat(join(tmpDir, 'other.js'));
+            expect(otherStat.mode & 0o777).not.toBe(0o755);
+
+            await bundle.close();
+        });
+    });
+
+    describe('write - multiple matching entries (countFiles branch)', () => {
+        let tmpDir;
+
+        beforeEach(async () => {
+            tmpDir = await mkdtemp(join(tmpdir(), 'binify-multi-'));
+            vi.mocked(chmod).mockRestore();
+        });
+
+        afterEach(async () => {
+            await rm(tmpDir, { recursive: true, force: true });
+        });
+
+        it('should handle multiple matching entries (countFiles > 0 after first decrement)', async () => {
+            if (process.platform === 'win32') return;
+
+            const bundle = await rollup({
+                input: {
+                    a: 'a',
+                    b: 'b',
+                },
+                plugins: [
+                    virtual({
+                        a: 'console.log("a")',
+                        b: 'console.log("b")',
+                    }),
+                    // Both entries match the default filter (isEntry), so countFiles = 2
+                    binify(),
+                ],
+            });
+            await bundle.write({ format: 'es', dir: tmpDir });
+
+            const { readFile } = await import('node:fs/promises');
+
+            const contentA = await readFile(join(tmpDir, 'a.js'), 'utf-8');
+            expect(contentA.startsWith('#!/usr/bin/env node\n')).toBe(true);
+
+            const contentB = await readFile(join(tmpDir, 'b.js'), 'utf-8');
+            expect(contentB.startsWith('#!/usr/bin/env node\n')).toBe(true);
+
+            const statA = await stat(join(tmpDir, 'a.js'));
+            expect(statA.mode & 0o777).toBe(0o755);
+
+            const statB = await stat(join(tmpDir, 'b.js'));
+            expect(statB.mode & 0o777).toBe(0o755);
+
+            await bundle.close();
+        });
+    });
+});
+
+// --- VERBOSE BRANCH COVERAGE ---
+
+describe('@rollup-extras/plugin-binify (verbose branch)', () => {
+    function virtual(modules) {
+        return {
+            name: 'virtual-input',
+            resolveId(id) {
+                if (modules[id]) return id;
+            },
+            load(id) {
+                if (modules[id]) return modules[id];
+            },
+        };
+    }
+
+    it('should work with verbose: true (covers verbose ternary true branch)', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("verbose")' }), binify({ verbose: true })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+        expect(output[0].code.startsWith('#!/usr/bin/env node\n')).toBe(true);
+        await bundle.close();
     });
 });

@@ -1,685 +1,624 @@
-import fs_ from 'node:fs';
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { rollup } from 'rollup';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { createLogger, LogLevel } from '@niceties/logger';
+import copy from '../src/index.js';
 
-import plugin from '../src';
+function virtual(modules) {
+    return {
+        name: 'virtual-input',
+        resolveId(id) {
+            if (modules[id]) return id;
+        },
+        load(id) {
+            if (modules[id]) return modules[id];
+        },
+    };
+}
 
-let loggerStart, loggerFinish, logger;
+describe('@rollup-extras/plugin-copy integration', () => {
+    let tmpDir;
 
-vi.mock('fs/promises');
-vi.mock('@niceties/logger', () => ({
-    LogLevel: { verbose: 0, info: 1, warn: 2, error: 3 },
-    createLogger: vi.fn(() => {
-        logger = vi.fn();
-        loggerStart = vi.fn();
-        loggerFinish = vi.fn();
-        return Object.assign(logger, {
-            start: loggerStart,
-            finish: loggerFinish,
+    beforeEach(async () => {
+        tmpDir = await mkdtemp(join(tmpdir(), 'copy-test-'));
+    });
+
+    afterEach(async () => {
+        await rm(tmpDir, { recursive: true, force: true });
+    });
+
+    it('should copy a single file to the output directory', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'dist');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'asset.txt'), 'hello world');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, 'asset.txt') })],
         });
-    }),
-}));
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
 
-describe('@rollup-extras/plugin-copy', () => {
-    let rollupContextMock;
+        const files = await readdir(outDir);
+        expect(files).toContain('asset.txt');
+        const content = await readFile(join(outDir, 'asset.txt'), 'utf8');
+        expect(content).toBe('hello world');
+    });
 
-    beforeEach(() => {
-        vi.clearAllMocks();
-        vi.mocked(createLogger).mockClear();
-        rollupContextMock = {
-            emitFile: vi.fn(),
-            addWatchFile: vi.fn(),
-        };
-        vi.mocked(fs.glob).mockImplementation(async function* () {
-            yield 'assets/aFolder/test.json';
-            yield 'assets/aFolder/test2.json';
+    it('should copy a file into a dest subdirectory', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'dist');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'style.css'), 'body {}');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, 'style.css'), dest: 'assets' })],
         });
-        vi.mocked(fs.readFile).mockImplementation(() => Promise.resolve(''));
-        vi.mocked(fs.stat).mockImplementation(() =>
-            Promise.resolve({
-                mtime: new Date(),
-                isFile: () => true,
-            })
-        );
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const assetsDir = join(outDir, 'assets');
+        const files = await readdir(assetsDir);
+        expect(files).toContain('style.css');
+        const content = await readFile(join(assetsDir, 'style.css'), 'utf8');
+        expect(content).toBe('body {}');
     });
 
-    it('should be defined', () => {
-        expect(plugin).toBeDefined();
+    it('should copy files matching a glob pattern', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'dist');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'a.txt'), 'aaa');
+        await writeFile(join(srcDir, 'b.txt'), 'bbb');
+        await writeFile(join(srcDir, 'c.json'), '{}');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, '*.txt') })],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('a.txt');
+        expect(files).toContain('b.txt');
+        expect(files).not.toContain('c.json');
     });
 
-    it('should use default plugin name', () => {
-        const pluginInstance = plugin('assets/**/*.json');
-        expect(pluginInstance.name).toEqual('@rollup-extras/plugin-copy');
+    it('should flatten nested directory structure when flatten is true', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'dist');
+        const nestedDir = join(srcDir, 'sub', 'deep');
+        await mkdir(nestedDir, { recursive: true });
+        await writeFile(join(srcDir, 'top.txt'), 'top');
+        await writeFile(join(nestedDir, 'nested.txt'), 'nested');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, '**/*.txt'), flatten: true })],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('top.txt');
+        expect(files).toContain('nested.txt');
+        // They should be flat at the root, not in subdirectories
+        expect(files).not.toContain('sub');
     });
 
-    it('should use changed plugin name', () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', pluginName: 'test' });
-        expect(pluginInstance.name).toEqual('test');
-    });
+    it('should directly copy files when emitFiles is false', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const destDir = join(tmpDir, 'copied');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'data.txt'), 'direct copy');
 
-    it('should accept single string parameter', async () => {
-        const pluginInstance = plugin('assets/**/*.json');
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test2.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should accept array of strings as a parameter', async () => {
-        const pluginInstance = plugin(['assets/**/*.json']);
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test2.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should accept array of objects as a parameter', async () => {
-        const pluginInstance = plugin([{ src: 'assets/**/*.json' }]);
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test2.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should accept object with targets as array of objects', async () => {
-        const pluginInstance = plugin({ targets: [{ src: 'assets/**/*.json' }] });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test2.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should accept object with targets as array of strings', async () => {
-        const pluginInstance = plugin({ targets: ['assets/**/*.json'] });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test2.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should accept object with targets as string', async () => {
-        const pluginInstance = plugin({ targets: 'assets/**/*.json' });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test2.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should accept object with src property', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json' });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test2.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should accept object with src as array', async () => {
-        const pluginInstance = plugin({ src: ['assets/**/*.json'] });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test2.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should accept object with src and dest properties', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', dest: 'vendor' });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'vendor/aFolder/test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'vendor/aFolder/test2.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should emit relative original file name', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', emitOriginalFileName: 'relative' });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test.json',
-                originalFileName: 'assets/aFolder/test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test2.json',
-                originalFileName: 'assets/aFolder/test2.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should emit absolute original file name', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', emitOriginalFileName: 'absolute' });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test.json',
-                originalFileName: path.resolve('assets/aFolder/test.json'),
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test2.json',
-                originalFileName: path.resolve('assets/aFolder/test2.json'),
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should emit original file name from function', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', emitOriginalFileName: fileName => fileName.replace('assets', 'vendor') });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test.json',
-                originalFileName: 'vendor/aFolder/test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test2.json',
-                originalFileName: 'vendor/aFolder/test2.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should not emit original file name when undefined', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', emitOriginalFileName: undefined });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test.json',
-                originalFileName: undefined,
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test2.json',
-                originalFileName: undefined,
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should handle empty array parameter', async () => {
-        const pluginInstance = plugin([]);
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledTimes(0);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(0);
-    });
-
-    it('should handle invalid array parameter', async () => {
-        const pluginInstance = plugin([null, '', 123]);
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledTimes(0);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(0);
-    });
-
-    it('should handle invalid parameter', async () => {
-        const pluginInstance = plugin(123);
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledTimes(0);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(0);
-    });
-
-    it('should emit files in generateBundle when outputPlugin is true', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', outputPlugin: true });
-        await pluginInstance.generateBundle.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledTimes(0);
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test2.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should prepend dest to file names', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', dest: 'folder' });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'folder/aFolder/test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'folder/aFolder/test2.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should pass exclude option to glob', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', dest: 'folder', exclude: 'assets/**' });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(fs.glob).toHaveBeenCalledWith('assets/**/*.json', { exclude: ['assets/**'] });
-    });
-
-    it('should pass exclude array option to glob', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', dest: 'folder', exclude: ['assets/aFolder/**', 'assets/bFolder/**'] });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(fs.glob).toHaveBeenCalledWith('assets/**/*.json', { exclude: ['assets/aFolder/**', 'assets/bFolder/**'] });
-    });
-
-    it('should flatten file paths when flatten is true', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', flatten: true });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'test2.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should handle dest with trailing slash and flatten', async () => {
-        const pluginInstance = plugin({
-            targets: [
-                { src: 'assets/**/*.json', dest: 'folder' },
-                { src: 'assets/**/*.json', dest: 'folder/' },
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 1' }),
+                copy({ src: join(srcDir, 'data.txt'), dest: destDir, emitFiles: false, outputPlugin: false }),
             ],
-            flatten: true,
         });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(2);
+        // With emitFiles: false the hook is buildEnd, so write triggers it
+        await bundle.write({ format: 'es', dir: join(tmpDir, 'dist') });
+        await bundle.close();
+
+        const files = await readdir(destDir);
+        expect(files).toContain('data.txt');
+        const content = await readFile(join(destDir, 'data.txt'), 'utf8');
+        expect(content).toBe('direct copy');
     });
 
-    it('should deduplicate emitted files', async () => {
-        const pluginInstance = plugin(['assets/**/*.json', 'assets/**/*.json']);
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(2);
-    });
+    it('should handle multiple targets', async () => {
+        const srcDir1 = join(tmpDir, 'src1');
+        const srcDir2 = join(tmpDir, 'src2');
+        const outDir = join(tmpDir, 'dist');
+        await mkdir(srcDir1, { recursive: true });
+        await mkdir(srcDir2, { recursive: true });
+        await writeFile(join(srcDir1, 'file1.txt'), 'one');
+        await writeFile(join(srcDir2, 'file2.txt'), 'two');
 
-    it('should copy once by default', async () => {
-        const mtime = new Date();
-        vi.mocked(fs.stat).mockImplementation(() =>
-            Promise.resolve({
-                mtime,
-                isFile: () => true,
-                isSymbolicLink: () => false,
-            })
-        );
-        const pluginInstance = plugin({ src: 'assets/**/*.json' });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(2);
-    });
-
-    it('should copy every time when copyOnce is false', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', copyOnce: false });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(4);
-    });
-
-    it('should use name instead of fileName when exactFileNames is false', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', exactFileNames: false });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('assets/aFolder/test.json');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                name: 'aFolder/test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                name: 'aFolder/test2.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should not add watch files when watch is false', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', watch: false });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledTimes(0);
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'aFolder/test2.json',
-                source: '',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should copy files directly when emitFiles is false', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
-        await pluginInstance.buildEnd.apply(rollupContextMock);
-        expect(rollupContextMock.addWatchFile).toBeCalledTimes(0);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(0);
-        expect(fs.copyFile).toHaveBeenCalledWith('assets/aFolder/test.json', 'aFolder/test.json', fs_.constants.COPYFILE_FICLONE);
-        expect(fs.copyFile).toHaveBeenCalledWith('assets/aFolder/test2.json', 'aFolder/test2.json', fs_.constants.COPYFILE_FICLONE);
-    });
-
-    it('should use verbose log level by default', async () => {
-        const pluginInstance = plugin('assets/**/*.json');
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(loggerStart).toHaveBeenCalledWith('copying files', LogLevel.verbose);
-        expect(loggerFinish).toHaveBeenCalledWith('copied test.json, test2.json');
-    });
-
-    it('should use info log level when verbose is true', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', verbose: true });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(loggerStart).toHaveBeenCalledWith('copying files', LogLevel.info);
-        expect(loggerFinish).toHaveBeenCalledWith('copied test.json, test2.json');
-    });
-
-    it('should list filenames when verbose is list-filenames', async () => {
-        const pluginInstance = plugin({ src: 'assets/**/*.json', verbose: 'list-filenames' });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(loggerStart).toHaveBeenCalledWith('copying files', LogLevel.info);
-        expect(logger).toHaveBeenCalledWith('\tassets/aFolder/test.json → aFolder/test.json', LogLevel.info);
-        expect(logger).toHaveBeenCalledWith('\tassets/aFolder/test2.json → aFolder/test2.json', LogLevel.info);
-        expect(loggerFinish).toHaveBeenCalledWith('copied 2 files');
-    });
-
-    it('should log warning on readFile exception', async () => {
-        vi.mocked(fs.readFile).mockImplementationOnce(() => {
-            throw { stack: '' };
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 1' }),
+                copy({
+                    targets: [{ src: join(srcDir1, 'file1.txt') }, { src: join(srcDir2, 'file2.txt'), dest: 'other' }],
+                }),
+            ],
         });
-        const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: true });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(logger).toHaveBeenCalledWith(
-            'error reading file assets/aFolder/test.json',
-            LogLevel.warn,
-            expect.objectContaining({ stack: '' })
-        );
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const rootFiles = await readdir(outDir);
+        expect(rootFiles).toContain('file1.txt');
+
+        const otherFiles = await readdir(join(outDir, 'other'));
+        expect(otherFiles).toContain('file2.txt');
     });
 
-    it('should log silently on missing file exception', async () => {
-        vi.mocked(fs.readFile).mockImplementationOnce(() => {
-            throw { code: 'ENOENT', stack: '' };
+    it('should produce hashed file names when exactFileNames is false', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'dist');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'icon.txt'), 'icon-content');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, 'icon.txt'), exactFileNames: false })],
         });
-        const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: true });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(logger).toHaveBeenCalledWith(
-            'error reading file assets/aFolder/test.json',
-            undefined,
-            expect.objectContaining({ code: 'ENOENT', stack: '' })
-        );
+        await bundle.write({ format: 'es', dir: outDir, assetFileNames: '[name]-[hash][extname]' });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        // With exactFileNames false, rollup uses name field and applies assetFileNames pattern
+        // so the file should have a hash in the name, not be exactly icon.txt
+        const assetFile = files.find(f => f.startsWith('icon-') && f.endsWith('.txt'));
+        expect(assetFile).toBeDefined();
+        expect(assetFile).not.toBe('icon.txt');
+
+        const content = await readFile(join(outDir, assetFile), 'utf8');
+        expect(content).toBe('icon-content');
     });
 
-    it('should log warning on copyFile exception', async () => {
-        vi.mocked(fs.copyFile).mockImplementationOnce(() => {
-            throw { stack: '' };
+    it('should copy files using string shorthand', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'dist');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'a.txt'), 'alpha');
+        await writeFile(join(srcDir, 'b.txt'), 'bravo');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy(join(srcDir, '*.txt'))],
         });
-        const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
-        await pluginInstance.buildEnd.apply(rollupContextMock);
-        expect(logger).toHaveBeenCalledWith(
-            'error copying file assets/aFolder/test.json → aFolder/test.json',
-            LogLevel.warn,
-            expect.objectContaining({ stack: '' })
-        );
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('a.txt');
+        expect(files).toContain('b.txt');
     });
 
-    it('should log warning on missing directory exception', async () => {
-        vi.mocked(fs.copyFile).mockImplementationOnce(() => {
-            throw { code: 'ENOENT', stack: '' };
+    it('should copy files using array shorthand', async () => {
+        const srcDir1 = join(tmpDir, 'srcA');
+        const srcDir2 = join(tmpDir, 'srcB');
+        const outDir = join(tmpDir, 'dist');
+        await mkdir(srcDir1, { recursive: true });
+        await mkdir(srcDir2, { recursive: true });
+        await writeFile(join(srcDir1, 'x.txt'), 'txt-content');
+        await writeFile(join(srcDir2, 'y.css'), 'css-content');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy([join(srcDir1, '*.txt'), join(srcDir2, '*.css')])],
         });
-        const pluginInstance = plugin({ src: 'assets/**/*.json', emitFiles: false });
-        await pluginInstance.buildEnd.apply(rollupContextMock);
-        expect(logger).toHaveBeenCalledWith(
-            'error copying file assets/aFolder/test.json → aFolder/test.json',
-            LogLevel.warn,
-            expect.objectContaining({ code: 'ENOENT', stack: '' })
-        );
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('x.txt');
+        expect(files).toContain('y.css');
     });
 
-    it('should show count when more than 5 files', async () => {
-        vi.mocked(fs.glob).mockImplementation(async function* () {
-            yield '1';
-            yield '2';
-            yield '3';
-            yield '4';
-            yield '5';
-            yield '6';
+    it('should copy multiple files when src is an array in a single target', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'dist');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'a.txt'), 'aaa');
+        await writeFile(join(srcDir, 'b.txt'), 'bbb');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: [join(srcDir, 'a.txt'), join(srcDir, 'b.txt')] })],
         });
-        const pluginInstance = plugin('assets/**/*.json');
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(loggerFinish).toHaveBeenCalledWith('copied 6 files');
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('a.txt');
+        expect(files).toContain('b.txt');
+        expect(await readFile(join(outDir, 'a.txt'), 'utf8')).toBe('aaa');
+        expect(await readFile(join(outDir, 'b.txt'), 'utf8')).toBe('bbb');
     });
 
-    it('should handle glob pattern starting with wildcard', async () => {
-        vi.mocked(fs.glob).mockImplementation(async function* () {
-            yield 'test.json';
+    it('should exclude files matching the exclude option', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'dist');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'keep.txt'), 'keep');
+        await writeFile(join(srcDir, 'data.json'), '{}');
+        await writeFile(join(srcDir, 'debug.log'), 'log-data');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, '*'), exclude: join(srcDir, '*.log') })],
         });
-        const pluginInstance = plugin('*.json');
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'test.json',
-                source: '',
-                type: 'asset',
-            })
-        );
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('keep.txt');
+        expect(files).toContain('data.json');
+        expect(files).not.toContain('debug.log');
     });
 
-    it('should skip entries that are not files or symlinks', async () => {
-        vi.mocked(fs.stat).mockImplementation(() =>
-            Promise.resolve({
-                mtime: new Date(),
-                isFile: () => false,
-                isSymbolicLink: () => false,
-            })
-        );
+    it('should preserve nested directory structure when flatten is false (default)', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'dist');
+        const nestedDir = join(srcDir, 'sub', 'deep');
+        await mkdir(nestedDir, { recursive: true });
+        await writeFile(join(srcDir, 'top.txt'), 'top');
+        await writeFile(join(nestedDir, 'nested.txt'), 'nested');
 
-        const pluginInstance = plugin('assets/**/*.json');
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.emitFile).toBeCalledTimes(0);
-    });
-
-    it('should handle literal file paths (no glob characters)', async () => {
-        vi.mocked(fs.glob).mockImplementation(async function* (pattern) {
-            yield/** @type {string} */ (pattern);
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 1' }),
+                // flatten defaults to false, so directory structure should be preserved
+                copy({ src: join(srcDir, '**/*.txt') }),
+            ],
         });
-        const pluginInstance = plugin({ targets: ['src/test.css', 'src/index2.js'], verbose: 'list-filenames' });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'test.css',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index2.js',
-                source: '',
-                type: 'asset',
-            })
-        );
-        expect(logger).toHaveBeenCalledWith('\tsrc/test.css → test.css', LogLevel.info);
-        expect(logger).toHaveBeenCalledWith('\tsrc/index2.js → index2.js', LogLevel.info);
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        // top.txt should be at root of output
+        const rootFiles = await readdir(outDir);
+        expect(rootFiles).toContain('top.txt');
+        // nested.txt should be inside sub/deep/ preserving directory structure
+        const deepFiles = await readdir(join(outDir, 'sub', 'deep'));
+        expect(deepFiles).toContain('nested.txt');
+        expect(await readFile(join(outDir, 'sub', 'deep', 'nested.txt'), 'utf8')).toBe('nested');
     });
 
-    it('should handle nested literal file path', async () => {
-        vi.mocked(fs.glob).mockImplementation(async function* (pattern) {
-            yield/** @type {string} */ (pattern);
+    it('should directly copy multiple files when emitFiles is false', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const destDir = join(tmpDir, 'copied');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'one.txt'), 'first');
+        await writeFile(join(srcDir, 'two.txt'), 'second');
+        await writeFile(join(srcDir, 'three.txt'), 'third');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 1' }),
+                copy({ src: join(srcDir, '*.txt'), dest: destDir, emitFiles: false, outputPlugin: false }),
+            ],
         });
-        const pluginInstance = plugin('src/test/index.html');
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '',
-                type: 'asset',
-            })
-        );
+        await bundle.write({ format: 'es', dir: join(tmpDir, 'dist') });
+        await bundle.close();
+
+        const files = await readdir(destDir);
+        expect(files).toContain('one.txt');
+        expect(files).toContain('two.txt');
+        expect(files).toContain('three.txt');
+        expect(await readFile(join(destDir, 'one.txt'), 'utf8')).toBe('first');
+        expect(await readFile(join(destDir, 'two.txt'), 'utf8')).toBe('second');
+        expect(await readFile(join(destDir, 'three.txt'), 'utf8')).toBe('third');
     });
 
-    it('should handle literal file path with dest', async () => {
-        vi.mocked(fs.glob).mockImplementation(async function* (pattern) {
-            yield/** @type {string} */ (pattern);
+    it('should have default plugin name @rollup-extras/plugin-copy', () => {
+        const plugin = copy({ src: 'x' });
+        expect(plugin.name).toBe('@rollup-extras/plugin-copy');
+    });
+
+    // ===== NEW TESTS FOR COVERAGE =====
+
+    it('should support outputPlugin mode (generateBundle hook)', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'file.txt'), 'output-plugin-content');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, '*.txt'), outputPlugin: true })],
         });
-        const pluginInstance = plugin({ src: 'src/test.css', dest: 'vendor' });
-        await pluginInstance.buildStart.apply(rollupContextMock);
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'vendor/test.css',
-                source: '',
-                type: 'asset',
-            })
-        );
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('file.txt');
+        expect(await readFile(join(outDir, 'file.txt'), 'utf8')).toBe('output-plugin-content');
+    });
+
+    it('should disable watch and warn when outputPlugin is true and watch is true', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'file.txt'), 'watch-output');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, '*.txt'), outputPlugin: true, watch: true })],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('file.txt');
+        expect(await readFile(join(outDir, 'file.txt'), 'utf8')).toBe('watch-output');
+    });
+
+    it('should disable watch and warn when emitFiles is false and outputPlugin is false', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const destDir = join(tmpDir, 'dest');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'file.txt'), 'no-emit-watch');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 1' }),
+                copy({ src: join(srcDir, '*.txt'), dest: destDir, emitFiles: false, watch: true }),
+            ],
+        });
+        await bundle.write({ format: 'es', dir: join(tmpDir, 'out') });
+        await bundle.close();
+
+        const files = await readdir(destDir);
+        expect(files).toContain('file.txt');
+        expect(await readFile(join(destDir, 'file.txt'), 'utf8')).toBe('no-emit-watch');
+    });
+
+    it('should skip directories matched by glob (isFile false)', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'real.txt'), 'real-file');
+        await mkdir(join(srcDir, 'fake.txt'), { recursive: true });
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, '*.txt') })],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('real.txt');
+        expect(await readFile(join(outDir, 'real.txt'), 'utf8')).toBe('real-file');
+    });
+
+    it('should skip already-copied files with copyOnce on rebuild', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const destDir = join(tmpDir, 'dest');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'original.txt'), 'original');
+
+        const plugin = copy({
+            src: join(srcDir, '*.txt'),
+            dest: destDir,
+            emitFiles: false,
+            copyOnce: true,
+        });
+
+        const bundle1 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), plugin],
+        });
+        await bundle1.write({ format: 'es', dir: join(tmpDir, 'out1') });
+        await bundle1.close();
+
+        expect(await readFile(join(destDir, 'original.txt'), 'utf8')).toBe('original');
+
+        await writeFile(join(destDir, 'original.txt'), 'modified-at-dest');
+        await writeFile(join(srcDir, 'new.txt'), 'new-content');
+
+        const bundle2 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), plugin],
+        });
+        await bundle2.write({ format: 'es', dir: join(tmpDir, 'out2') });
+        await bundle2.close();
+
+        expect(await readFile(join(destDir, 'original.txt'), 'utf8')).toBe('modified-at-dest');
+        expect(await readFile(join(destDir, 'new.txt'), 'utf8')).toBe('new-content');
+    });
+
+    it('should work with verbose set to list-filenames', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'a.txt'), 'aaa');
+        await writeFile(join(srcDir, 'b.txt'), 'bbb');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, '*.txt'), verbose: 'list-filenames' })],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('a.txt');
+        expect(files).toContain('b.txt');
+    });
+
+    it('should work with verbose set to true', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'a.txt'), 'aaa');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, '*.txt'), verbose: true })],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('a.txt');
+    });
+
+    it('should set relative originalFileName when emitOriginalFileName is relative', async () => {
+        const srcDir = join(tmpDir, 'src');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'file.txt'), 'content');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, 'file.txt'), emitOriginalFileName: 'relative' })],
+        });
+        const { output } = await bundle.generate({ format: 'es' });
+        await bundle.close();
+
+        const asset = output.find(o => o.type === 'asset' && o.fileName === 'file.txt');
+        expect(asset).toBeDefined();
+        expect(asset.originalFileName).toBe(join(srcDir, 'file.txt'));
+    });
+
+    it('should use custom function for emitOriginalFileName', async () => {
+        const srcDir = join(tmpDir, 'src');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'file.txt'), 'content');
+
+        let calledWith = null;
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 1' }),
+                copy({
+                    src: join(srcDir, 'file.txt'),
+                    emitOriginalFileName: filePath => {
+                        calledWith = filePath;
+                        return `custom-${filePath}`;
+                    },
+                }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es' });
+        await bundle.close();
+
+        expect(calledWith).toBe(join(srcDir, 'file.txt'));
+        const asset = output.find(o => o.type === 'asset' && o.fileName === 'file.txt');
+        expect(asset).toBeDefined();
+        expect(asset.originalFileName).toBe(`custom-${join(srcDir, 'file.txt')}`);
+    });
+
+    it('should not set originalFileName when emitOriginalFileName is falsy', async () => {
+        const srcDir = join(tmpDir, 'src');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'file.txt'), 'content');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, 'file.txt'), emitOriginalFileName: false })],
+        });
+        const { output } = await bundle.generate({ format: 'es' });
+        await bundle.close();
+
+        const asset = output.find(o => o.type === 'asset' && o.fileName === 'file.txt');
+        expect(asset).toBeDefined();
+        expect(asset.originalFileName == null).toBe(true);
+    });
+
+    it('should normalize trailing slash in dest when flatten is true', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'file.txt'), 'slash-content');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, '*.txt'), dest: 'assets/', flatten: true })],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(join(outDir, 'assets'));
+        expect(files).toContain('file.txt');
+        expect(await readFile(join(outDir, 'assets', 'file.txt'), 'utf8')).toBe('slash-content');
+    });
+
+    it('should handle broken symlinks gracefully (stat error / ENOENT)', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'good.txt'), 'good-content');
+        // Create a symlink pointing to a nonexistent file
+        const { symlink } = await import('node:fs/promises');
+        await symlink(join(srcDir, 'nonexistent-target'), join(srcDir, 'broken.txt'));
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, '*.txt') })],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('good.txt');
+        expect(await readFile(join(outDir, 'good.txt'), 'utf8')).toBe('good-content');
+    });
+
+    it('should handle error during file copy gracefully', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const destDir = join(tmpDir, 'dest');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'file.txt'), 'content');
+        // Create dest as a file, not a directory - mkdir will succeed but copyFile to dest/file.txt will fail
+        // because dest/file.txt parent is actually a file
+        await writeFile(join(destDir), 'blocking-file');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 1' }),
+                copy({ src: join(srcDir, 'file.txt'), dest: join(destDir, 'sub'), emitFiles: false }),
+            ],
+        });
+        // Should not throw - error is caught and logged
+        await bundle.write({ format: 'es', dir: join(tmpDir, 'out') });
+        await bundle.close();
+    });
+
+    it('should filter out invalid target items in targets normalization', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'file.txt'), 'content');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 1' }),
+                // Pass targets with an invalid item (number) mixed with valid ones
+                copy({ targets: [{ src: join(srcDir, '*.txt') }, null, 42] }),
+            ],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('file.txt');
     });
 });

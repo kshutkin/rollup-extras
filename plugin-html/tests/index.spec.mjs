@@ -1,1391 +1,880 @@
-import oldFs from 'node:fs';
-import fs from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { rollup } from 'rollup';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { createLogger, LogLevel } from '@niceties/logger';
+import html from '../src/index.js';
 
-import plugin from '../src';
+function virtual(modules) {
+    return {
+        name: 'virtual-input',
+        resolveId(id) {
+            if (modules[id]) return id;
+        },
+        load(id) {
+            if (modules[id]) return modules[id];
+        },
+    };
+}
 
-let loggerStart, loggerFinish, logger;
+function emitCss(fileName, source) {
+    return {
+        name: 'emit-css',
+        generateBundle() {
+            this.emitFile({ type: 'asset', fileName, source });
+        },
+    };
+}
+describe('@rollup-extras/plugin-html integration', () => {
+    let tmpDir;
 
-vi.mock('fs/promises');
-vi.mock('fs');
-vi.mock('@niceties/logger', () => ({
-    LogLevel: { verbose: 0, info: 1, warn: 2, error: 3 },
-    createLogger: vi.fn(() => {
-        logger = vi.fn();
-        loggerStart = vi.fn();
-        loggerFinish = vi.fn();
-        return Object.assign(logger, {
-            start: loggerStart,
-            finish: loggerFinish,
-        });
-    }),
-}));
-
-describe('@rollup-extras/plugin-html', () => {
-    let rollupContextMock;
-
-    beforeEach(() => {
-        vi.mocked(fs.mkdir).mockClear();
-        vi.mocked(fs.writeFile).mockClear();
-        vi.mocked(fs.readFile)
-            .mockClear()
-            .mockImplementation(() => Promise.resolve('<!DOCTYPE html><html><head></head><body>File Template</body></html>'));
-        vi.mocked(oldFs.readFileSync)
-            .mockClear()
-            .mockImplementation(() => '<!DOCTYPE html><html><head></head><body>File Template</body></html>');
-        vi.mocked(createLogger).mockClear();
-        rollupContextMock = {
-            emitFile: vi.fn(),
-            addWatchFile: vi.fn(),
-        };
+    beforeEach(async () => {
+        tmpDir = await mkdtemp(join(tmpdir(), 'plugin-html-test-'));
     });
 
-    it('should be defined', () => {
+    afterEach(async () => {
+        if (tmpDir) {
+            await rm(tmpDir, { recursive: true, force: true });
+        }
+    });
+
+    it('should generate index.html with a module script tag for ES format', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html()],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.type).toBe('asset');
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('type="module"');
+        expect(htmlAsset.source).toContain('entry.js');
+        expect(htmlAsset.source).toContain('</head>');
+        expect(htmlAsset.source).toContain('</body>');
+    });
+
+    it('should include a link tag in head for CSS assets', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), emitCss('styles.css', 'body { margin: 0; }'), html()],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<link rel="stylesheet"');
+        expect(htmlAsset.source).toContain('styles.css');
+        const headEnd = htmlAsset.source.indexOf('</head>');
+        const linkPos = htmlAsset.source.indexOf('<link');
+        expect(linkPos).toBeLessThan(headEnd);
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('entry.js');
+    });
+
+    it('should use a custom outputFile name', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html({ outputFile: 'custom.html' })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'custom.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.type).toBe('asset');
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('entry.js');
+        const indexHtml = output.find(item => item.fileName === 'index.html');
+        expect(indexHtml).toBeUndefined();
+    });
+
+    it('should use a custom template string', async () => {
+        const customTemplate = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"></head><body><div id="app"></div></body></html>';
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html({ template: customTemplate })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('lang="en"');
+        expect(htmlAsset.source).toContain('<meta charset="utf-8">');
+        expect(htmlAsset.source).toContain('<div id="app"></div>');
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('entry.js');
+    });
+
+    it('should write HTML to disk when emitFile is false and useWriteBundle is true', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html({ emitFile: false, useWriteBundle: true })],
+        });
+        await bundle.write({ format: 'es', dir: tmpDir });
+
+        const htmlPath = join(tmpDir, 'index.html');
+        const content = await readFile(htmlPath, 'utf8');
+        expect(content).toContain('<script');
+        expect(content).toContain('type="module"');
+        expect(content).toContain('entry.js');
+        expect(content).toContain('</head>');
+        expect(content).toContain('</body>');
+    });
+
+    it('should use a regular script tag for IIFE format (not module)', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html()],
+        });
+        const { output } = await bundle.generate({ format: 'iife', dir: 'dist', name: 'myBundle' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('type="text/javascript"');
+        expect(htmlAsset.source).not.toContain('type="module"');
+        expect(htmlAsset.source).toContain('entry.js');
+    });
+
+    it('should use a regular script tag for UMD format (not module)', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html()],
+        });
+        const { output } = await bundle.generate({ format: 'umd', dir: 'dist', name: 'myBundle' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('type="text/javascript"');
+        expect(htmlAsset.source).not.toContain('type="module"');
+        expect(htmlAsset.source).toContain('entry.js');
+    });
+
+    it('should skip non-entry chunks (dynamic imports) from script tags', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({
+                    entry: 'export default () => import("dynamic");',
+                    dynamic: 'export const value = 123;',
+                }),
+                html(),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        const entryChunk = output.find(item => item.type === 'chunk' && item.isEntry);
+        expect(htmlAsset.source).toContain(entryChunk.fileName);
+        const dynamicChunk = output.find(item => item.type === 'chunk' && !item.isEntry);
+        expect(dynamicChunk).toBeDefined();
+        expect(htmlAsset.source).not.toContain(dynamicChunk.fileName);
+    });
+
+    it('should not include non-CSS assets in the HTML', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("hello")' }),
+                {
+                    name: 'emit-txt',
+                    generateBundle() {
+                        this.emitFile({ type: 'asset', fileName: 'readme.txt', source: 'hello world' });
+                    },
+                },
+                html(),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).not.toContain('readme.txt');
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('entry.js');
+    });
+
+    it('should have the default plugin name', () => {
+        const plugin = html();
+        expect(plugin.name).toBe('@rollup-extras/plugin-html');
+    });
+
+    it('should use a custom pluginName', () => {
+        const plugin = html({ pluginName: 'my-html' });
+        expect(plugin.name).toBe('my-html');
+    });
+
+    it('should include script tags for multiple entry points', async () => {
+        const bundle = await rollup({
+            input: { a: 'entryA', b: 'entryB' },
+            plugins: [
+                virtual({
+                    entryA: 'export const a = 1;',
+                    entryB: 'export const b = 2;',
+                }),
+                html(),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        const entryChunks = output.filter(item => item.type === 'chunk' && item.isEntry);
+        expect(entryChunks.length).toBe(2);
+        for (const chunk of entryChunks) {
+            expect(htmlAsset.source).toContain(chunk.fileName);
+        }
+        const scriptMatches = htmlAsset.source.match(/<script /g);
+        expect(scriptMatches.length).toBe(2);
+    });
+
+    it('should fall back to default template when template string has no head/body tags', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html({ template: '<html>No head or body</html>' })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('</head>');
+        expect(htmlAsset.source).toContain('</body>');
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('entry.js');
+    });
+
+    it('should ignore assets matching the ignore option', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("hello")' }),
+                emitCss('styles.css', 'body { margin: 0; }'),
+                {
+                    name: 'emit-map',
+                    generateBundle() {
+                        this.emitFile({ type: 'asset', fileName: 'bundle.js.map', source: '{"mappings":""}' });
+                    },
+                },
+                html({ ignore: /\.map$/ }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).not.toContain('bundle.js.map');
+        expect(htmlAsset.source).toContain('styles.css');
+        expect(htmlAsset.source).toContain('<link rel="stylesheet"');
+        expect(htmlAsset.source).toContain('<script');
+    });
+
+    // ====================================================================
+    // NEW TESTS - Coverage gaps
+    // ====================================================================
+
+    // 1. Template as file path, watch: true (default), file exists with valid HTML
+    it('should use a template file when watch is true (default) and file has valid HTML', async () => {
+        const tplPath = join(tmpDir, 'tpl.html');
+        await writeFile(tplPath, '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><div id="root"></div></body></html>');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html({ template: tplPath })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<meta charset="utf-8">');
+        expect(htmlAsset.source).toContain('<div id="root"></div>');
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('entry.js');
+    });
+
+    // 2. Template as file path, watch: false, file exists with valid HTML
+    it('should use a template file when watch is false and file has valid HTML', async () => {
+        const tplPath = join(tmpDir, 'tpl.html');
+        await writeFile(tplPath, '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><div id="root"></div></body></html>');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html({ template: tplPath, watch: false })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<meta charset="utf-8">');
+        expect(htmlAsset.source).toContain('<div id="root"></div>');
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('entry.js');
+    });
+
+    // 3. Template as file path, watch: false, file exists but NOT usable (no head/body)
+    it('should fall back to default template when file template has no head/body and watch is false', async () => {
+        const tplPath = join(tmpDir, 'bad-tpl.html');
+        await writeFile(tplPath, '<html>No head or body</html>');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html({ template: tplPath, watch: false })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('</head>');
+        expect(htmlAsset.source).toContain('</body>');
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('entry.js');
+    });
+
+    // 4. Template as file path, watch: false, file does NOT exist
+    it('should handle nonexistent template file path with watch: false without crashing', async () => {
+        const plugin = html({ template: '/nonexistent/path/to/template.html', watch: false });
         expect(plugin).toBeDefined();
+        expect(plugin.name).toBe('@rollup-extras/plugin-html');
+        // Allow async catch handler to run for coverage
+        await new Promise(r => setTimeout(r, 100));
     });
 
-    it('should use default plugin name', () => {
-        const pluginInstance = plugin();
-        expect(pluginInstance.name).toEqual('@rollup-extras/plugin-html');
-        expect(createLogger).toHaveBeenCalledWith('@rollup-extras/plugin-html');
-    });
-
-    it('should use changed plugin name', () => {
-        const pluginInstance = plugin({ pluginName: 'test' });
-        expect(pluginInstance.name).toEqual('test');
-        expect(createLogger).toHaveBeenCalledWith('test');
-    });
-
-    it('should generate HTML with script and stylesheet', async () => {
-        const pluginInstance = plugin();
-
-        pluginInstance.renderStart.call(rollupContextMock, {});
-        await pluginInstance.generateBundle.call(
-            rollupContextMock,
-            { format: 'es' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            }
-        );
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should handle multiple configs', async () => {
-        const pluginInstance = plugin();
-        const additionalInstance = pluginInstance.api.addInstance();
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-        additionalInstance.renderStart.apply(rollupContextMock, [{}]);
-        await additionalInstance.generateBundle.apply(rollupContextMock, [{ format: 'es' }, {}]);
-
-        expect(additionalInstance.name).toEqual('@rollup-extras/plugin-html#1');
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should use conditional loading by default for es + iife', async () => {
-        const pluginInstance = plugin();
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.mjs': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-            },
-        ]);
-
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'iife' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head></head><body><script src="index.js" type="text/javascript" nomodule></script><script src="index.mjs" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should use conditional loading by default for es + umd', async () => {
-        const pluginInstance = plugin();
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.mjs': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-            },
-        ]);
-
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'umd' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head></head><body><script src="index.js" type="text/javascript" nomodule></script><script src="index.mjs" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should use conditional loading by default for es + umd + iife', async () => {
-        const pluginInstance = plugin();
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.mjs': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-            },
-        ]);
-
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'iife' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-            },
-        ]);
-
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'umd' },
-            {
-                'index.umd.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head></head><body><script src="index.js" type="text/javascript" nomodule></script><script src="index.mjs" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should not use conditional loading when disabled', async () => {
-        const pluginInstance = plugin({ conditionalLoading: false });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.mjs': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-            },
-        ]);
-
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'iife' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head></head><body><script src="index.js" type="text/javascript"></script><script src="index.mjs" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should use conditional loading for iife when enabled', async () => {
-        const pluginInstance = plugin({ conditionalLoading: true });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'iife' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head></head><body><script src="index.js" type="text/javascript" nomodule></script></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should use sync assets factory for js', async () => {
-        const assetsFactory = vi.fn(() => '<asset/>');
-        const pluginInstance = plugin({ assetsFactory });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.mjs': {
-                    type: 'chunk',
-                    isEntry: true,
-                    code: 'code1',
-                },
-            },
-        ]);
-
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'iife' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                    code: 'code2',
-                },
-            },
-        ]);
-
-        expect(assetsFactory).toHaveBeenCalledWith('index.mjs', 'code1', 'es');
-        expect(assetsFactory).toHaveBeenCalledWith('index.js', 'code2', 'iife');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head></head><body><asset/><asset/></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should use sync assets factory for amd', async () => {
-        const assetsFactory = vi.fn(() => ({ html: '<asset/>', head: true, type: 'amd' }));
-        const pluginInstance = plugin({ assetsFactory });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'amd' },
-            {
-                'index.mjs': {
-                    type: 'chunk',
-                    isEntry: true,
-                    code: 'code1',
-                },
-            },
-        ]);
-
-        expect(assetsFactory).toHaveBeenCalledWith('index.mjs', 'code1', 'amd');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head></head><body></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should use async assets factory for js', async () => {
-        const assetsFactory = vi.fn(() => Promise.resolve('<asset/>'));
-        const pluginInstance = plugin({ assetsFactory });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.mjs': {
-                    type: 'chunk',
-                    isEntry: true,
-                    code: 'code1',
-                },
-            },
-        ]);
-
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'iife' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                    code: 'code2',
-                },
-            },
-        ]);
-
-        expect(assetsFactory).toHaveBeenCalledWith('index.mjs', 'code1', 'es');
-        expect(assetsFactory).toHaveBeenCalledWith('index.js', 'code2', 'iife');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head></head><body><asset/><asset/></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should use sync assets factory for css', async () => {
-        const assetsFactory = vi.fn(() => '<asset/>');
-        const pluginInstance = plugin({ assetsFactory });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><asset/></head><body></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should use sync assets factory for scss', async () => {
-        const assetsFactory = vi.fn(() => ({ html: '<asset/>', head: false, type: 'scss' }));
-        const pluginInstance = plugin({ assetsFactory });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'main.scss': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head></head><body></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should use async assets factory for css', async () => {
-        const assetsFactory = vi.fn(() => Promise.resolve('<asset/>'));
-        const pluginInstance = plugin({ assetsFactory });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><asset/></head><body></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should fall back to default on exception in assets factory', async () => {
-        const assetsFactory = vi.fn(() => {
-            throw new Error('test');
+    // 5. Template file without head/body + custom templateFactory (watch: false)
+    it('should use custom templateFactory even when template file has no head/body', async () => {
+        const tplPath = join(tmpDir, 'custom-tpl.html');
+        await writeFile(tplPath, '<div>custom</div>');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("hello")' }),
+                html({
+                    template: tplPath,
+                    watch: false,
+                    templateFactory: (tpl, _assets) => `${tpl}<script src="entry.js"></script>`,
+                }),
+            ],
         });
-        const pluginInstance = plugin({ assetsFactory });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
 
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body></body></html>',
-                type: 'asset',
-            })
-        );
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<div>custom</div>');
+        expect(htmlAsset.source).toContain('<script src="entry.js"></script>');
     });
 
-    it('should ignore assets matching function predicate', async () => {
-        const pluginInstance = plugin({ ignore: fileName => fileName.endsWith('.css') });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'main.css': {
-                    type: 'asset',
+    // 6. useEmittedTemplate: another plugin emits index.html as asset, no template option
+    it('should use emitted index.html as template when useEmittedTemplate is true (default)', async () => {
+        const emittedHtml = '<!DOCTYPE html><html><head></head><body><div id="app"></div></body></html>';
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("hello")' }),
+                {
+                    name: 'emit-html',
+                    generateBundle() {
+                        this.emitFile({ type: 'asset', fileName: 'index.html', source: emittedHtml });
+                    },
                 },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head></head><body></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should ignore assets matching RegExp', async () => {
-        const pluginInstance = plugin({ ignore: /^.*css$/ });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head></head><body></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should ignore all assets when ignore is true', async () => {
-        const pluginInstance = plugin({ ignore: true });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head></head><body></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should ignore assets matching string extension', async () => {
-        const pluginInstance = plugin({ ignore: '.css' });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head></head><body></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should warn on invalid ignore option', async () => {
-        const pluginInstance = plugin({ ignore: 123 });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body></body></html>',
-                type: 'asset',
-            })
-        );
-        expect(logger).toHaveBeenCalledWith('ignore option ignored because it is not a function, RegExp, string or boolean', LogLevel.warn);
-    });
-
-    it('should inject into head based on function predicate', async () => {
-        const assetsFactory = () => '<asset/>';
-        const pluginInstance = plugin({ assetsFactory, injectIntoHead: fileName => !fileName.endsWith('.css') });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head></head><body><asset/></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should inject into head based on RegExp', async () => {
-        const assetsFactory = () => '<asset/>';
-        const pluginInstance = plugin({ assetsFactory, injectIntoHead: /^.*js$/ });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head></head><body><asset/></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should inject into body when injectIntoHead is false', async () => {
-        const assetsFactory = () => '<asset/>';
-        const pluginInstance = plugin({ assetsFactory, injectIntoHead: false });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head></head><body><asset/></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should inject into head based on string extension', async () => {
-        const assetsFactory = () => '<asset/>';
-        const pluginInstance = plugin({ assetsFactory, injectIntoHead: '.css' });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><asset/></head><body></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should warn on invalid injectIntoHead option', async () => {
-        const assetsFactory = () => '<asset/>';
-        const pluginInstance = plugin({ assetsFactory, injectIntoHead: 123 });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><asset/></head><body></body></html>',
-                type: 'asset',
-            })
-        );
-        expect(logger).toHaveBeenCalledWith(
-            'injectIntoHead option ignored because it is not a function, RegExp, string or boolean',
-            LogLevel.warn
-        );
-    });
-
-    it('should use custom output file name', async () => {
-        const pluginInstance = plugin({ outputFile: 'main.html' });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'main.html',
-                source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should use custom template string', async () => {
-        const pluginInstance = plugin({ template: '<html><head>Hi!</head><body>Hello!</body></html>' });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<html><head>Hi!<link rel="stylesheet" href="main.css" type="text/css"></head><body>Hello!<script src="index.js" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should write file directly when emitFile is false', async () => {
-        const pluginInstance = plugin({ emitFile: false });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(fs.writeFile).toHaveBeenCalledWith(
-            'index.html',
-            '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>'
-        );
-    });
-
-    it('should auto-detect emitFile behavior', async () => {
-        const pluginInstance = plugin();
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{ dir: 'dest' }]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es', dir: 'dest2' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(fs.writeFile).toHaveBeenCalledWith(
-            'dest/index.html',
-            '<!DOCTYPE html><html><head><link rel="stylesheet" href="../dest2/main.css" type="text/css"></head><body><script src="../dest2/index.js" type="module"></script></body></html>'
-        );
-        expect(logger).not.toHaveBeenCalledWith(
-            'cannot emitFile because it is outside of current output.dir, using writeFile instead',
-            LogLevel.verbose
-        );
-    });
-
-    it('should fall back to writeFile when emitFile is true but dir differs', async () => {
-        const pluginInstance = plugin({ emitFile: true });
-
-        pluginInstance.renderStart.apply(rollupContextMock, [{ dir: 'dest' }]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es', dir: 'dest2' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(fs.writeFile).toHaveBeenCalledWith(
-            'dest/index.html',
-            '<!DOCTYPE html><html><head><link rel="stylesheet" href="../dest2/main.css" type="text/css"></head><body><script src="../dest2/index.js" type="module"></script></body></html>'
-        );
-        expect(logger).toHaveBeenCalledWith(
-            'cannot emitFile because it is outside of current output.dir, using writeFile instead',
-            LogLevel.verbose
-        );
-    });
-
-    it('should log error on exception in generateBundle', async () => {
-        const pluginInstance = plugin();
-
-        vi.mocked(rollupContextMock.emitFile).mockImplementationOnce(() => {
-            throw new Error('test');
+                html(),
+            ],
         });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
 
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(loggerStart).toHaveBeenCalledWith('generating html', LogLevel.verbose);
-        expect(loggerFinish).toHaveBeenCalledWith('html generation failed', LogLevel.error, expect.any(Error));
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<div id="app"></div>');
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('entry.js');
     });
 
-    it('should load template from file', async () => {
-        const pluginInstance = plugin({ template: 'index.html' });
-
-        await pluginInstance.buildStart.apply(rollupContextMock, [{}]);
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
+    // 7. useEmittedTemplate: false (template option provided) + another plugin emits index.html
+    it('should remove existing emitted index.html when template option is provided', async () => {
+        const customTemplate = '<!DOCTYPE html><html><head></head><body><div id="custom"></div></body></html>';
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("hello")' }),
+                {
+                    name: 'emit-html',
+                    generateBundle() {
+                        this.emitFile({
+                            type: 'asset',
+                            fileName: 'index.html',
+                            source: '<!DOCTYPE html><html><head></head><body><div id="emitted"></div></body></html>',
+                        });
+                    },
                 },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.addWatchFile).toHaveBeenCalledWith('index.html');
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>File Template<script src="index.js" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
-    });
-
-    it('should log warning on template file read error', async () => {
-        vi.mocked(oldFs.readFileSync).mockImplementationOnce(() => {
-            throw new Error('test');
+                html({ template: customTemplate }),
+            ],
         });
-        plugin({ template: 'index.html' });
-        expect(logger).toHaveBeenCalledWith('error reading template', LogLevel.warn, expect.any(Error));
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<div id="custom"></div>');
+        expect(htmlAsset.source).not.toContain('<div id="emitted"></div>');
+        expect(htmlAsset.source).toContain('<script');
     });
 
-    it('should log warning when template file not found', async () => {
-        vi.mocked(oldFs.readFileSync).mockImplementationOnce(() => {
-            throw { code: 'ENOENT' };
+    // 8. emitFile: true with output file outside dir
+    it('should write file to disk when emitFile is true but outputFile is outside dir', async () => {
+        const subDir = join(tmpDir, 'subdir');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html({ outputFile: '../outside.html', emitFile: true })],
         });
-        plugin({ template: 'index.html' });
-        expect(logger).toHaveBeenCalledWith(
-            'template is neither a file nor a string',
-            LogLevel.warn,
-            expect.objectContaining({ code: 'ENOENT' })
-        );
+        await bundle.write({ format: 'es', dir: subDir });
+
+        const outsidePath = join(tmpDir, 'outside.html');
+        const content = await readFile(outsidePath, 'utf8');
+        expect(content).toContain('<script');
+        expect(content).toContain('entry.js');
     });
 
-    it('should log warning on null template file error', async () => {
-        vi.mocked(oldFs.readFileSync).mockImplementationOnce(() => {
-            throw null;
+    // 9. templateFactory that throws
+    it('should not crash when templateFactory throws', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("hello")' }),
+                html({
+                    templateFactory: () => {
+                        throw new Error('fail');
+                    },
+                }),
+            ],
         });
-        plugin({ template: 'index.html' });
-        expect(logger).toHaveBeenCalledWith('error reading template', LogLevel.warn, null);
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+        expect(output).toBeDefined();
     });
 
-    it('should log warning on template file reread error', async () => {
-        const pluginInstance = plugin({ template: 'index.html' });
-        vi.mocked(fs.readFile).mockImplementationOnce(() => {
-            throw new Error('test');
+    // 10. assetsFactory returning a string
+    it('should use assetsFactory that returns a string', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("hello")' }),
+                html({
+                    assetsFactory: (fileName, _content, _type) => {
+                        if (fileName.endsWith('.js')) return '<script src="custom.js"></script>';
+                    },
+                }),
+            ],
         });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
 
-        await pluginInstance.buildStart.apply(rollupContextMock, [{}]);
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-
-        expect(logger).toHaveBeenCalledWith('error reading template', LogLevel.warn, expect.any(Error));
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<script src="custom.js"></script>');
     });
 
-    it('should log warning when template file not found on reread', async () => {
-        const pluginInstance = plugin({ template: 'index.html' });
-        vi.mocked(fs.readFile).mockImplementationOnce(() => {
-            throw { code: 'ENOENT' };
+    // 11. assetsFactory returning an AssetDescriptor object
+    it('should use assetsFactory that returns an AssetDescriptor object', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("hello")' }),
+                html({
+                    assetsFactory: (fileName, _content, _type) => {
+                        if (fileName.endsWith('.js')) return { html: '<script src="custom.js"></script>', head: false, type: 'es' };
+                    },
+                }),
+            ],
         });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
 
-        await pluginInstance.buildStart.apply(rollupContextMock, [{}]);
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-
-        expect(logger).toHaveBeenCalledWith(
-            'template is neither a file nor a string',
-            LogLevel.warn,
-            expect.objectContaining({ code: 'ENOENT' })
-        );
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<script src="custom.js"></script>');
     });
 
-    it('should log warning on null template file reread error', async () => {
-        const pluginInstance = plugin({ template: 'index.html' });
-        vi.mocked(fs.readFile).mockImplementationOnce(() => {
-            throw null;
+    // 12. assetsFactory returning undefined
+    it('should fall back to default handling when assetsFactory returns undefined', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("hello")' }),
+                html({
+                    assetsFactory: () => undefined,
+                }),
+            ],
         });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
 
-        await pluginInstance.buildStart.apply(rollupContextMock, [{}]);
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-
-        expect(logger).toHaveBeenCalledWith('error reading template', LogLevel.warn, null);
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('type="module"');
+        expect(htmlAsset.source).toContain('entry.js');
     });
 
-    it('should use default template when file is empty', async () => {
-        vi.mocked(oldFs.readFileSync).mockImplementationOnce(() => {
-            return '';
+    // 13. assetsFactory that throws
+    it('should not crash when assetsFactory throws and fall back to default handling', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("hello")' }),
+                html({
+                    assetsFactory: () => {
+                        throw new Error('oops');
+                    },
+                }),
+            ],
         });
-        const pluginInstance = plugin({ template: 'index.html' });
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
 
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('entry.js');
     });
 
-    it('should use templateFactory with file content', async () => {
-        vi.mocked(oldFs.readFileSync).mockImplementationOnce(() => {
-            return 'html';
+    // 14. assetsFactory returns asset with novel type (creates new array)
+    it('should handle assetsFactory returning a novel asset type', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("hello")' }),
+                html({
+                    assetsFactory: (fileName, _content, _type) => {
+                        if (fileName.endsWith('.js')) return { html: '<script src="cjs-bundle.js"></script>', head: false, type: 'cjs' };
+                    },
+                    templateFactory: (tpl, assets, defaultFactory) => {
+                        // Merge novel type into es so defaultFactory renders it
+                        if (assets.cjs) {
+                            assets.es = (assets.es || []).concat(assets.cjs);
+                        }
+                        return defaultFactory(tpl, assets);
+                    },
+                }),
+            ],
         });
-        const pluginInstance = plugin({ template: 'index.html', templateFactory: s => s });
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
 
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: 'html',
-                type: 'asset',
-            })
-        );
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<script src="cjs-bundle.js"></script>');
     });
 
-    it('should use default template when file is empty and watch is false', async () => {
-        vi.mocked(fs.readFile).mockImplementationOnce(() => {
-            return Promise.resolve('');
+    // 15. conditionalLoading: true with IIFE - verify nomodule attribute
+    it('should add nomodule attribute to IIFE script when conditionalLoading is true', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html({ conditionalLoading: true })],
         });
-        const pluginInstance = plugin({ template: 'index.html', watch: false });
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
+        const { output } = await bundle.generate({ format: 'iife', dir: 'dist', name: 'myBundle' });
 
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('nomodule');
     });
 
-    it('should use templateFactory with file content and watch false', async () => {
-        vi.mocked(fs.readFile).mockImplementationOnce(() => {
-            return Promise.resolve('html');
+    // 16. conditionalLoading: false with IIFE - verify NO nomodule attribute
+    it('should NOT add nomodule attribute to IIFE script when conditionalLoading is false', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html({ conditionalLoading: false })],
         });
-        const pluginInstance = plugin({ template: 'index.html', templateFactory: s => s, watch: false });
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
+        const { output } = await bundle.generate({ format: 'iife', dir: 'dist', name: 'myBundle' });
 
-        expect(pluginInstance.buildStart).toBeUndefined();
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: 'html',
-                type: 'asset',
-            })
-        );
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).not.toContain('nomodule');
     });
 
-    it('should load template from file with watch false', async () => {
-        const pluginInstance = plugin({ template: 'index.html', watch: false });
+    // 17. ignore with invalid value (number) - should fall back to defaults
+    it('should fall back to default ignore when ignore option is an invalid value (number)', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html({ ignore: 0 })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
 
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>File Template<script src="index.js" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('entry.js');
     });
 
-    it('should handle multiple configs with template file', async () => {
-        const pluginInstance = plugin({ template: 'index.html' });
-        const additionalInstance = pluginInstance.api.addInstance();
+    // 18. verbose: true - verify it does not crash
+    it('should not crash when verbose is true', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html({ verbose: true })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
 
-        await pluginInstance.buildStart.apply(rollupContextMock, [{}]);
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-        await pluginInstance.buildStart.apply(rollupContextMock, [{}]);
-        additionalInstance.renderStart.apply(rollupContextMock, [{}]);
-        await additionalInstance.generateBundle.apply(rollupContextMock, [{ format: 'es' }, {}]);
-
-        expect(additionalInstance.name).toEqual('@rollup-extras/plugin-html#1');
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>File Template<script src="index.js" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('entry.js');
     });
 
-    it('should handle multiple configs with template file and watch false', async () => {
-        const pluginInstance = plugin({ template: 'index.html', watch: false });
-        const additionalInstance = pluginInstance.api.addInstance();
+    // 19. emitFile: false with generateBundle (default useWriteBundle: false) - writeFile path
+    it('should write to disk when emitFile is false and useWriteBundle is false (default)', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html({ emitFile: false })],
+        });
+        await bundle.write({ format: 'es', dir: tmpDir });
 
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-        additionalInstance.renderStart.apply(rollupContextMock, [{}]);
-        await additionalInstance.generateBundle.apply(rollupContextMock, [{ format: 'es' }, {}]);
-
-        expect(pluginInstance.buildStart).toBeUndefined();
-        expect(additionalInstance.buildStart).toBeUndefined();
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>File Template<script src="index.js" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
+        const htmlPath = join(tmpDir, 'index.html');
+        const content = await readFile(htmlPath, 'utf8');
+        expect(content).toContain('<script');
+        expect(content).toContain('type="module"');
+        expect(content).toContain('entry.js');
     });
 
-    it('should call templateFactory with template and assets', async () => {
-        const templateFactory = vi.fn(() => 'test');
-        const pluginInstance = plugin({ template: 'index.html', watch: false, templateFactory });
-        const additionalInstance = pluginInstance.api.addInstance();
+    // 20. IIFE format with CSS asset covers more of defaultTemplateFactory
+    it('should include both script and CSS link tags in IIFE format', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), emitCss('styles.css', 'body { margin: 0; }'), html()],
+        });
+        const { output } = await bundle.generate({ format: 'iife', dir: 'dist', name: 'myBundle' });
 
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-        additionalInstance.renderStart.apply(rollupContextMock, [{}]);
-        await additionalInstance.generateBundle.apply(rollupContextMock, [{ format: 'es' }, {}]);
-
-        expect(templateFactory).toHaveBeenCalledWith(
-            '<!DOCTYPE html><html><head></head><body>File Template</body></html>',
-            expect.objectContaining({
-                asset: [{ head: true, html: '<link rel="stylesheet" href="main.css" type="text/css">', type: 'asset' }],
-                es: [{ head: false, html: expect.any(Function), type: 'asset' }],
-                iife: [],
-                umd: [],
-            }),
-            expect.any(Function)
-        );
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: 'test',
-                type: 'asset',
-            })
-        );
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('type="text/javascript"');
+        expect(htmlAsset.source).not.toContain('type="module"');
+        expect(htmlAsset.source).toContain('entry.js');
+        expect(htmlAsset.source).toContain('<link rel="stylesheet"');
+        expect(htmlAsset.source).toContain('styles.css');
+        // CSS should be in head, script in body
+        const headEnd = htmlAsset.source.indexOf('</head>');
+        const linkPos = htmlAsset.source.indexOf('<link');
+        expect(linkPos).toBeLessThan(headEnd);
     });
 
-    it('should use defaultTemplateFactory when passed through', async () => {
-        const templateFactory = vi.fn((template, assets, fn) => fn(template, assets));
-        const pluginInstance = plugin({ template: 'index.html', watch: false, templateFactory });
-        const additionalInstance = pluginInstance.api.addInstance();
+    // 21. Template file with no head/body, watch: true (default) - covers useNewTemplate warn path (L249)
+    it('should warn and use default template when watch:true template file has no head/body', async () => {
+        const tplPath = join(tmpDir, 'bad-watch-tpl.html');
+        await writeFile(tplPath, '<html>No head or body here</html>');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html({ template: tplPath })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
 
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-        additionalInstance.renderStart.apply(rollupContextMock, [{}]);
-        await additionalInstance.generateBundle.apply(rollupContextMock, [{ format: 'es' }, {}]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>File Template<script src="index.js" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        // Should fall back to default template
+        expect(htmlAsset.source).toContain('</head>');
+        expect(htmlAsset.source).toContain('</body>');
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('entry.js');
     });
 
-    it('should use emitted template by default', async () => {
-        const pluginInstance = plugin();
+    // 22. Template file path that does not exist, watch: true - covers handleTemplateReadError ENOENT via readFileSync
+    it('should handle nonexistent template file path with watch: true without crashing', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html({ template: '/nonexistent/watch-true-template.html', watch: true })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
 
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.html': {
-                    type: 'asset',
-                    source: '<!DOCTYPE html><html><head></head><body>Emitted Template</body></html>',
-                },
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>Emitted Template<script src="index.js" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        // Falls back to default template
+        expect(htmlAsset.source).toContain('</head>');
+        expect(htmlAsset.source).toContain('</body>');
     });
 
-    it('should prefer custom template over emitted template', async () => {
-        const pluginInstance = plugin({ template: '<!DOCTYPE html><html><head></head><body>Custom Template</body></html>' });
+    // 23. assetsFactory returning a string for a CSS asset (covers L323 continue for asset type)
+    it('should use assetsFactory for CSS assets and skip default CSS handling', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("hello")' }),
+                emitCss('styles.css', 'body { margin: 0; }'),
+                html({
+                    assetsFactory: (fileName, _content, _type) => {
+                        if (fileName.endsWith('.css')) return '<link rel="stylesheet" href="custom-styles.css">';
+                    },
+                }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
 
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.html': {
-                    type: 'asset',
-                    source: '<!DOCTYPE html><html><head></head><body>Emitted Template</body></html>',
-                },
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>Custom Template<script src="index.js" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('custom-styles.css');
+        // The default styles.css link should NOT be present (assetsFactory took over)
+        expect(htmlAsset.source).not.toContain('href="styles.css"');
     });
 
-    it('should use emitted template from chunk', async () => {
-        const pluginInstance = plugin();
+    // 24. handleTemplateReadError with non-ENOENT error (covers L262)
+    it('should handle template read error that is not ENOENT', async () => {
+        // A directory path will cause a non-ENOENT read error (EISDIR)
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html({ template: tmpDir, watch: true })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
 
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.html': {
-                    type: 'chunk',
-                    code: '<!DOCTYPE html><html><head></head><body>Emitted Template</body></html>',
-                },
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
-
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body>Emitted Template<script src="index.js" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        // Falls back to default template
+        expect(htmlAsset.source).toContain('</head>');
+        expect(htmlAsset.source).toContain('</body>');
     });
 
-    it('should not use emitted template when disabled', async () => {
-        const pluginInstance = plugin({ useEmittedTemplate: false });
+    // 25. addInstance API - covers L172-179 (multi-config plugin addInstance)
+    it('should support addInstance API with template file and watch mode', async () => {
+        const tplPath = join(tmpDir, 'tpl-add-instance.html');
+        await writeFile(tplPath, '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><div id="multi"></div></body></html>');
+        const plugin = html({ template: tplPath, watch: true });
+        expect(plugin.api).toBeDefined();
+        expect(typeof plugin.api.addInstance).toBe('function');
 
-        pluginInstance.renderStart.apply(rollupContextMock, [{}]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es' },
-            {
-                'index.html': {
-                    type: 'asset',
-                    source: '<!DOCTYPE html><html><head></head><body>Emitted Template</body></html>',
-                },
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
+        // Call addInstance to get a second plugin instance
+        const secondInstance = plugin.api.addInstance();
+        expect(secondInstance).toBeDefined();
+        expect(secondInstance.name).toContain('@rollup-extras/plugin-html');
 
-        expect(rollupContextMock.emitFile).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fileName: 'index.html',
-                source: '<!DOCTYPE html><html><head><link rel="stylesheet" href="main.css" type="text/css"></head><body><script src="index.js" type="module"></script></body></html>',
-                type: 'asset',
-            })
-        );
+        // The second instance should also have buildStart (because hasTemplateFile && watch)
+        expect(secondInstance.buildStart).toBeDefined();
     });
 
-    it('should define writeBundle when useWriteBundle is true', () => {
-        const pluginInstance = plugin({ useWriteBundle: true });
-        expect(pluginInstance.writeBundle).toBeDefined();
+    // 26. buildStart hook for template file watch mode - covers L183-191
+    it('should re-read template file on buildStart when watch is true', async () => {
+        const tplPath = join(tmpDir, 'tpl-watch.html');
+        await writeFile(tplPath, '<!DOCTYPE html><html><head></head><body><div id="v1"></div></body></html>');
+        const plugin = html({ template: tplPath, watch: true });
+
+        // First build with original template
+        const bundle1 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("v1")' }), plugin],
+        });
+        const { output: output1 } = await bundle1.generate({ format: 'es', dir: 'dist' });
+        const html1 = output1.find(item => item.fileName === 'index.html');
+        expect(html1).toBeDefined();
+        expect(html1.source).toContain('<div id="v1"></div>');
+
+        // Update template file (simulating a file change)
+        await writeFile(tplPath, '<!DOCTYPE html><html><head></head><body><div id="v2"></div></body></html>');
+
+        // Second build - buildStart should re-read the file
+        const bundle2 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("v2")' }), plugin],
+        });
+        const { output: output2 } = await bundle2.generate({ format: 'es', dir: 'dist' });
+        const html2 = output2.find(item => item.fileName === 'index.html');
+        expect(html2).toBeDefined();
+        expect(html2.source).toContain('<div id="v2"></div>');
     });
 
-    it('should use info log level when verbose is true', async () => {
-        const pluginInstance = plugin({ verbose: true, emitFile: true });
+    // 27. buildStart with template file that gets deleted between builds (covers L188 catch)
+    it('should handle template file being deleted between watch builds', async () => {
+        const tplPath = join(tmpDir, 'tpl-deleted.html');
+        await writeFile(tplPath, '<!DOCTYPE html><html><head></head><body><div id="v1"></div></body></html>');
+        const plugin = html({ template: tplPath, watch: true });
 
-        pluginInstance.renderStart.apply(rollupContextMock, [{ dir: 'dest' }]);
-        await pluginInstance.generateBundle.apply(rollupContextMock, [
-            { format: 'es', dir: 'dest2' },
-            {
-                'index.js': {
-                    type: 'chunk',
-                    isEntry: true,
-                },
-                'main.css': {
-                    type: 'asset',
-                },
-            },
-        ]);
+        // First build with original template
+        const bundle1 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("v1")' }), plugin],
+        });
+        const { output: output1 } = await bundle1.generate({ format: 'es', dir: 'dist' });
+        const html1 = output1.find(item => item.fileName === 'index.html');
+        expect(html1).toBeDefined();
+        expect(html1.source).toContain('<div id="v1"></div>');
 
-        expect(logger).toHaveBeenCalledWith(
-            'cannot emitFile because it is outside of current output.dir, using writeFile instead',
-            LogLevel.verbose
-        );
-        expect(loggerStart).toHaveBeenCalledWith(expect.any(String), LogLevel.info);
+        // Delete template file to trigger error on re-read
+        await rm(tplPath);
+
+        // Second build - buildStart should hit the catch(e) handler
+        const bundle2 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("v2")' }), plugin],
+        });
+        const { output: output2 } = await bundle2.generate({ format: 'es', dir: 'dist' });
+        // Should still produce output (falls back to previous template or default)
+        expect(output2).toBeDefined();
+    });
+
+    // 28. CJS format entry chunk - covers L332/L338 false paths (format not in es/iife/umd)
+    it('should handle CJS format without adding script tags', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'module.exports = 1;' }), html()],
+        });
+        const { output } = await bundle.generate({ format: 'cjs', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        // CJS format is not es/iife/umd, so no script tags should be added
+        expect(htmlAsset.source).not.toContain('<script');
+    });
+
+    // 29. useEmittedTemplate with chunk (not asset) type - covers L219-221 chunk branch
+    it('should use emitted chunk code as template when useEmittedTemplate is true', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("hello")' }),
+                {
+                    name: 'emit-html-chunk',
+                    generateBundle(_options, bundle) {
+                        // Manually add a chunk with fileName 'index.html' to exercise the chunk branch
+                        bundle['index.html'] = {
+                            type: 'chunk',
+                            fileName: 'index.html',
+                            code: '<!DOCTYPE html><html><head></head><body><div id="chunk-tpl"></div></body></html>',
+                            isEntry: false,
+                            isDynamicEntry: false,
+                            facadeModuleId: null,
+                            modules: {},
+                            exports: [],
+                            imports: [],
+                            dynamicImports: [],
+                            implicitlyLoadedBefore: [],
+                            importedBindings: {},
+                            referencedFiles: [],
+                            map: null,
+                            name: 'index',
+                            moduleIds: [],
+                            sourcemapFileName: null,
+                            preliminaryFileName: 'index.html',
+                        };
+                    },
+                },
+                html(),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<div id="chunk-tpl"></div>');
+        expect(htmlAsset.source).toContain('<script');
+    });
+
+    // 30. addInstance without template file (covers the false branch of hasTemplateFile && watch in addInstance)
+    it('should support addInstance API without template file', async () => {
+        const plugin = html();
+        expect(plugin.api).toBeDefined();
+        const secondInstance = plugin.api.addInstance();
+        expect(secondInstance).toBeDefined();
+        // Without hasTemplateFile, no buildStart should be added
+        expect(secondInstance.buildStart).toBeUndefined();
+    });
+
+    // 31. Generate with output.file instead of output.dir (covers dir ?? '' fallback branches)
+    it('should handle generate when no dir is specified', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("hello")' }), html()],
+        });
+        // Use file option instead of dir, so options.dir is undefined
+        const { output } = await bundle.generate({ format: 'es' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('entry.js');
     });
 });

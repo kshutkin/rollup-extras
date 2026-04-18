@@ -29,6 +29,9 @@ importers:
       pkgprn-internal:
         specifier: ^0.8.0
         version: 0.8.0
+      rollup:
+        specifier: ^4.0.0
+        version: 4.37.0
       vitest:
         specifier: ^4.0.18
         version: 4.1.4(@types/node@24.12.2)(@vitest/coverage-v8@4.1.4)(vite@8.0.0(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@24.12.2)(terser@5.39.0))
