@@ -1,14 +1,14 @@
 # @rollup-extras/plugin-size
 
-Rollup plugin that reports the size of generated artifacts — raw, minified (via [oxc-minify](https://www.npmjs.com/package/oxc-minify)), and compressed (gzip and/or brotli).
+Rollup plugin that reports the size of generated artifacts — raw, optionally minified, and compressed (gzip and/or brotli).
 
 Output is summarised by category:
 
-| Category             | Grouping                              | Sizes shown                    |
-| -------------------- | ------------------------------------- | ------------------------------ |
-| **Entry chunks**     | output format (`es`, `cjs`, `umd`, …) | raw → minified → gzip / brotli |
-| **Non-entry chunks** | output format                         | raw → minified → gzip / brotli |
-| **Assets**           | file extension (`.css`, `.svg`, …)    | raw → gzip / brotli            |
+| Category             | Grouping                              | Sizes shown                                    |
+| -------------------- | ------------------------------------- | ---------------------------------------------- |
+| **Entry chunks**     | output format (`es`, `cjs`, `umd`, …) | raw → minified (if configured) → gzip / brotli |
+| **Non-entry chunks** | output format                         | raw → minified (if configured) → gzip / brotli |
+| **Assets**           | file extension (`.css`, `.svg`, …)    | raw → gzip / brotli                            |
 
 A JSON stats file is maintained between builds so that size deltas are printed on subsequent runs. Only categories that appear in either the current or the previous build are shown — nothing irrelevant is printed.
 
@@ -67,6 +67,38 @@ size({ brotli: true });
 size({ gzip: false, brotli: true });
 ```
 
+### Enable minification reporting
+
+Minification is optional. Pass a `minify` function to report minified sizes:
+
+```js
+import { minify } from "oxc-minify";
+
+size({
+  minify: async (fileName, code) => {
+    const result = await minify(fileName, code, {
+      compress: { target: "esnext" },
+      mangle: { toplevel: true },
+      codegen: { removeWhitespace: true },
+    });
+    return result.code;
+  },
+});
+```
+
+Or use any other minifier (terser, esbuild, etc.):
+
+```js
+import { transform } from "esbuild";
+
+size({
+  minify: async (_fileName, code) => {
+    const result = await transform(code, { minify: true });
+    return result.code;
+  },
+});
+```
+
 ### Full options
 
 ```js
@@ -76,25 +108,30 @@ size({
   gzip: true,
   brotli: true,
   pluginName: "my-size",
+  minify: async (fileName, code) => {
+    // your minification logic
+    return minifiedCode;
+  },
 });
 ```
 
 ## Options
 
-| Option        | Type      | Default                        | Description                                                         |
-| ------------- | --------- | ------------------------------ | ------------------------------------------------------------------- |
-| `statsFile`   | `string`  | `'.stats.json'`                | Path to the JSON stats file (relative to project root or absolute). |
-| `updateStats` | `boolean` | `true`                         | Whether to overwrite the stats file with the current build data.    |
-| `gzip`        | `boolean` | `true`                         | Report gzip-compressed sizes.                                       |
-| `brotli`      | `boolean` | `false`                        | Report brotli-compressed sizes.                                     |
-| `pluginName`  | `string`  | `'@rollup-extras/plugin-size'` | Override the plugin name reported to Rollup.                        |
+| Option        | Type       | Default                        | Description                                                                                     |
+| ------------- | ---------- | ------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `statsFile`   | `string`   | `'.stats.json'`                | Path to the JSON stats file (relative to project root or absolute).                             |
+| `updateStats` | `boolean`  | `true`                         | Whether to overwrite the stats file with the current build data.                                |
+| `gzip`        | `boolean`  | `true`                         | Report gzip-compressed sizes.                                                                   |
+| `brotli`      | `boolean`  | `false`                        | Report brotli-compressed sizes.                                                                 |
+| `pluginName`  | `string`   | `'@rollup-extras/plugin-size'` | Override the plugin name reported to Rollup.                                                    |
+| `minify`      | `function` | `undefined`                    | Optional async function `(fileName, code) => minifiedCode` to minify chunks before compression. |
 
 ## How it works
 
 The plugin hooks into Rollup's `generateBundle` and `closeBundle` lifecycle:
 
 1. **`generateBundle`** — iterates over every chunk and asset in the output bundle.
-   - **Chunks** (entry and non-entry) are minified with `oxc-minify` and then compressed with the enabled algorithms (gzip and/or brotli). Sizes are accumulated per output format.
+   - **Chunks** (entry and non-entry) are optionally minified (if a `minify` function is provided) and then compressed with the enabled algorithms (gzip and/or brotli). Sizes are accumulated per output format.
    - **Assets** are compressed with the enabled algorithms (no JS minification). Sizes are accumulated per file extension.
 2. **`closeBundle`** (via `multiConfigPluginBase`) — loads the previous stats file (if any), prints a comparison report using [`@niceties/ansi`](https://www.npmjs.com/package/@niceties/ansi) colours, and writes the updated stats file.
 

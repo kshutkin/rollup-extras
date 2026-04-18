@@ -7,8 +7,6 @@ import { extname, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { brotliCompress as brotliCb, gzip as gzipCb } from 'node:zlib';
 
-import { minify } from 'oxc-minify';
-
 import { bold, cyan, dim, green, red, yellow } from '@niceties/ansi';
 import logger from '@rollup-extras/utils/logger';
 import { multiConfigPluginBase } from '@rollup-extras/utils/multi-config-plugin-base';
@@ -18,11 +16,11 @@ const gzip = promisify(gzipCb);
 const brotli = promisify(brotliCb);
 
 /**
- * @typedef {{ pluginName?: string, statsFile?: string, updateStats?: boolean, gzip?: boolean, brotli?: boolean }} SizePluginOptions
+ * @typedef {{ pluginName?: string, statsFile?: string, updateStats?: boolean, gzip?: boolean, brotli?: boolean, minify?: (code: string, fileName: string) => Promise<string> }} SizePluginOptions
  */
 
 /**
- * @typedef {{ raw: number, minified: number, gzip?: number, brotli?: number }} ChunkSizeStats
+ * @typedef {{ raw: number, minified?: number, gzip?: number, brotli?: number }} ChunkSizeStats
  */
 
 /**
@@ -115,7 +113,8 @@ function printReport(current, previous, log) {
         const cur = current.entries?.[format];
         const prev = previous.entries?.[format];
         if (cur) {
-            log(`${bold(cyan(format))} entry: ${formatSize(cur.raw)} → ${formatSize(cur.minified)}${formatCompressed(cur, prev)}`);
+            const minPart = cur.minified != null ? ` → ${formatSize(cur.minified)}` : '';
+            log(`${bold(cyan(format))} entry: ${formatSize(cur.raw)}${minPart}${formatCompressed(cur, prev)}`);
         } else {
             log(`${bold(cyan(format))} entry: ${dim('removed')}`);
         }
@@ -125,7 +124,8 @@ function printReport(current, previous, log) {
         const cur = current.chunks?.[format];
         const prev = previous.chunks?.[format];
         if (cur) {
-            log(`${bold(cyan(format))} chunks: ${formatSize(cur.raw)} → ${formatSize(cur.minified)}${formatCompressed(cur, prev)}`);
+            const minPart = cur.minified != null ? ` → ${formatSize(cur.minified)}` : '';
+            log(`${bold(cyan(format))} chunks: ${formatSize(cur.raw)}${minPart}${formatCompressed(cur, prev)}`);
         } else {
             log(`${bold(cyan(format))} chunks: ${dim('removed')}`);
         }
@@ -179,8 +179,9 @@ async function compressSizes(buf, flags) {
  * @param {NormalizedOutputOptions} outputOptions
  * @param {OutputBundle} bundle
  * @param {CompressionFlags} flags
+ * @param {((code: string, fileName: string) => Promise<string>) | undefined} minifyFn
  */
-async function collectStats(currentStats, outputOptions, bundle, flags) {
+async function collectStats(currentStats, outputOptions, bundle, flags, minifyFn) {
     const format = outputOptions.format;
 
     await Promise.all(
@@ -189,13 +190,18 @@ async function collectStats(currentStats, outputOptions, bundle, flags) {
                 const code = /** @type {OutputChunk} */ (item).code;
                 const raw = Buffer.byteLength(code, 'utf8');
 
-                const minResult = await minify(fileName, code, {
-                    compress: { target: 'esnext' },
-                    mangle: { toplevel: true },
-                    codegen: { removeWhitespace: true },
-                });
-                const minifiedSize = Buffer.byteLength(minResult.code, 'utf8');
-                const sizes = await compressSizes(Buffer.from(minResult.code, 'utf8'), flags);
+                // Use minified code for compression if minify function is provided, otherwise use raw code
+                let codeForCompression = code;
+                /** @type {number | undefined} */
+                let minifiedSize;
+
+                if (minifyFn) {
+                    const minifiedCode = await minifyFn(code, fileName);
+                    minifiedSize = Buffer.byteLength(minifiedCode, 'utf8');
+                    codeForCompression = minifiedCode;
+                }
+
+                const sizes = await compressSizes(Buffer.from(codeForCompression, 'utf8'), flags);
 
                 const category = /** @type {OutputChunk} */ (item).isEntry ? 'entries' : 'chunks';
                 if (!currentStats[category]) {
@@ -203,10 +209,12 @@ async function collectStats(currentStats, outputOptions, bundle, flags) {
                 }
                 const bucket = /** @type {Record<string, ChunkSizeStats>} */ (currentStats[category]);
                 if (!bucket[format]) {
-                    bucket[format] = { raw: 0, minified: 0 };
+                    bucket[format] = { raw: 0 };
                 }
                 bucket[format].raw += raw;
-                bucket[format].minified += minifiedSize;
+                if (minifiedSize != null) {
+                    bucket[format].minified = (bucket[format].minified ?? 0) + minifiedSize;
+                }
                 if (sizes.gzip != null) {
                     bucket[format].gzip = (bucket[format].gzip ?? 0) + sizes.gzip;
                 }
@@ -276,7 +284,7 @@ export default function (options) {
         factories
     );
 
-    const { pluginName, statsFile, updateStats, logger } = normalizedOptions;
+    const { pluginName, statsFile, updateStats, logger, minify: minifyFn } = normalizedOptions;
 
     /** @type {CompressionFlags} */
     const flags = { gzip: normalizedOptions.gzip, brotli: normalizedOptions.brotli };
@@ -294,7 +302,7 @@ export default function (options) {
      * @param {OutputBundle} bundle
      */
     async function onEachOutput(outputOptions, bundle) {
-        await collectStats(currentStats, outputOptions, bundle, flags);
+        await collectStats(currentStats, outputOptions, bundle, flags, minifyFn);
     }
 
     /**
