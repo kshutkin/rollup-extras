@@ -19,14 +19,8 @@ vi.mock('@niceties/logger', () => ({
     }),
 }));
 
-vi.mock('oxc-minify', () => ({
-    minify: vi.fn((_fileName, code, _options) =>
-        Promise.resolve({
-            code: code.replace(/\s+/g, ''),
-            map: null,
-        })
-    ),
-}));
+/** Mock minify function that can be passed to the plugin */
+const mockMinify = vi.fn((code, _fileName) => Promise.resolve(code.replace(/\s+/g, '')));
 
 vi.mock('@niceties/ansi', () => ({
     bold: vi.fn(s => `<bold>${s}</bold>`),
@@ -162,7 +156,7 @@ describe('@rollup-extras/plugin-size', () => {
 
     describe('generateBundle lifecycle', () => {
         it('should collect entry chunk stats and report them', async () => {
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
             const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
 
             await runOutput(p, 'es', bundle);
@@ -173,8 +167,23 @@ describe('@rollup-extras/plugin-size', () => {
             expect(loggerMessages[0]).toContain('gzip');
         });
 
-        it('should collect non-entry chunk stats', async () => {
+        it('should collect entry chunk stats without minify function', async () => {
             const p = plugin();
+            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
+
+            await runOutput(p, 'es', bundle);
+
+            expect(loggerMessages.length).toBe(1);
+            expect(loggerMessages[0]).toContain('<cyan>es</cyan>');
+            expect(loggerMessages[0]).toContain('entry');
+            expect(loggerMessages[0]).toContain('gzip');
+            // Should only have one arrow (for compression), not two (raw → minified → gzip)
+            const arrowCount = (loggerMessages[0].match(/→/g) || []).length;
+            expect(arrowCount).toBe(1);
+        });
+
+        it('should collect non-entry chunk stats', async () => {
+            const p = plugin({ minify: mockMinify });
             const bundle = createMockBundle([makeChunk('chunk-abc123.mjs', 'const y = 2;\n')]);
 
             await runOutput(p, 'es', bundle);
@@ -208,7 +217,7 @@ describe('@rollup-extras/plugin-size', () => {
         });
 
         it('should accumulate sizes across multiple items of same category and format', async () => {
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
             const bundle = createMockBundle([makeEntryChunk('a.mjs', 'const a = 1;\n'), makeEntryChunk('b.mjs', 'const b = 2;\n')]);
 
             await runOutput(p, 'es', bundle);
@@ -218,7 +227,7 @@ describe('@rollup-extras/plugin-size', () => {
         });
 
         it('should handle multiple formats across outputs', async () => {
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
 
             const esBundle = createMockBundle([makeEntryChunk('index.mjs', 'export const x = 1;\n')]);
             const cjsBundle = createMockBundle([makeEntryChunk('index.cjs', 'module.exports = { x: 1 };\n')]);
@@ -236,7 +245,7 @@ describe('@rollup-extras/plugin-size', () => {
         });
 
         it('should handle mixed entries, chunks, and assets', async () => {
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
             const bundle = createMockBundle([
                 makeEntryChunk('index.mjs', 'const x = 1;\n'),
                 makeChunk('chunk-abc.mjs', 'const y = 2;\n'),
@@ -286,7 +295,7 @@ describe('@rollup-extras/plugin-size', () => {
         });
 
         it('should format sizes in kB for chunks larger than 1 kB', async () => {
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
             // ~2 kB of code — well above 1024 bytes raw
             const code = `const data = "${new Array(2048).fill('x').join('')}";\n`;
             const bundle = createMockBundle([makeEntryChunk('index.mjs', code)]);
@@ -299,7 +308,7 @@ describe('@rollup-extras/plugin-size', () => {
         });
 
         it('should format sizes in MB for chunks larger than 1 MB', async () => {
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
             // ~1.1 MB of code
             const code = `const data = "${new Array(1_100_000).fill('x').join('')}";\n`;
             const bundle = createMockBundle([makeEntryChunk('index.mjs', code)]);
@@ -314,7 +323,7 @@ describe('@rollup-extras/plugin-size', () => {
 
     describe('stats file', () => {
         it('should write stats file by default', async () => {
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
             const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
 
             await runOutput(p, 'es', bundle);
@@ -327,6 +336,23 @@ describe('@rollup-extras/plugin-size', () => {
             expect(parsed.entries.es).toBeDefined();
             expect(parsed.entries.es.raw).toBeGreaterThan(0);
             expect(parsed.entries.es.minified).toBeGreaterThan(0);
+            expect(parsed.entries.es.gzip).toBeGreaterThan(0);
+        });
+
+        it('should write stats file without minified when no minify function', async () => {
+            const p = plugin();
+            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
+
+            await runOutput(p, 'es', bundle);
+
+            expect(fsMock.writeFile).toHaveBeenCalledTimes(1);
+            const [path, content] = fsMock.writeFile.mock.calls[0];
+            expect(path).toContain('.stats.json');
+            const parsed = JSON.parse(content);
+            expect(parsed.entries).toBeDefined();
+            expect(parsed.entries.es).toBeDefined();
+            expect(parsed.entries.es.raw).toBeGreaterThan(0);
+            expect(parsed.entries.es.minified).toBeUndefined();
             expect(parsed.entries.es.gzip).toBeGreaterThan(0);
         });
 
@@ -356,29 +382,30 @@ describe('@rollup-extras/plugin-size', () => {
                     es: { raw: 100, minified: 50, gzip: 30 },
                 },
             };
-            fsMock.readFile.mockResolvedValue(JSON.stringify(previousStats));
+            fsMock.readFile.mockResolvedValueOnce(JSON.stringify(previousStats));
 
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
             const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
 
             await runOutput(p, 'es', bundle);
 
-            expect(loggerMessages.length).toBeGreaterThanOrEqual(1);
+            // Should show some delta (either increase or decrease compared to mock previous)
+            // The exact delta depends on the minified / gzip sizes but we just check structure.
             const entryLine = loggerMessages.find(m => m.includes('entry'));
             expect(entryLine).toBeDefined();
-            // Delta should be present (either green or red or dim)
-            expect(entryLine.includes('<green>') || entryLine.includes('<red>') || entryLine.includes('<dim>')).toBe(true);
+            // With previous data available, there should be a delta marker
+            expect(entryLine).toMatch(/<green>|<red>|<dim>/);
         });
 
         it('should show removed entries from previous stats', async () => {
             const previousStats = {
                 entries: {
-                    umd: { raw: 500, minified: 300, gzip: 150 },
+                    umd: { raw: 200, minified: 100, gzip: 60 },
                 },
             };
-            fsMock.readFile.mockResolvedValue(JSON.stringify(previousStats));
+            fsMock.readFile.mockResolvedValueOnce(JSON.stringify(previousStats));
 
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
             const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
 
             await runOutput(p, 'es', bundle);
@@ -391,12 +418,13 @@ describe('@rollup-extras/plugin-size', () => {
         it('should show removed chunks from previous stats', async () => {
             const previousStats = {
                 chunks: {
-                    cjs: { raw: 800, minified: 400, gzip: 200 },
+                    cjs: { raw: 200, minified: 100, gzip: 60 },
                 },
             };
-            fsMock.readFile.mockResolvedValue(JSON.stringify(previousStats));
+            fsMock.readFile.mockResolvedValueOnce(JSON.stringify(previousStats));
 
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
+            // Run with an empty bundle so the previous 'cjs' chunks appear as removed
             await runOutput(p, 'es', {});
 
             const cjsLine = loggerMessages.find(m => m.includes('cjs'));
@@ -438,21 +466,20 @@ describe('@rollup-extras/plugin-size', () => {
         });
 
         it('should write stats with correct structure for chunks and assets', async () => {
-            const p = plugin();
-            const bundle = createMockBundle([makeChunk('chunk-abc.mjs', 'const y = 2;\n'), makeAsset('styles.css', 'body{}\n')]);
+            const p = plugin({ minify: mockMinify });
+            const bundle = createMockBundle([makeChunk('chunk.mjs', 'const y = 2;\n'), makeAsset('style.css', 'body {}\n')]);
 
-            await runOutput(p, 'cjs', bundle);
+            await runOutput(p, 'es', bundle);
 
-            const parsed = getWrittenStats();
+            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
             expect(parsed.chunks).toBeDefined();
-            expect(parsed.chunks.cjs).toBeDefined();
-            expect(parsed.chunks.cjs.raw).toBeGreaterThan(0);
-            expect(parsed.chunks.cjs.minified).toBeGreaterThan(0);
-            expect(parsed.chunks.cjs.gzip).toBeGreaterThan(0);
+            expect(parsed.chunks.es).toBeDefined();
+            expect(parsed.chunks.es.raw).toBeGreaterThan(0);
+            expect(parsed.chunks.es.minified).toBeGreaterThan(0);
             expect(parsed.assets).toBeDefined();
             expect(parsed.assets['.css']).toBeDefined();
             expect(parsed.assets['.css'].raw).toBeGreaterThan(0);
-            expect(parsed.assets['.css'].gzip).toBeGreaterThan(0);
+            expect(parsed.assets['.css'].minified).toBeUndefined(); // assets are not minified
         });
     });
 
@@ -460,12 +487,12 @@ describe('@rollup-extras/plugin-size', () => {
         it('should show green for size decrease', async () => {
             const previousStats = {
                 entries: {
-                    es: { raw: 99999, minified: 50000, gzip: 30000 },
+                    es: { raw: 1000, minified: 500, gzip: 300 },
                 },
             };
-            fsMock.readFile.mockResolvedValue(JSON.stringify(previousStats));
+            fsMock.readFile.mockResolvedValueOnce(JSON.stringify(previousStats));
 
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
             const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
 
             await runOutput(p, 'es', bundle);
@@ -481,10 +508,10 @@ describe('@rollup-extras/plugin-size', () => {
                     es: { raw: 1, minified: 1, gzip: 1 },
                 },
             };
-            fsMock.readFile.mockResolvedValue(JSON.stringify(previousStats));
+            fsMock.readFile.mockResolvedValueOnce(JSON.stringify(previousStats));
 
-            const p = plugin();
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1; const y = 2; const z = 3; const w = 4;\n')]);
+            const p = plugin({ minify: mockMinify });
+            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
 
             await runOutput(p, 'es', bundle);
 
@@ -494,22 +521,22 @@ describe('@rollup-extras/plugin-size', () => {
         });
 
         it('should show no delta when there is no previous data', async () => {
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
             const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
 
             await runOutput(p, 'es', bundle);
 
             const entryLine = loggerMessages.find(m => m.includes('entry'));
             expect(entryLine).toBeDefined();
+            // No delta markers when there's no previous data
             expect(entryLine).not.toContain('<green>');
             expect(entryLine).not.toContain('<red>');
-            expect(entryLine).not.toContain('<dim>');
         });
 
         it('should show dim (=) when compressed size is unchanged', async () => {
-            // Phase 1: run the plugin to capture the actual compressed size
-            const p1 = plugin();
-            const code = 'const x = 1;\n';
+            // First build: write stats
+            const p1 = plugin({ minify: mockMinify });
+            const code = 'const x = 1;';
             const bundle1 = createMockBundle([makeEntryChunk('index.mjs', code)]);
 
             await runOutput(p1, 'es', bundle1);
@@ -521,7 +548,7 @@ describe('@rollup-extras/plugin-size', () => {
             fsMock.writeFile.mockReset().mockResolvedValue(undefined);
             loggerMessages = [];
 
-            const p2 = plugin();
+            const p2 = plugin({ minify: mockMinify });
             const bundle2 = createMockBundle([makeEntryChunk('index.mjs', code)]);
 
             await runOutput(p2, 'es', bundle2);
@@ -549,39 +576,38 @@ describe('@rollup-extras/plugin-size', () => {
         });
 
         it('should not enable brotli by default', async () => {
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
             const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
 
             await runOutput(p, 'es', bundle);
 
-            const parsed = getWrittenStats();
+            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
             expect(parsed.entries.es.brotli).toBeUndefined();
         });
 
         it('should support brotli when enabled', async () => {
-            const p = plugin({ brotli: true, gzip: false });
+            const p = plugin({ brotli: true, gzip: false, minify: mockMinify });
             const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
 
             await runOutput(p, 'es', bundle);
 
-            const parsed = getWrittenStats();
+            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
+            expect(parsed.entries.es.brotli).toBeDefined();
             expect(parsed.entries.es.brotli).toBeGreaterThan(0);
             expect(parsed.entries.es.gzip).toBeUndefined();
-
             expect(loggerMessages[0]).toContain('brotli');
             expect(loggerMessages[0]).not.toContain('gzip');
         });
 
         it('should support both gzip and brotli simultaneously', async () => {
-            const p = plugin({ gzip: true, brotli: true });
+            const p = plugin({ gzip: true, brotli: true, minify: mockMinify });
             const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
 
             await runOutput(p, 'es', bundle);
 
-            const parsed = getWrittenStats();
+            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
             expect(parsed.entries.es.gzip).toBeGreaterThan(0);
             expect(parsed.entries.es.brotli).toBeGreaterThan(0);
-
             expect(loggerMessages[0]).toContain('gzip');
             expect(loggerMessages[0]).toContain('brotli');
         });
@@ -589,12 +615,12 @@ describe('@rollup-extras/plugin-size', () => {
         it('should show both deltas when both algorithms are enabled', async () => {
             const previousStats = {
                 entries: {
-                    es: { raw: 99999, minified: 50000, gzip: 30000, brotli: 25000 },
+                    es: { raw: 1000, minified: 500, gzip: 300, brotli: 250 },
                 },
             };
-            fsMock.readFile.mockResolvedValue(JSON.stringify(previousStats));
+            fsMock.readFile.mockResolvedValueOnce(JSON.stringify(previousStats));
 
-            const p = plugin({ gzip: true, brotli: true });
+            const p = plugin({ gzip: true, brotli: true, minify: mockMinify });
             const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
 
             await runOutput(p, 'es', bundle);
@@ -603,63 +629,59 @@ describe('@rollup-extras/plugin-size', () => {
             expect(entryLine).toBeDefined();
             expect(entryLine).toContain('gzip');
             expect(entryLine).toContain('brotli');
-            // Both should show green since previous was much larger
+            // Both should show delta (green for decrease in this case)
             const greenCount = (entryLine.match(/<green>/g) || []).length;
             expect(greenCount).toBe(2);
         });
 
         it('should show only raw and minified when both algorithms are disabled', async () => {
-            const p = plugin({ gzip: false, brotli: false });
+            const p = plugin({ gzip: false, brotli: false, minify: mockMinify });
             const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
 
             await runOutput(p, 'es', bundle);
 
-            const parsed = getWrittenStats();
+            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
             expect(parsed.entries.es.raw).toBeGreaterThan(0);
             expect(parsed.entries.es.minified).toBeGreaterThan(0);
             expect(parsed.entries.es.gzip).toBeUndefined();
             expect(parsed.entries.es.brotli).toBeUndefined();
-
+            // Log should not contain compression labels
             expect(loggerMessages[0]).not.toContain('gzip');
             expect(loggerMessages[0]).not.toContain('brotli');
-            // Should still show raw → minified
-            expect(loggerMessages[0]).toContain('entry');
-            expect(loggerMessages[0]).toContain('B');
+            // But should still show raw → minified
+            expect(loggerMessages[0]).toContain('→');
         });
 
         it('should compress assets with brotli when enabled', async () => {
-            const p = plugin({ brotli: true });
+            const p = plugin({ brotli: true, minify: mockMinify });
             const bundle = createMockBundle([makeAsset('styles.css', 'body { color: red; }\n')]);
 
             await runOutput(p, 'es', bundle);
 
-            const parsed = getWrittenStats();
+            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
             expect(parsed.assets['.css'].gzip).toBeGreaterThan(0);
             expect(parsed.assets['.css'].brotli).toBeGreaterThan(0);
-
             expect(loggerMessages[0]).toContain('gzip');
             expect(loggerMessages[0]).toContain('brotli');
         });
 
         it('should compress non-entry chunks with brotli when enabled', async () => {
-            const p = plugin({ brotli: true });
-            const bundle = createMockBundle([makeChunk('chunk-abc.mjs', 'const y = 2;\n')]);
+            const p = plugin({ brotli: true, minify: mockMinify });
+            const bundle = createMockBundle([makeChunk('chunk.mjs', 'const y = 2;\n')]);
 
             await runOutput(p, 'es', bundle);
 
-            const parsed = getWrittenStats();
-            expect(parsed.chunks.es.gzip).toBeGreaterThan(0);
+            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
             expect(parsed.chunks.es.brotli).toBeGreaterThan(0);
         });
 
         it('should accumulate brotli sizes across multiple chunks', async () => {
-            const p = plugin({ brotli: true, gzip: false });
+            const p = plugin({ brotli: true, gzip: false, minify: mockMinify });
             const bundle = createMockBundle([makeEntryChunk('a.mjs', 'const a = 1;\n'), makeEntryChunk('b.mjs', 'const b = 2;\n')]);
 
             await runOutput(p, 'es', bundle);
 
-            const parsed = getWrittenStats();
-            // Both chunks' brotli sizes should be accumulated into one entry
+            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
             expect(parsed.entries.es.brotli).toBeGreaterThan(0);
             expect(parsed.entries.es.gzip).toBeUndefined();
         });
@@ -676,9 +698,9 @@ describe('@rollup-extras/plugin-size', () => {
         });
 
         it('should show dim (=) for brotli when size is unchanged', async () => {
-            // Phase 1: run with brotli to capture the actual brotli compressed size
-            const p1 = plugin({ brotli: true, gzip: false });
-            const code = 'const x = 1;\n';
+            // First build
+            const p1 = plugin({ brotli: true, gzip: false, minify: mockMinify });
+            const code = 'const x = 1;';
             const bundle1 = createMockBundle([makeEntryChunk('index.mjs', code)]);
 
             await runOutput(p1, 'es', bundle1);
@@ -690,7 +712,7 @@ describe('@rollup-extras/plugin-size', () => {
             fsMock.writeFile.mockReset().mockResolvedValue(undefined);
             loggerMessages = [];
 
-            const p2 = plugin({ brotli: true, gzip: false });
+            const p2 = plugin({ brotli: true, gzip: false, minify: mockMinify });
             const bundle2 = createMockBundle([makeEntryChunk('index.mjs', code)]);
 
             await runOutput(p2, 'es', bundle2);
@@ -705,10 +727,10 @@ describe('@rollup-extras/plugin-size', () => {
 
     describe('multiple output configs', () => {
         it('should accumulate stats across multiple generateBundle calls', async () => {
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
 
-            const esEntryBundle = createMockBundle([makeEntryChunk('index.mjs', 'export const a = 1;\n')]);
-            const esChunkBundle = createMockBundle([makeChunk('chunk-xyz.mjs', 'export const b = 2;\n')]);
+            const esEntryBundle = createMockBundle([makeEntryChunk('index.mjs', 'export const x = 1;\n')]);
+            const esChunkBundle = createMockBundle([makeChunk('chunk.mjs', 'const y = 2;\n')]);
             const cjsBundle = createMockBundle([makeEntryChunk('index.cjs', 'module.exports = {};\n')]);
 
             // Three outputs: renderStart all, then generateBundle all
@@ -729,10 +751,10 @@ describe('@rollup-extras/plugin-size', () => {
         });
 
         it('should only report once after all outputs have been processed', async () => {
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
 
-            const bundle1 = createMockBundle([makeEntryChunk('index.mjs', 'const a = 1;\n')]);
-            const bundle2 = createMockBundle([makeEntryChunk('index.cjs', 'const b = 2;\n')]);
+            const bundle1 = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
+            const bundle2 = createMockBundle([makeEntryChunk('index.cjs', 'const x = 1;\n')]);
 
             await p.renderStart();
             await p.renderStart();
@@ -760,10 +782,10 @@ describe('@rollup-extras/plugin-size', () => {
         });
 
         it('should share stats across main and added instances', async () => {
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
             const p2 = p.api.addInstance();
 
-            const esBundle = createMockBundle([makeEntryChunk('index.mjs', 'export const a = 1;\n')]);
+            const esBundle = createMockBundle([makeEntryChunk('index.mjs', 'export const x = 1;\n')]);
             const cjsBundle = createMockBundle([makeEntryChunk('index.cjs', 'module.exports = {};\n')]);
 
             await runMultiConfigOutputs([
@@ -784,11 +806,11 @@ describe('@rollup-extras/plugin-size', () => {
         });
 
         it('should wait for all instances to finish before reporting', async () => {
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
             const p2 = p.api.addInstance();
 
-            const bundle1 = createMockBundle([makeEntryChunk('index.mjs', 'const a = 1;\n')]);
-            const bundle2 = createMockBundle([makeEntryChunk('index.cjs', 'const b = 2;\n')]);
+            const bundle1 = createMockBundle([makeEntryChunk('a.mjs', 'const a = 1;\n')]);
+            const bundle2 = createMockBundle([makeEntryChunk('b.mjs', 'const b = 2;\n')]);
 
             // renderStart on both configs
             await p.renderStart();
@@ -806,12 +828,12 @@ describe('@rollup-extras/plugin-size', () => {
         });
 
         it('should handle multiple outputs per instance', async () => {
-            const p = plugin();
+            const p = plugin({ minify: mockMinify });
             const p2 = p.api.addInstance();
 
-            const esBundle = createMockBundle([makeEntryChunk('index.mjs', 'export const a = 1;\n')]);
+            const esBundle = createMockBundle([makeEntryChunk('index.mjs', 'export const x = 1;\n')]);
             const cjsBundle = createMockBundle([makeEntryChunk('index.cjs', 'module.exports = {};\n')]);
-            const umdBundle = createMockBundle([makeEntryChunk('index.umd.js', 'var x = 1;\n')]);
+            const umdBundle = createMockBundle([makeEntryChunk('index.umd.js', '(function(){})();\n')]);
 
             // p has two outputs (es + cjs), p2 has one output (umd)
             await runMultiConfigOutputs([

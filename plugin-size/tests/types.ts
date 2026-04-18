@@ -27,6 +27,19 @@ const plugin7: Plugin = size({ gzip: false });
 const plugin8: Plugin = size({ brotli: true });
 const plugin9: Plugin = size({ gzip: true, brotli: false });
 
+// --- with minify function ---
+const plugin10: Plugin = size({
+    minify: async (code: string, fileName: string) => code.replace(/\s+/g, ''),
+});
+const plugin11: Plugin = size({
+    minify: async (code, _fileName) => code,
+});
+const plugin12: Plugin = size({
+    gzip: true,
+    brotli: true,
+    minify: async code => code,
+});
+
 // ============================================================================
 // Negative tests
 // ============================================================================
@@ -42,3 +55,12 @@ size(true);
 
 // @ts-expect-error - array is not valid
 size(['a', 'b']);
+
+// @ts-expect-error - minify must be a function
+size({ minify: 'not a function' });
+
+// @ts-expect-error - minify must return a Promise<string>
+size({ minify: (code: string) => code });
+
+// @ts-expect-error - minify must return a Promise<string>, not Promise<{ code: string }>
+size({ minify: async (code: string) => ({ code }) });
