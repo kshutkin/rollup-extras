@@ -133,7 +133,7 @@ export default function (options = {}) {
      * @param {ServerType} server
      */
     function internalOnListen(server) {
-        if (!onListen || !onListen(/** @type {Server} */ (server))) {
+        if (!onListen?.(/** @type {Server} */ (server))) {
             logger.finish(`listening on ${linkFromAddress(server.address(), !!https)}`, LogLevel.info);
         }
     }
