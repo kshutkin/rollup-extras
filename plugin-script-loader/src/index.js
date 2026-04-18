@@ -194,7 +194,7 @@ export default function (options = {}) {
 
             const code = (await readFile(realPath)).toString();
 
-            const shortName = realPath.split('/').pop() ?? realPath;
+            const shortName = /** @type {string} */ (realPath.split('/').pop());
             if (verbose) {
                 logger(`\t${realPath}`, LogLevel.info);
             }

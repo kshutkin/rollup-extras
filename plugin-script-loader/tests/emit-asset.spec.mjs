@@ -16,6 +16,12 @@ vi.mock('node:fs/promises', () => ({
             '/resolved/d3.js': 'window.d3 = {};',
             '/resolved/angular.js': 'window.angular = {};',
             '/resolved/legacy.js': 'var Legacy = true;',
+            '/resolved/lib1.js': 'var lib1 = 1;',
+            '/resolved/lib2.js': 'var lib2 = 2;',
+            '/resolved/lib3.js': 'var lib3 = 3;',
+            '/resolved/lib4.js': 'var lib4 = 4;',
+            '/resolved/lib5.js': 'var lib5 = 5;',
+            '/resolved/lib6.js': 'var lib6 = 6;',
             '/resolved/with-inline-map.js':
                 'var foo = 1;\n//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImZvby5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQSJ9',
             '/resolved/with-external-map.js': 'var bar = 2;\n//# sourceMappingURL=with-external-map.js.map',
@@ -66,6 +72,12 @@ describe('@rollup-extras/plugin-script-loader emit asset mode', () => {
                 if (source === './vendor/legacy.js') return { id: '/resolved/legacy.js' };
                 if (source === 'with-inline-map') return { id: '/resolved/with-inline-map.js' };
                 if (source === 'with-external-map') return { id: '/resolved/with-external-map.js' };
+                if (source === 'lib1') return { id: '/resolved/lib1.js' };
+                if (source === 'lib2') return { id: '/resolved/lib2.js' };
+                if (source === 'lib3') return { id: '/resolved/lib3.js' };
+                if (source === 'lib4') return { id: '/resolved/lib4.js' };
+                if (source === 'lib5') return { id: '/resolved/lib5.js' };
+                if (source === 'lib6') return { id: '/resolved/lib6.js' };
                 return null;
             }),
             warn: vi.fn(),
@@ -289,6 +301,19 @@ describe('@rollup-extras/plugin-script-loader emit asset mode', () => {
             expect(mainAsset.source).toContain('var foo = 1;');
         });
 
+        it('should read external sourcemap files', async () => {
+            const id = (await plugin.resolveId.call(context, 'script!with-external-map', '/src/index.js', {})).id;
+            // Simulate moduleParsed to track import order
+            plugin.moduleParsed({ importedIds: [id] });
+            await plugin.load.call(context, id);
+            await plugin.generateBundle.call(context, {}, bundle);
+
+            const mainAsset = emittedFiles[0];
+            // Should strip sourceMappingURL from output
+            expect(mainAsset.source).not.toContain('sourceMappingURL=with-external-map.js.map');
+            expect(mainAsset.source).toContain('var bar = 2;');
+        });
+
         it('should handle hashed filenames with exactFileName: false', async () => {
             plugin = scriptLoader({ emit: 'asset', exactFileName: false, sourcemap: true });
 
@@ -342,9 +367,24 @@ describe('@rollup-extras/plugin-script-loader emit asset mode', () => {
             plugin = scriptLoader({ emit: 'asset', minify: minifyFn });
 
             const id = (await plugin.resolveId.call(context, 'script!d3', '/src/index.js', {})).id;
+            plugin.moduleParsed({ importedIds: [id] });
             await plugin.load.call(context, id);
 
             await expect(plugin.generateBundle.call(context, {}, bundle)).rejects.toThrow('Minification failed');
+        });
+
+        it('should handle non-Error minification throws', async () => {
+            const minifyFn = vi.fn(async () => {
+                throw 'string error';
+            });
+
+            plugin = scriptLoader({ emit: 'asset', minify: minifyFn });
+
+            const id = (await plugin.resolveId.call(context, 'script!d3', '/src/index.js', {})).id;
+            plugin.moduleParsed({ importedIds: [id] });
+            await plugin.load.call(context, id);
+
+            await expect(plugin.generateBundle.call(context, {}, bundle)).rejects.toThrow('Minification failed: string error');
         });
 
         it('should update sourcemap from minifier result', async () => {
@@ -370,6 +410,138 @@ describe('@rollup-extras/plugin-script-loader emit asset mode', () => {
             const mapAsset = emittedFiles[1];
             const sourcemap = JSON.parse(mapAsset.source);
             expect(sourcemap.sources).toContain('custom.js');
+        });
+    });
+
+    describe('moduleParsed hook', () => {
+        beforeEach(() => {
+            plugin = scriptLoader({ emit: 'asset' });
+        });
+
+        it('should track import order from moduleParsed', async () => {
+            // Resolve scripts
+            const id1 = (await plugin.resolveId.call(context, 'script!d3', '/src/index.js', {})).id;
+            const id2 = (await plugin.resolveId.call(context, 'script!angular', '/src/index.js', {})).id;
+
+            // Simulate moduleParsed with specific order
+            plugin.moduleParsed({ importedIds: [id1, id2] });
+
+            // Load in reverse order
+            await plugin.load.call(context, id2);
+            await plugin.load.call(context, id1);
+
+            await plugin.generateBundle.call(context, {}, bundle);
+
+            const mainAsset = emittedFiles[0];
+            const d3Index = mainAsset.source.indexOf('window.d3');
+            const angularIndex = mainAsset.source.indexOf('window.angular');
+
+            // Should be sorted by moduleParsed order, not load order
+            expect(d3Index).toBeLessThan(angularIndex);
+        });
+
+        it('should not track imports when emit is inline', async () => {
+            plugin = scriptLoader({ emit: 'inline' });
+
+            const id = (await plugin.resolveId.call(context, 'script!d3', '/src/index.js', {})).id;
+
+            // This should be a no-op for inline mode
+            plugin.moduleParsed({ importedIds: [id] });
+
+            // Load should return inlined code, not placeholder
+            const result = await plugin.load.call(context, id);
+            expect(result.code).toContain('window.d3');
+        });
+
+        it('should ignore non-script-loader imports in moduleParsed', async () => {
+            const id = (await plugin.resolveId.call(context, 'script!d3', '/src/index.js', {})).id;
+
+            // moduleParsed with mixed imports
+            plugin.moduleParsed({ importedIds: ['/some/regular/module.js', id, '/another/module.js'] });
+
+            await plugin.load.call(context, id);
+            await plugin.generateBundle.call(context, {}, bundle);
+
+            // Should still work correctly
+            expect(emittedFiles.length).toBe(2);
+        });
+
+        it('should not duplicate imports in order tracking', async () => {
+            const id = (await plugin.resolveId.call(context, 'script!d3', '/src/index.js', {})).id;
+
+            // Call moduleParsed multiple times with same ID
+            plugin.moduleParsed({ importedIds: [id] });
+            plugin.moduleParsed({ importedIds: [id] });
+
+            await plugin.load.call(context, id);
+            await plugin.generateBundle.call(context, {}, bundle);
+
+            // Should only appear once
+            const mainAsset = emittedFiles[0];
+            const matches = mainAsset.source.match(/window\.d3/g);
+            expect(matches).toHaveLength(1);
+        });
+    });
+
+    describe('sorting edge cases', () => {
+        beforeEach(() => {
+            plugin = scriptLoader({ emit: 'asset' });
+        });
+
+        it('should handle scripts not in importOrder (fallback to Map order)', async () => {
+            // Load scripts without calling moduleParsed
+            const id1 = (await plugin.resolveId.call(context, 'script!d3', '/src/index.js', {})).id;
+            const id2 = (await plugin.resolveId.call(context, 'script!angular', '/src/index.js', {})).id;
+
+            await plugin.load.call(context, id1);
+            await plugin.load.call(context, id2);
+
+            await plugin.generateBundle.call(context, {}, bundle);
+
+            // Should still emit both scripts
+            const mainAsset = emittedFiles[0];
+            expect(mainAsset.source).toContain('window.d3');
+            expect(mainAsset.source).toContain('window.angular');
+        });
+
+        it('should sort correctly when only first script is in importOrder', async () => {
+            const id1 = (await plugin.resolveId.call(context, 'script!d3', '/src/index.js', {})).id;
+            const id2 = (await plugin.resolveId.call(context, 'script!angular', '/src/index.js', {})).id;
+
+            // Only add id1 to importOrder
+            plugin.moduleParsed({ importedIds: [id1] });
+
+            await plugin.load.call(context, id1);
+            await plugin.load.call(context, id2);
+
+            await plugin.generateBundle.call(context, {}, bundle);
+
+            const mainAsset = emittedFiles[0];
+            const d3Index = mainAsset.source.indexOf('window.d3');
+            const angularIndex = mainAsset.source.indexOf('window.angular');
+
+            // id1 (d3) is in importOrder, so it should come first
+            expect(d3Index).toBeLessThan(angularIndex);
+        });
+
+        it('should sort correctly when only second script is in importOrder', async () => {
+            const id1 = (await plugin.resolveId.call(context, 'script!d3', '/src/index.js', {})).id;
+            const id2 = (await plugin.resolveId.call(context, 'script!angular', '/src/index.js', {})).id;
+
+            // Only add id2 to importOrder
+            plugin.moduleParsed({ importedIds: [id2] });
+
+            await plugin.load.call(context, id1);
+            await plugin.load.call(context, id2);
+
+            await plugin.generateBundle.call(context, {}, bundle);
+
+            const mainAsset = emittedFiles[0];
+            const d3Index = mainAsset.source.indexOf('window.d3');
+            const angularIndex = mainAsset.source.indexOf('window.angular');
+
+            // id2 (angular) is in importOrder, so it should come first
+            expect(angularIndex).toBeLessThan(d3Index);
         });
     });
 
@@ -429,6 +601,89 @@ describe('@rollup-extras/plugin-script-loader emit asset mode', () => {
             await plugin.generateBundle.call(context, {}, bundle);
 
             expect(loggerFn).toHaveBeenCalledWith(expect.stringContaining('vendor.js'), expect.any(String));
+        });
+    });
+
+    describe('statistics edge cases', () => {
+        it('should handle more than 5 scripts (statistics count mode)', async () => {
+            plugin = scriptLoader({ emit: 'asset', sourcemap: false });
+
+            // Load 6 scripts to trigger statistics count mode
+            const ids = [];
+            for (const lib of ['d3', 'angular', 'lib1', 'lib2', 'lib3', 'lib4']) {
+                const id = (await plugin.resolveId.call(context, `script!${lib}`, '/src/index.js', {})).id;
+                ids.push(id);
+            }
+
+            plugin.moduleParsed({ importedIds: ids });
+
+            for (const id of ids) {
+                await plugin.load.call(context, id);
+            }
+
+            await plugin.generateBundle.call(context, {}, bundle);
+
+            // Should emit the asset with all 6 scripts
+            expect(emittedFiles.length).toBe(1);
+            const mainAsset = emittedFiles[0];
+            expect(mainAsset.source).toContain('window.d3');
+            expect(mainAsset.source).toContain('window.angular');
+            expect(mainAsset.source).toContain('var lib4');
+        });
+    });
+
+    describe('bundle entry edge cases', () => {
+        it('should handle missing bundle entry gracefully', async () => {
+            plugin = scriptLoader({ emit: 'asset', sourcemap: true });
+
+            const id = (await plugin.resolveId.call(context, 'script!d3', '/src/index.js', {})).id;
+            plugin.moduleParsed({ importedIds: [id] });
+            await plugin.load.call(context, id);
+
+            // Create a bundle that doesn't have the emitted file
+            const emptyBundle = {};
+
+            // Override emitFile to not populate the bundle
+            const originalEmitFile = context.emitFile;
+            context.emitFile = vi.fn(fileInfo => {
+                const refId = originalEmitFile(fileInfo);
+                // Don't actually add to emptyBundle
+                return refId;
+            });
+
+            await plugin.generateBundle.call(context, {}, emptyBundle);
+
+            // Should complete without error even if bundle entry is missing
+            expect(context.emitFile).toHaveBeenCalled();
+        });
+
+        it('should handle bundle entry with non-string source', async () => {
+            plugin = scriptLoader({ emit: 'asset', sourcemap: true });
+
+            const id = (await plugin.resolveId.call(context, 'script!d3', '/src/index.js', {})).id;
+            plugin.moduleParsed({ importedIds: [id] });
+            await plugin.load.call(context, id);
+
+            // Create a bundle where source is Uint8Array instead of string
+            const customBundle = {};
+            const _originalEmitFile = context.emitFile;
+            context.emitFile = vi.fn(fileInfo => {
+                emittedFiles.push(fileInfo);
+                const refId = `ref-${emittedFiles.length}`;
+                const finalFileName = fileInfo.fileName || `assets/${fileInfo.name.replace('.js', '')}.abc123.js`;
+                fileNameMap.set(refId, finalFileName);
+                customBundle[finalFileName] = {
+                    type: 'asset',
+                    source: new Uint8Array([1, 2, 3]), // Non-string source
+                    fileName: finalFileName,
+                };
+                return refId;
+            });
+
+            await plugin.generateBundle.call(context, {}, customBundle);
+
+            // Should complete without error
+            expect(emittedFiles.length).toBe(2);
         });
     });
 
