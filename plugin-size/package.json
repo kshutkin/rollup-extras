@@ -48,7 +48,7 @@
         "@niceties/ansi": "^1.1.2",
         "@niceties/logger": "^2.1.0",
         "@rollup-extras/utils": "workspace:^",
-        "oxc-minify": "^0.125.0"
+        "oxc-minify": "^0.126.0"
     },
     "peerDependencies": {
         "rollup": "^4.0.0"
