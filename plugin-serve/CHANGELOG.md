@@ -1,5 +1,11 @@
 Changelog
 
+## 2.0.1
+
+### Patch Changes
+
+- a82ad94: fix lint
+
 ## 2.0.0
 
 ### Major Changes
