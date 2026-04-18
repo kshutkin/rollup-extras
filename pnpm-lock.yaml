@@ -167,6 +167,9 @@ importers:
       '@rollup-extras/utils':
         specifier: workspace:^
         version: link:../utils
+      magic-string:
+        specifier: ^0.30.21
+        version: 0.30.21
       rollup:
         specifier: ^4.0.0
         version: 4.37.0

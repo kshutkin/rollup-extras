@@ -1,5 +1,5 @@
 {
-    "version": "1.0.0",
+    "version": "0.0.0",
     "license": "MIT",
     "name": "@rollup-extras/plugin-script-loader",
     "author": "Konstantin Shutkin",
@@ -45,7 +45,8 @@
     },
     "dependencies": {
         "@niceties/logger": "^2.1.0",
-        "@rollup-extras/utils": "workspace:^"
+        "@rollup-extras/utils": "workspace:^",
+        "magic-string": "^0.30.21"
     },
     "peerDependencies": {
         "rollup": "^4.0.0"

@@ -9,6 +9,7 @@ import styles from 'rollup-plugin-styles';
 import templateCache from '@rollup-extras/plugin-angularjs-template-cache';
 import clean from '@rollup-extras/plugin-clean';
 import html from '@rollup-extras/plugin-html';
+import { combineAssetFactories, simpleES5Script } from '@rollup-extras/plugin-html/asset-factories';
 import scriptLoader from '@rollup-extras/plugin-script-loader';
 import serve from '@rollup-extras/plugin-serve';
 import size from '@rollup-extras/plugin-size';
@@ -28,7 +29,12 @@ export default {
     plugins: [
         clean(),
 
-        scriptLoader({ useStrict: false }),
+        scriptLoader({
+            emit: 'asset',
+            name: 'vendor.js',
+            exactFileName: false, // Use Rollup's assetFileNames pattern for hashing
+            sourcemap: true,
+        }),
 
         globImport({
             format: 'import',
@@ -64,6 +70,10 @@ export default {
 
         html({
             template: 'index.html',
+            assetsFactory: combineAssetFactories(
+                // Inject vendor bundle as classic (non-module) script before ES modules
+                simpleES5Script(/vendor\..*\.js$/)
+            ),
         }),
     ],
     watch: {
