@@ -1,0 +1,59 @@
+{
+    "version": "0.1.0",
+    "license": "MIT",
+    "name": "@rollup-extras/plugin-script-loader",
+    "author": "Konstantin Shutkin",
+    "type": "module",
+    "types": "./types/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./types/index.d.ts",
+            "default": "./src/index.js"
+        },
+        "./package.json": "./package.json"
+    },
+    "main": "./src/index.js",
+    "module": "./src/index.js",
+    "files": [
+        "src",
+        "types"
+    ],
+    "engines": {
+        "node": ">=22"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/kshutkin/rollup-extras.git",
+        "directory": "plugin-script-loader"
+    },
+    "bugs": "https://github.com/kshutkin/rollup-extras/issues",
+    "homepage": "https://github.com/kshutkin/rollup-extras/blob/main/plugin-script-loader/README.md",
+    "readme": "README.md",
+    "description": "Rollup plugin to mimic Webpack's script-loader inline behavior. Inlines raw scripts into the bundle in import order, enabling legacy library loading with stable ordering, terser optimization and concatenation.",
+    "keywords": [
+        "rollup-plugin",
+        "script-loader",
+        "legacy",
+        "inline",
+        "concatenation"
+    ],
+    "scripts": {
+        "build": "dts-buddy",
+        "prepack": "pkgprn-internal --flatten types,src --strip-comments",
+        "test": "vitest run --coverage --config ../vitest.config.js",
+        "test:types": "tsc -p tsconfig.types.json"
+    },
+    "dependencies": {
+        "@niceties/logger": "^2.1.0",
+        "@rollup-extras/utils": "workspace:^",
+        "magic-string": "^0.30.21"
+    },
+    "peerDependencies": {
+        "rollup": "^4.0.0"
+    },
+    "peerDependenciesMeta": {
+        "rollup": {
+            "optional": true
+        }
+    }
+}
