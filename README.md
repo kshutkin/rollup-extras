@@ -15,6 +15,9 @@ Collection of rollup plugins
 - [plugin-externals](./plugin-externals) - declares external dependencies with reasonable defaults and customizable logic.
 - [plugin-angularjs-template-cache](./plugin-angularjs-template-cache) - builds AngularJS template cache.
 - [plugin-exec](./plugin-exec) - Executes some code when the bundle you are building is finished.
+- [plugin-mangle](./plugin-mangle) - mangles (minifies) specific variables and properties based on a configurable prefix.
+- [plugin-script-loader](./plugin-script-loader) - mimics Webpack's script-loader for inlining raw scripts in order or emitting them as separate assets.
+- [plugin-size](./plugin-size) - reports the size of generated artifacts with compression and delta tracking.
 
 ## Other places to search for plugins
 
