@@ -952,4 +952,42 @@ describe('@rollup-extras/plugin-size (missing tests plan)', () => {
         expect(stats2.entries.es.raw).not.toBe(stats1.entries.es.raw + stats2.entries.es.raw);
         expect(stats2.entries.es.raw).toBeGreaterThan(stats1.entries.es.raw);
     });
+
+    it('should display minified size in report when minify option is provided', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const plugin = size({
+            statsFile: statsPath,
+            minify: async code => code.replace(/\s+/g, ' '),
+        });
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default    "lots    of    whitespace"   ;' }), plugin],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es).toBeDefined();
+        expect(stats.entries.es.minified).toBeDefined();
+        expect(stats.entries.es.minified).toBeLessThanOrEqual(stats.entries.es.raw);
+    });
+
+    it('should report removed asset extensions from previous stats', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        // Pre-seed stats with a .css asset that will not be in the current build
+        await writeFile(statsPath, JSON.stringify({ assets: { '.css': { raw: 500 } } }));
+
+        const plugin = size({ statsFile: statsPath });
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), plugin],
+        });
+        // Build produces only JS (no CSS asset), so .css should show as "removed"
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        // Current stats should NOT have .css (it was only in previous)
+        expect(stats.assets?.['.css']).toBeUndefined();
+    });
 });

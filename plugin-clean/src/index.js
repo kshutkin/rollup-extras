@@ -104,9 +104,7 @@ export default function (options = {}) {
         if (deleted) {
             return;
         }
-        if (targets) {
-            await Promise.all(targets.map(removeDir));
-        }
+        await Promise.all(/** @type {string[]} */ (targets).map(removeDir));
     }
 
     /**

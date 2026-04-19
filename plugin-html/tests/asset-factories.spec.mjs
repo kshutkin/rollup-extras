@@ -88,4 +88,16 @@ describe('@rollup-extras/plugin-html/asset-factories', () => {
 
         expect(vi.mocked(createLogger)).toHaveBeenCalledWith('@rollup-extras/plugin-html/asset-factories');
     });
+
+    it('should reuse the cached logger on subsequent getPredicate calls', async () => {
+        vi.resetModules();
+        const { simpleES5FallbackScript: fresh } = await import('../src/asset-factories');
+
+        // First call — creates logger
+        fresh({});
+        // Second call — reuses cached logger
+        fresh({});
+
+        expect(vi.mocked(createLogger)).toHaveBeenCalledTimes(1);
+    });
 });

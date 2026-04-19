@@ -985,6 +985,25 @@ describe('@rollup-extras/plugin-html integration', () => {
         // CSS link should still be present (default injectIntoHead is used)
         expect(htmlAsset.source).toContain('<link rel="stylesheet"');
     });
+
+    it('should fall back to default injectIntoHead predicate when option is explicitly undefined', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("hello")' }),
+                emitCss('styles.css', 'body { margin: 0; }'),
+                html({ injectIntoHead: undefined }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        // Default predicate injects CSS into <head>
+        const headContent = htmlAsset.source.split('</head>')[0];
+        expect(headContent).toContain('<link rel="stylesheet"');
+        expect(htmlAsset.source).toContain('<script');
+    });
 });
 
 // --- MISSING TESTS PLAN ---

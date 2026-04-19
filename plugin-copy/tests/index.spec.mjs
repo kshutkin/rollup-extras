@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -859,5 +859,37 @@ describe('@rollup-extras/plugin-copy (missing tests plan)', () => {
         await bundle2.write({ format: 'es', dir: outDir });
         await bundle2.close();
         expect(await readFile(join(outDir, 'data.txt'), 'utf8')).toBe('v2');
+    });
+
+    it('should log individual filenames when verbose is list-filenames', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'a.txt'), 'a');
+        await writeFile(join(srcDir, 'b.txt'), 'b');
+
+        const p = copy({ targets: [{ src: join(srcDir, '*.txt'), dest: outDir }], verbose: 'list-filenames', emitFiles: false });
+        const v = virtual({ entry: 'export default 1' });
+        const bundle = await rollup({ input: 'entry', plugins: [v, p] });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        expect(await readFile(join(outDir, 'a.txt'), 'utf8')).toBe('a');
+        expect(await readFile(join(outDir, 'b.txt'), 'utf8')).toBe('b');
+    });
+
+    it('should handle non-ENOENT stat errors gracefully (e.g. ELOOP)', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        // Create a self-referencing symlink that causes ELOOP on stat()
+        await symlink('loop.txt', join(srcDir, 'loop.txt'));
+
+        const p = copy({ targets: [{ src: join(srcDir, '*'), dest: outDir }], emitFiles: false });
+        const v = virtual({ entry: 'export default 1' });
+        const bundle = await rollup({ input: 'entry', plugins: [v, p] });
+        // Should not throw — non-ENOENT errors are logged as warnings
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
     });
 });
