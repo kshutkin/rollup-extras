@@ -182,4 +182,32 @@ describe('@rollup-extras/plugin-mangle', () => {
         const hasFile = output[0].map.file && output[0].map.file.length > 0;
         expect(hasSources || hasFile).toBe(true);
     });
+
+    it('should mangle string literals inside computed member expressions', async () => {
+        const output = await build("const obj = {}; obj['$_foo'] = 42; export default obj['$_foo'];");
+        expect(output[0].code).not.toContain('$_foo');
+    });
+
+    it('should not double-mangle shorthand properties where both key and value are the same prefixed identifier', async () => {
+        // Shorthand: { $_prop } should mangle the key and expand to { a: a }
+        const output = await build('const $_prop = 1; const obj = { $_prop }; export default obj;');
+        expect(output[0].code).not.toContain('$_prop');
+    });
+
+    it('should mangle all reference types consistently within a single file', async () => {
+        const code = [
+            'const obj = { $_prop: 1 };',
+            "obj['$_prop'] = 2;",
+            'const val = obj.$_prop;',
+            'const $_prop = 3;',
+            'export default val + $_prop;',
+        ].join('\n');
+        const output = await build(code);
+        expect(output[0].code).not.toContain('$_prop');
+    });
+
+    it('should mangle arrow function parameters', async () => {
+        const output = await build('const fn = ($_param) => $_param; export default fn(1);');
+        expect(output[0].code).not.toContain('$_param');
+    });
 });

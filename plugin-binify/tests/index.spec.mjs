@@ -529,3 +529,108 @@ describe('@rollup-extras/plugin-binify (verbose branch)', () => {
         await bundle.close();
     });
 });
+
+// --- MISSING TESTS PLAN ---
+
+describe('@rollup-extras/plugin-binify (missing tests plan)', () => {
+    function virtual(modules) {
+        return {
+            name: 'virtual-input',
+            resolveId(id) {
+                if (modules[id]) return id;
+            },
+            load(id) {
+                if (modules[id]) return modules[id];
+            },
+        };
+    }
+
+    it('should set executableFlag to false on win32 platform (default)', () => {
+        // The default behavior: when process.platform === 'win32', executableFlag defaults to false
+        // Since we can't change process.platform in this test, we verify the option is accepted
+        const bundle_result = rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("win32")' }), binify({ executableFlag: false })],
+        });
+        return bundle_result.then(async bundle => {
+            const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+            // Shebang should still be added even when executableFlag is false
+            expect(output[0].code.startsWith('#!/usr/bin/env node\n')).toBe(true);
+            await bundle.close();
+        });
+    });
+
+    it('should skip assets by default filter (only entry chunks get shebang)', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                {
+                    name: 'virtual-with-asset',
+                    resolveId(id) {
+                        if (id === 'entry') return id;
+                    },
+                    load(id) {
+                        if (id === 'entry') return 'export default 1';
+                    },
+                    generateBundle() {
+                        this.emitFile({
+                            type: 'asset',
+                            fileName: 'data.json',
+                            source: '{"key":"value"}',
+                        });
+                    },
+                },
+                binify({ executableFlag: false }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+        const asset = output.find(o => o.type === 'asset');
+        expect(asset).toBeDefined();
+        // The asset should NOT have a shebang
+        expect(asset.source.toString().startsWith('#!/')).toBe(false);
+        // The entry chunk should have a shebang
+        const chunk = output.find(o => o.type === 'chunk');
+        expect(chunk.code.startsWith('#!/usr/bin/env node\n')).toBe(true);
+        await bundle.close();
+    });
+
+    it('should handle multi-line shebang with proper sourcemap mapping offset', async () => {
+        const multiLineShebang = '#!/usr/bin/env node\n// extra line\n';
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("sourcemap")' }), binify({ shebang: multiLineShebang, executableFlag: false })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist', sourcemap: true });
+        const chunk = output.find(o => o.type === 'chunk');
+        expect(chunk.code.startsWith('#!/usr/bin/env node\n// extra line\n')).toBe(true);
+        expect(chunk.map).toBeDefined();
+        // Two newlines in shebang means two leading semicolons in mappings
+        expect(chunk.map.mappings.startsWith(';;')).toBe(true);
+        await bundle.close();
+    });
+
+    it('should accept executableFlag as a string (octal)', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("string flag")' }), binify({ executableFlag: '0o755' })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+        // The shebang should still be present and logger.finish with 'added shebangs'
+        expect(output[0].code.startsWith('#!/usr/bin/env node\n')).toBe(true);
+        await bundle.close();
+    });
+
+    it('should not add double newline when code already starts with a newline', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: '\nconsole.log("leading newline")' }), binify({ executableFlag: false })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+        const code = output[0].code;
+        expect(code.startsWith('#!/usr/bin/env node\n')).toBe(true);
+        // The shebang already ends with \n, code already starts with \n, so no double blank line
+        const shebangedCode = code.slice('#!/usr/bin/env node\n'.length);
+        expect(shebangedCode.startsWith('\n\n')).toBe(false);
+        await bundle.close();
+    });
+});

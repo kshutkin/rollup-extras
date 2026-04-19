@@ -340,4 +340,36 @@ describe('@rollup-extras/plugin-externals (additional coverage)', () => {
         const localResult = await plugin.resolveId.call({}, './local', 'entry.js');
         expect(localResult).toBeNull();
     });
+
+    it('should mark a linked module resolving outside the package directory as external', async () => {
+        const { resolve } = await import('node:path');
+        const plugin = externals();
+        // Simulate a module import that resolves outside pkgDir
+        // pkgDir is initialized to the actual package directory of this project
+        // An absolute path far outside it should be external
+        const outsidePath = '/tmp/outside-pkg/some-module';
+        const result = await plugin.resolveId.call({}, outsidePath, resolve('src/entry.js'));
+        expect(result).toBe(false);
+    });
+
+    it('should not mark a relative import as external when it resolves within the package directory', async () => {
+        const { resolve } = await import('node:path');
+        const plugin = externals();
+        // A relative import from within the package should stay local
+        const importer = resolve('src/entry.js');
+        const result = await plugin.resolveId.call({}, './helper', importer);
+        expect(result).toBeNull();
+    });
+
+    it('should forward the correct (id, isExternal, importer) arguments to the custom predicate', async () => {
+        const spy = vi.fn((_id, isExternal, _importer) => isExternal);
+        const plugin = externals({ external: spy });
+        await plugin.resolveId.call({}, 'node:fs', 'src/entry.js');
+
+        expect(spy).toHaveBeenCalledTimes(1);
+        const [id, isExternal, importer] = spy.mock.calls[0];
+        expect(id).toBe('node:fs');
+        expect(isExternal).toBe(true);
+        expect(importer).toBe('src/entry.js');
+    });
 });

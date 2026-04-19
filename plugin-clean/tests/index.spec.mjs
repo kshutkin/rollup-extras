@@ -541,4 +541,78 @@ describe('@rollup-extras/plugin-clean integration', () => {
         const files = await readdir(outDir);
         expect(files).toContain('entry.js');
     });
+
+    it('should handle invalid options gracefully without throwing', async () => {
+        const outDir = join(tmpDir, 'out');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), clean(123)],
+        });
+        await expect(bundle.write({ format: 'es', dir: outDir })).resolves.not.toThrow();
+        await bundle.close();
+    });
+
+    it('should only delete once across multiple addInstance calls when deleteOnce is true (default)', async () => {
+        const targetDir = join(tmpDir, 'target');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(targetDir, { recursive: true });
+        await writeFile(join(targetDir, 'old.txt'), 'old');
+
+        const plugin = clean({ targets: [targetDir] });
+        const instance2 = plugin.api.addInstance();
+
+        const v = virtual({ entry: 'export default 1' });
+
+        const bundle1 = await rollup({ input: 'entry', plugins: [v, plugin] });
+        await bundle1.write({ format: 'es', dir: outDir });
+        await bundle1.close();
+
+        expect(await exists(targetDir)).toBe(false);
+
+        // Recreate the target with a marker
+        await mkdir(targetDir, { recursive: true });
+        await writeFile(join(targetDir, 'marker.txt'), 'marker');
+
+        const bundle2 = await rollup({ input: 'entry', plugins: [v, instance2] });
+        await bundle2.write({ format: 'es', dir: outDir });
+        await bundle2.close();
+
+        // deleteOnce: true means the second instance should NOT delete
+        expect(await exists(join(targetDir, 'marker.txt'))).toBe(true);
+    });
+
+    it('should extract no targets from config.output when entries use file instead of dir', async () => {
+        const outFile = join(tmpDir, 'bundle.js');
+        const markerDir = join(tmpDir, 'should-survive');
+        await mkdir(markerDir, { recursive: true });
+        await writeFile(join(markerDir, 'marker.txt'), 'marker');
+
+        const p = clean({ outputPlugin: false });
+        const bundle = await rollup({
+            input: 'entry',
+            output: { file: outFile },
+            plugins: [virtual({ entry: 'export default 1' }), p],
+        });
+        await bundle.write({ format: 'es', file: outFile });
+        await bundle.close();
+
+        // No dir was specified, so nothing should be cleaned
+        expect(await exists(join(markerDir, 'marker.txt'))).toBe(true);
+    });
+
+    it('should accept targets as a single string in the options object', async () => {
+        const targetDir = join(tmpDir, 'target');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(targetDir, { recursive: true });
+        await writeFile(join(targetDir, 'old.txt'), 'old');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), clean({ targets: targetDir })],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        expect(await exists(targetDir)).toBe(false);
+    });
 });

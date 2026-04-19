@@ -622,3 +622,278 @@ describe('@rollup-extras/plugin-copy integration', () => {
         expect(files).toContain('file.txt');
     });
 });
+
+// --- MISSING TESTS PLAN ---
+
+describe('@rollup-extras/plugin-copy (missing tests plan)', () => {
+    let tmpDir;
+
+    function virtual(modules) {
+        return {
+            name: 'virtual-input',
+            resolveId(id) {
+                if (modules[id]) return id;
+            },
+            load(id) {
+                if (modules[id]) return modules[id];
+            },
+        };
+    }
+
+    beforeEach(async () => {
+        tmpDir = await mkdtemp(join(tmpdir(), 'copy-plan-'));
+    });
+
+    afterEach(async () => {
+        await rm(tmpDir, { recursive: true, force: true });
+    });
+
+    it('should use a custom pluginName when provided', () => {
+        const plugin = copy({ pluginName: 'my-copy', src: '*.txt' });
+        expect(plugin.name).toBe('my-copy');
+    });
+
+    it('should accept targets as an array of string patterns', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'a.txt'), 'text');
+        await writeFile(join(srcDir, 'b.json'), '{"key":"value"}');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ targets: [join(srcDir, '*.txt'), join(srcDir, '*.json')] })],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('a.txt');
+        expect(files).toContain('b.json');
+    });
+
+    it('should accept targets as a single string pattern', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'single.txt'), 'single');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ targets: join(srcDir, '*.txt') })],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('single.txt');
+    });
+
+    it('should exclude files matching an array of exclude patterns', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'keep.txt'), 'keep');
+        await writeFile(join(srcDir, 'skip.log'), 'log');
+        await writeFile(join(srcDir, 'skip.tmp'), 'tmp');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 1' }),
+                copy({ src: join(srcDir, '*'), exclude: [join(srcDir, '*.log'), join(srcDir, '*.tmp')] }),
+            ],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('keep.txt');
+        expect(files).not.toContain('skip.log');
+        expect(files).not.toContain('skip.tmp');
+    });
+
+    it('should deduplicate files when multiple src patterns match the same file', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'shared.txt'), 'shared');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 1' }),
+                copy({
+                    targets: [{ src: join(srcDir, '*.txt') }, { src: join(srcDir, 'shared.txt') }],
+                }),
+            ],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('shared.txt');
+        // file should appear only once
+        expect(files.filter(f => f === 'shared.txt').length).toBe(1);
+    });
+
+    it('should re-copy all files on rebuild when copyOnce is false', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'data.txt'), 'v1');
+
+        const p = copy({ src: join(srcDir, '*.txt'), copyOnce: false });
+        const v = virtual({ entry: 'export default 1' });
+
+        const bundle1 = await rollup({ input: 'entry', plugins: [v, p] });
+        await bundle1.write({ format: 'es', dir: outDir });
+        await bundle1.close();
+        expect(await readFile(join(outDir, 'data.txt'), 'utf8')).toBe('v1');
+
+        // Update the source
+        await writeFile(join(srcDir, 'data.txt'), 'v2');
+        // Touch file to update mtime
+        const { utimes } = await import('node:fs/promises');
+        const future = new Date(Date.now() + 2000);
+        await utimes(join(srcDir, 'data.txt'), future, future);
+
+        const bundle2 = await rollup({ input: 'entry', plugins: [v, p] });
+        await bundle2.write({ format: 'es', dir: outDir });
+        await bundle2.close();
+        expect(await readFile(join(outDir, 'data.txt'), 'utf8')).toBe('v2');
+    });
+
+    it('should not register watch files when watch is false', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'file.txt'), 'content');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, '*.txt'), watch: false })],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('file.txt');
+    });
+
+    it('should set absolute originalFileName when emitOriginalFileName is absolute (default)', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'asset.txt'), 'asset-content');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, '*.txt') })],
+        });
+        const result = await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const asset = result.output.find(o => o.type === 'asset' && o.fileName === 'asset.txt');
+        expect(asset).toBeDefined();
+        // Default emitOriginalFileName is 'absolute', so originalFileName should be an absolute path
+        expect(asset.originalFileName).toBeDefined();
+        expect(asset.originalFileName.startsWith('/')).toBe(true);
+    });
+
+    it('should produce no output when given an empty array', async () => {
+        const outDir = join(tmpDir, 'out');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy([])],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        // Only entry.js, no copied assets
+        expect(files).toEqual(['entry.js']);
+    });
+
+    it('should produce no output when given an invalid parameter type', async () => {
+        const outDir = join(tmpDir, 'out');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy(123)],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toEqual(['entry.js']);
+    });
+
+    it('should handle glob pattern with no parent directory', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'root.txt'), 'root');
+
+        const originalCwd = process.cwd();
+        process.chdir(srcDir);
+        try {
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'export default 1' }), copy({ src: '*.txt' })],
+            });
+            await bundle.write({ format: 'es', dir: outDir });
+            await bundle.close();
+
+            const files = await readdir(outDir);
+            expect(files).toContain('root.txt');
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    it('should copy literal file paths without glob characters', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'data.json'), '{"key":"value"}');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, 'data.json') })],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        const files = await readdir(outDir);
+        expect(files).toContain('data.json');
+        expect(await readFile(join(outDir, 'data.json'), 'utf8')).toBe('{"key":"value"}');
+    });
+
+    it('should re-copy a file when its mtime changes even with copyOnce true', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'data.txt'), 'v1');
+
+        const p = copy({ src: join(srcDir, '*.txt'), copyOnce: true });
+        const v = virtual({ entry: 'export default 1' });
+
+        const bundle1 = await rollup({ input: 'entry', plugins: [v, p] });
+        await bundle1.write({ format: 'es', dir: outDir });
+        await bundle1.close();
+        expect(await readFile(join(outDir, 'data.txt'), 'utf8')).toBe('v1');
+
+        // Update source and force mtime change
+        await writeFile(join(srcDir, 'data.txt'), 'v2');
+        const { utimes } = await import('node:fs/promises');
+        const future = new Date(Date.now() + 5000);
+        await utimes(join(srcDir, 'data.txt'), future, future);
+
+        const bundle2 = await rollup({ input: 'entry', plugins: [v, p] });
+        await bundle2.write({ format: 'es', dir: outDir });
+        await bundle2.close();
+        expect(await readFile(join(outDir, 'data.txt'), 'utf8')).toBe('v2');
+    });
+});

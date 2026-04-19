@@ -807,3 +807,176 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
         });
     });
 });
+
+// --- MISSING TESTS PLAN ---
+
+describe('@rollup-extras/plugin-script-loader (missing tests plan)', () => {
+    let tmpDir;
+
+    function entryPlugin(code) {
+        return {
+            name: 'test-entry',
+            resolveId(id) {
+                if (id === 'entry') return id;
+            },
+            load(id) {
+                if (id === 'entry') return code;
+            },
+        };
+    }
+
+    beforeEach(async () => {
+        tmpDir = await mkdtemp(join(tmpdir(), 'sl-plan-'));
+    });
+
+    afterEach(async () => {
+        await rm(tmpDir, { recursive: true, force: true });
+    });
+
+    it('should emit asset with the default name vendor.js', async () => {
+        await writeFile(join(tmpDir, 'lib.js'), 'var LIB = 1;');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                entryPlugin(`import 'script!${join(tmpDir, 'lib.js')}'; console.log('app');`),
+                scriptLoader({ emit: 'asset', sourcemap: false }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es' });
+        const asset = output.find(item => item.type === 'asset' && item.fileName === 'vendor.js');
+        expect(asset).toBeDefined();
+        expect(asset.source).toContain('LIB');
+    });
+
+    it('should not emit any files when no scripts are imported', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [entryPlugin("console.log('no scripts');"), scriptLoader({ emit: 'asset', name: 'vendor.js', sourcemap: false })],
+        });
+        const { output } = await bundle.generate({ format: 'es' });
+        const asset = output.find(item => item.type === 'asset' && item.fileName === 'vendor.js');
+        expect(asset).toBeUndefined();
+    });
+
+    it('should include sourceMappingURL comment in the emitted asset', async () => {
+        await writeFile(join(tmpDir, 'sm.js'), 'var SM = 1;');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                entryPlugin(`import 'script!${join(tmpDir, 'sm.js')}'; console.log('app');`),
+                scriptLoader({ emit: 'asset', name: 'vendor.js', sourcemap: true }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es' });
+        const asset = output.find(item => item.type === 'asset' && item.fileName === 'vendor.js');
+        expect(asset).toBeDefined();
+        expect(asset.source).toContain('sourceMappingURL=vendor.js.map');
+    });
+
+    it('should generate valid sourcemap JSON with version, sources, and file fields', async () => {
+        await writeFile(join(tmpDir, 'smv.js'), 'var SMV = 1;');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                entryPlugin(`import 'script!${join(tmpDir, 'smv.js')}'; console.log('app');`),
+                scriptLoader({ emit: 'asset', name: 'vendor.js', sourcemap: true }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es' });
+        const mapAsset = output.find(item => item.type === 'asset' && item.fileName === 'vendor.js.map');
+        expect(mapAsset).toBeDefined();
+        const parsed = JSON.parse(mapAsset.source);
+        expect(parsed.version).toBe(3);
+        expect(parsed.sources).toBeDefined();
+        expect(parsed.sources.length).toBeGreaterThan(0);
+        expect(parsed.file).toBe('vendor.js');
+    });
+
+    it('should handle non-Error minification throws gracefully', async () => {
+        await writeFile(join(tmpDir, 'non-err.js'), 'var NON_ERR = 1;');
+        let buildError;
+        try {
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [
+                    entryPlugin(`import 'script!${join(tmpDir, 'non-err.js')}'; console.log('app');`),
+                    scriptLoader({
+                        emit: 'asset',
+                        name: 'vendor.js',
+                        sourcemap: false,
+                        minify: async () => {
+                            throw 'string error';
+                        },
+                    }),
+                ],
+            });
+            await bundle.generate({ format: 'es' });
+        } catch (err) {
+            buildError = err;
+        }
+        expect(buildError).toBeDefined();
+        expect(buildError.message).toContain('string error');
+    });
+
+    it('should handle bundle entry with non-string (Uint8Array) source', async () => {
+        await writeFile(join(tmpDir, 'uint.js'), 'var UINT = 1;');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                entryPlugin(`import 'script!${join(tmpDir, 'uint.js')}'; console.log('app');`),
+                {
+                    name: 'emit-binary-asset',
+                    generateBundle() {
+                        this.emitFile({
+                            type: 'asset',
+                            fileName: 'data.bin',
+                            source: new Uint8Array([0x00, 0x01, 0x02]),
+                        });
+                    },
+                },
+                scriptLoader({ emit: 'asset', name: 'vendor.js', sourcemap: true }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es' });
+        const asset = output.find(item => item.type === 'asset' && item.fileName === 'vendor.js');
+        expect(asset).toBeDefined();
+        expect(asset.source).toContain('UINT');
+    });
+
+    it('should handle a malformed inline base64 sourcemap without crashing', async () => {
+        const malformedSourcemap = '//# sourceMappingURL=data:application/json;base64,NOT_VALID_BASE64!!!';
+        await writeFile(join(tmpDir, 'bad-map.js'), `var BAD_MAP = 1;\n${malformedSourcemap}`);
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                entryPlugin(`import 'script!${join(tmpDir, 'bad-map.js')}'; console.log('app');`),
+                scriptLoader({ emit: 'asset', name: 'vendor.js', sourcemap: true }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es' });
+        const asset = output.find(item => item.type === 'asset' && item.fileName === 'vendor.js');
+        expect(asset).toBeDefined();
+        expect(asset.source).toContain('BAD_MAP');
+    });
+
+    it('should emit correct map filename when using exactFileName false with sourcemap true', async () => {
+        await writeFile(join(tmpDir, 'exact.js'), 'var EXACT = 1;');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                entryPlugin(`import 'script!${join(tmpDir, 'exact.js')}'; console.log('app');`),
+                scriptLoader({ emit: 'asset', name: 'vendor.js', sourcemap: true, exactFileName: false }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es' });
+        // With exactFileName: false, Rollup may add a hash to the filename
+        const asset = output.find(item => item.type === 'asset' && item.fileName?.includes('vendor') && !item.fileName?.endsWith('.map'));
+        expect(asset).toBeDefined();
+        // The map should have the same base name + .map
+        const mapAsset = output.find(item => item.type === 'asset' && item.fileName === `${asset.fileName}.map`);
+        expect(mapAsset).toBeDefined();
+        const parsed = JSON.parse(mapAsset.source);
+        // The file field in the map should match the asset filename
+        expect(parsed.file).toBe(asset.fileName.split('/').pop());
+    });
+});

@@ -708,3 +708,207 @@ describe('@rollup-extras/plugin-angularjs-template-cache verbose logging and err
         expect(result.moduleSideEffects).toBe(false);
     });
 });
+
+// --- MISSING TESTS PLAN ---
+
+describe('@rollup-extras/plugin-angularjs-template-cache (missing tests plan)', () => {
+    let tmpDir;
+
+    function entryPlugin(code) {
+        return {
+            name: 'entry',
+            resolveId(id) {
+                if (id === 'entry') return id;
+            },
+            load(id) {
+                if (id === 'entry') return code;
+            },
+        };
+    }
+
+    beforeEach(async () => {
+        tmpDir = await mkdtemp(join(tmpdir(), 'angularjs-tc-plan-'));
+    });
+
+    afterEach(async () => {
+        await rm(tmpDir, { recursive: true, force: true });
+    });
+
+    it('should use a custom pluginName when provided', () => {
+        const plugin = templateCache({ pluginName: 'my-plugin', templates: '*.html' });
+        expect(plugin.name).toBe('my-plugin');
+    });
+
+    it('should use the default glob when called with no arguments', async () => {
+        const templatesDir = join(tmpDir, 'project');
+        await mkdir(templatesDir, { recursive: true });
+        await writeFile(join(templatesDir, 'test.html'), '<div>Default</div>');
+
+        const originalCwd = process.cwd();
+        process.chdir(templatesDir);
+        try {
+            const bundle = await rollup({
+                input: 'entry',
+                external: ['angular'],
+                plugins: [entryPlugin("import templates from 'templates'; console.log(templates);"), templateCache()],
+            });
+            const { output } = await bundle.generate({ format: 'es' });
+            const allCode = output.map(o => (o.type === 'chunk' ? o.code : '')).join('\n');
+            expect(allCode).toContain('$templateCache.put');
+            expect(allCode).toContain('Default');
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    it('should accept an array of globs as the sole argument', async () => {
+        const dir1 = join(tmpDir, 'dir1');
+        const dir2 = join(tmpDir, 'dir2');
+        await mkdir(dir1, { recursive: true });
+        await mkdir(dir2, { recursive: true });
+        await writeFile(join(dir1, 'a.html'), '<div>A</div>');
+        await writeFile(join(dir2, 'b.html'), '<div>B</div>');
+
+        const bundle = await rollup({
+            input: 'entry',
+            external: ['angular'],
+            plugins: [
+                entryPlugin("import templates from 'templates'; console.log(templates);"),
+                templateCache([join(dir1, '**/*.html'), join(dir2, '**/*.html')]),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es' });
+        const code = output.map(o => (o.type === 'chunk' ? o.code : '')).join('\n');
+        expect(code).toContain('A');
+        expect(code).toContain('B');
+        const putCount = (code.match(/\$templateCache\.put/g) || []).length;
+        expect(putCount).toBe(2);
+    });
+
+    it('should use the current directory as rootDir when no rootDir option is provided', async () => {
+        const templatesDir = join(tmpDir, 'templates');
+        await mkdir(templatesDir, { recursive: true });
+        await writeFile(join(templatesDir, 'widget.html'), '<div>Widget</div>');
+
+        const originalCwd = process.cwd();
+        process.chdir(tmpDir);
+        try {
+            const bundle = await rollup({
+                input: 'entry',
+                external: ['angular'],
+                plugins: [
+                    entryPlugin("import templates from 'templates'; console.log(templates);"),
+                    templateCache({
+                        templates: join(templatesDir, '**/*.html'),
+                        importAngular: false,
+                    }),
+                ],
+            });
+            const { output } = await bundle.generate({ format: 'es' });
+            const code = output[0].code;
+            // rootDir defaults to '.', so the URI should include 'templates/widget.html'
+            expect(code).toContain('templates/widget.html');
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    it('should return null from resolveId when module option overrides the default name', () => {
+        const plugin = templateCache({
+            templates: '*.html',
+            module: 'my-templates',
+            importAngular: false,
+        });
+        // Resolving the default 'templates' name should return null
+        const result = plugin.resolveId.call({}, 'templates', 'entry');
+        expect(result).toBeNull();
+    });
+
+    it('should not include an angular import when importAngular is false', async () => {
+        const templatesDir = join(tmpDir, 'templates');
+        await mkdir(templatesDir, { recursive: true });
+        await writeFile(join(templatesDir, 'test.html'), '<div>Test</div>');
+
+        const bundle = await rollup({
+            input: 'entry',
+            external: ['angular'],
+            plugins: [
+                entryPlugin("import templates from 'templates'; console.log(templates);"),
+                templateCache({
+                    templates: join(templatesDir, '**/*.html'),
+                    rootDir: templatesDir,
+                    importAngular: false,
+                }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es' });
+        const code = output[0].code;
+        expect(code).not.toContain('import angular');
+        expect(code).not.toContain('require("angular")');
+    });
+
+    it('should not resolve .html imports when transformHtmlImportsToUris is disabled (default)', async () => {
+        const templatesDir = join(tmpDir, 'templates');
+        await mkdir(templatesDir, { recursive: true });
+        await writeFile(join(templatesDir, 'dialog.html'), '<div>Dialog</div>');
+
+        const plugin = templateCache({
+            templates: join(templatesDir, '**/*.html'),
+            rootDir: templatesDir,
+            importAngular: false,
+            // transformHtmlImportsToUris defaults to false
+        });
+
+        // Importing a .html file should NOT be transformed
+        const result = plugin.resolveId.call({}, './dialog.html', 'entry');
+        expect(result).toBeNull();
+    });
+
+    it('should resolve .html imports relative to the importer path when transformHtmlImportsToUris is true', async () => {
+        const templatesDir = join(tmpDir, 'templates');
+        const subDir = join(templatesDir, 'subfolder');
+        await mkdir(subDir, { recursive: true });
+        await writeFile(join(subDir, 'template.html'), '<div>Relative</div>');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                entryPlugin("import uri from './templates/subfolder/template.html'; console.log(uri);"),
+                templateCache({
+                    templates: join(templatesDir, '**/*.html'),
+                    rootDir: tmpDir,
+                    importAngular: false,
+                    transformHtmlImportsToUris: true,
+                }),
+            ],
+            onwarn() {},
+        });
+        const { output } = await bundle.generate({ format: 'es' });
+        const code = output[0].code;
+        expect(code).toContain('templates/subfolder/template.html');
+    });
+
+    it('should deduplicate templates when multiple globs match the same file', async () => {
+        const templatesDir = join(tmpDir, 'templates');
+        await mkdir(templatesDir, { recursive: true });
+        await writeFile(join(templatesDir, 'shared.html'), '<div>Shared</div>');
+
+        const bundle = await rollup({
+            input: 'entry',
+            external: ['angular'],
+            plugins: [
+                entryPlugin("import templates from 'templates'; console.log(templates);"),
+                templateCache({
+                    templates: [join(templatesDir, '**/*.html'), join(templatesDir, 'shared.html')],
+                    rootDir: templatesDir,
+                    importAngular: false,
+                }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es' });
+        const code = output[0].code;
+        // Each template should appear only once
+        const putCount = (code.match(/\$templateCache\.put/g) || []).length;
+        expect(putCount).toBe(1);
+    });
+});

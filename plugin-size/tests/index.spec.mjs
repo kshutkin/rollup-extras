@@ -876,3 +876,99 @@ describe('@rollup-extras/plugin-size (lines 48 & 109 coverage)', () => {
         expect(stats).toEqual({});
     });
 });
+
+// --- MISSING TESTS PLAN ---
+
+describe('@rollup-extras/plugin-size (missing tests plan)', () => {
+    let tmpDir;
+
+    function virtual(modules) {
+        return {
+            name: 'virtual-input',
+            resolveId(id) {
+                if (modules[id] != null) return id;
+            },
+            load(id) {
+                if (modules[id] != null) return modules[id];
+            },
+        };
+    }
+
+    beforeEach(async () => {
+        tmpDir = await mkdtemp(join(tmpdir(), 'size-plan-'));
+    });
+
+    afterEach(async () => {
+        await rm(tmpDir, { recursive: true, force: true });
+    });
+
+    it('should handle corrupted JSON in a previous stats file gracefully', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        // Write corrupted JSON
+        await writeFile(statsPath, '{ invalid json !!!');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es).toBeDefined();
+        expect(stats.entries.es.raw).toBeGreaterThan(0);
+    });
+
+    it('should handle a non-existent stats file on the first build without error', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        // No pre-existing stats file — first build creates it from scratch
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es).toBeDefined();
+        expect(stats.entries.es.raw).toBeGreaterThan(0);
+    });
+
+    it('should not apply minify function to assets (only to chunks)', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const minifyCalls = [];
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 42' }),
+                {
+                    name: 'emit-asset',
+                    generateBundle() {
+                        this.emitFile({
+                            type: 'asset',
+                            fileName: 'data.json',
+                            source: '{"key": "value", "extra": "spacing"}',
+                        });
+                    },
+                },
+                size({
+                    statsFile: statsPath,
+                    minify: async code => {
+                        minifyCalls.push(code);
+                        return code.replace(/\s+/g, ' ').trim();
+                    },
+                }),
+            ],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        // The entry chunk should have a minified size
+        expect(stats.entries.es.minified).toBeDefined();
+        // The asset should NOT have a minified size
+        expect(stats.assets['.json']).toBeDefined();
+        expect(stats.assets['.json'].minified).toBeUndefined();
+    });
+});

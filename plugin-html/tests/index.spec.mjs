@@ -987,3 +987,319 @@ describe('@rollup-extras/plugin-html integration', () => {
         expect(htmlAsset.source).toContain('<link rel="stylesheet"');
     });
 });
+
+// --- MISSING TESTS PLAN ---
+
+describe('@rollup-extras/plugin-html (missing tests plan)', () => {
+    let tmpDir;
+
+    function virtual(modules) {
+        return {
+            name: 'virtual-input',
+            resolveId(id) {
+                if (modules[id]) return id;
+            },
+            load(id) {
+                if (modules[id]) return modules[id];
+            },
+        };
+    }
+
+    function emitCss(fileName, source) {
+        return {
+            name: 'emit-css',
+            generateBundle() {
+                this.emitFile({ type: 'asset', fileName, source });
+            },
+        };
+    }
+
+    beforeEach(async () => {
+        tmpDir = await mkdtemp(join(tmpdir(), 'html-plan-'));
+    });
+
+    afterEach(async () => {
+        if (tmpDir) {
+            await rm(tmpDir, { recursive: true, force: true });
+        }
+    });
+
+    it('should add nomodule to iife and type=module to es when both formats are generated', async () => {
+        const plugin = html();
+        const instance2 = plugin.api.addInstance();
+
+        const bundleEs = await rollup({
+            input: 'entry-es',
+            plugins: [virtual({ 'entry-es': 'console.log("es")' }), plugin],
+        });
+        const bundleIife = await rollup({
+            input: 'entry-iife',
+            plugins: [virtual({ 'entry-iife': 'console.log("iife")' }), instance2],
+        });
+
+        await bundleEs.generate({ format: 'es', dir: 'dist' });
+        const { output: output2 } = await bundleIife.generate({ format: 'iife', dir: 'dist' });
+
+        const htmlAsset = output2.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('type="module"');
+        expect(htmlAsset.source).toContain('nomodule');
+    });
+
+    it('should add nomodule to umd and type=module to es when both formats are generated', async () => {
+        const plugin = html();
+        const instance2 = plugin.api.addInstance();
+
+        const bundleEs = await rollup({
+            input: 'entry-es',
+            plugins: [virtual({ 'entry-es': 'console.log("es")' }), plugin],
+        });
+        const bundleUmd = await rollup({
+            input: 'entry-umd',
+            plugins: [virtual({ 'entry-umd': 'console.log("umd")' }), instance2],
+        });
+
+        await bundleEs.generate({ format: 'es', dir: 'dist' });
+        const { output: output2 } = await bundleUmd.generate({ format: 'umd', dir: 'dist', name: 'myLib' });
+
+        const htmlAsset = output2.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('type="module"');
+        expect(htmlAsset.source).toContain('nomodule');
+    });
+
+    it('should not add nomodule when conditionalLoading is explicitly disabled with multiple formats', async () => {
+        const plugin = html({ conditionalLoading: false });
+        const instance2 = plugin.api.addInstance();
+
+        const bundleEs = await rollup({
+            input: 'entry-es',
+            plugins: [virtual({ 'entry-es': 'console.log("es")' }), plugin],
+        });
+        const bundleIife = await rollup({
+            input: 'entry-iife',
+            plugins: [virtual({ 'entry-iife': 'console.log("iife")' }), instance2],
+        });
+
+        await bundleEs.generate({ format: 'es', dir: 'dist' });
+        const { output: output2 } = await bundleIife.generate({ format: 'iife', dir: 'dist' });
+
+        const htmlAsset = output2.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).not.toContain('nomodule');
+    });
+
+    it('should use an async assetsFactory that returns a Promise', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("async-factory")' }),
+                html({
+                    assetsFactory: async (fileName, _content, _type) => {
+                        await new Promise(resolve => setTimeout(resolve, 10));
+                        return `<script src="${fileName}" data-custom="true"></script>`;
+                    },
+                }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('data-custom="true"');
+    });
+
+    it('should ignore all assets when ignore option is true', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("ignored")' }), emitCss('styles.css', 'body { margin: 0; }'), html({ ignore: true })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).not.toContain('<script');
+        expect(htmlAsset.source).not.toContain('<link');
+    });
+
+    it('should ignore assets matching a string extension pattern', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("ignore-css")' }),
+                emitCss('styles.css', 'body { margin: 0; }'),
+                html({ ignore: '.css' }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).not.toContain('<link');
+        expect(htmlAsset.source).toContain('<script');
+    });
+
+    it('should ignore assets matching a RegExp pattern', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("ignore-regex")' }),
+                emitCss('styles.css', 'body { margin: 0; }'),
+                html({ ignore: /\.css$/ }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).not.toContain('<link');
+        expect(htmlAsset.source).toContain('<script');
+    });
+
+    it('should inject asset into head when injectIntoHead function returns true', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("head-fn")' }), html({ injectIntoHead: () => true })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        // The script should be in <head> section (before </head>)
+        const headContent = htmlAsset.source.split('</head>')[0];
+        expect(headContent).toContain('<script');
+    });
+
+    it('should inject asset into head when filename matches injectIntoHead RegExp', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("head-regex")' }), html({ injectIntoHead: /\.js$/ })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        const headContent = htmlAsset.source.split('</head>')[0];
+        expect(headContent).toContain('<script');
+    });
+
+    it('should inject all assets into body when injectIntoHead is false', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("body-all")' }),
+                emitCss('styles.css', 'body { margin: 0; }'),
+                html({ injectIntoHead: false }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        // Both CSS and JS should be in <body> section (before </body>)
+        const headContent = htmlAsset.source.split('</head>')[0];
+        const bodyContent = htmlAsset.source.split('</head>')[1].split('</body>')[0];
+        expect(headContent).not.toContain('<script');
+        expect(headContent).not.toContain('<link');
+        expect(bodyContent).toContain('<script');
+        expect(bodyContent).toContain('<link');
+    });
+
+    it('should inject asset into head when filename matches injectIntoHead string extension', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("head-ext")' }), html({ injectIntoHead: '.js' })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        const headContent = htmlAsset.source.split('</head>')[0];
+        expect(headContent).toContain('<script');
+    });
+
+    it('should ignore emitted index.html when useEmittedTemplate is false', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("custom")' }),
+                {
+                    name: 'emit-html',
+                    generateBundle() {
+                        this.emitFile({
+                            type: 'asset',
+                            fileName: 'index.html',
+                            source: '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><div id="custom"></div></body></html>',
+                        });
+                    },
+                },
+                html({ useEmittedTemplate: false }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        // useEmittedTemplate: false means the emitted HTML is NOT used as template
+        // The default template is used instead, so the custom <div id="custom"> should not appear
+        expect(htmlAsset.source).not.toContain('id="custom"');
+        expect(htmlAsset.source).toContain('<script');
+    });
+
+    it('should fall back to default template when template string is empty', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("empty-template")' }), html({ template: '' })],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        // Empty string doesn't contain </head> or </body>, so default template is used
+        expect(htmlAsset.source).toContain('<!DOCTYPE html>');
+        expect(htmlAsset.source).toContain('<script');
+    });
+
+    it('should prefer iife over umd scripts in the template when both formats are present', async () => {
+        const plugin = html();
+        const instance2 = plugin.api.addInstance();
+        const instance3 = plugin.api.addInstance();
+
+        const bundleEs = await rollup({
+            input: 'entry-es',
+            plugins: [virtual({ 'entry-es': 'console.log("es")' }), plugin],
+        });
+        const bundleIife = await rollup({
+            input: 'entry-iife',
+            plugins: [virtual({ 'entry-iife': 'console.log("iife")' }), instance2],
+        });
+        const bundleUmd = await rollup({
+            input: 'entry-umd',
+            plugins: [virtual({ 'entry-umd': 'console.log("umd")' }), instance3],
+        });
+
+        await bundleEs.generate({ format: 'es', dir: 'dist' });
+        await bundleIife.generate({ format: 'iife', dir: 'dist' });
+        const { output: output3 } = await bundleUmd.generate({ format: 'umd', dir: 'dist', name: 'myLib' });
+
+        const htmlAsset = output3.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        // The default template factory uses iife when both iife and umd are present
+        // So we should see 2 scripts (es + iife), NOT 3
+        const scriptCount = (htmlAsset.source.match(/<script/g) || []).length;
+        expect(scriptCount).toBe(2);
+    });
+
+    it('should not duplicate assets when processedFiles set prevents re-processing across configs', async () => {
+        const plugin = html();
+        const instance2 = plugin.api.addInstance();
+
+        const bundleEs = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("es-dedup")' }), emitCss('styles.css', 'body { margin: 0; }'), plugin],
+        });
+        const bundleEs2 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("es-dedup2")' }), emitCss('styles.css', 'body { margin: 0; }'), instance2],
+        });
+
+        await bundleEs.generate({ format: 'es', dir: 'dist' });
+        const { output: output2 } = await bundleEs2.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output2.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        // styles.css should appear only once
+        const cssCount = (htmlAsset.source.match(/styles\.css/g) || []).length;
+        expect(cssCount).toBe(1);
+    });
+});

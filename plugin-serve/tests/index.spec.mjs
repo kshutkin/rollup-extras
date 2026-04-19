@@ -649,4 +649,52 @@ describe('@rollup-extras/plugin-serve \u2013 additional coverage', () => {
             expect(capturedServer).toBeDefined();
         });
     });
+
+    describe('HTTPS server', () => {
+        it('should create an HTTPS server when https options are provided', async () => {
+            const { execSync } = await import('node:child_process');
+
+            // Generate a self-signed cert for testing
+            const certTmpDir = await mkdtemp(join(tmpdir(), 'serve-https-'));
+            const keyPath = join(certTmpDir, 'key.pem');
+            const certPath = join(certTmpDir, 'cert.pem');
+            execSync(`openssl req -x509 -newkey rsa:2048 -keyout ${keyPath} -out ${certPath} -days 1 -nodes -subj "/CN=localhost"`, {
+                stdio: 'ignore',
+            });
+
+            const { readFileSync } = await import('node:fs');
+            const key = readFileSync(keyPath, 'utf8');
+            const cert = readFileSync(certPath, 'utf8');
+
+            let resolveServer;
+            const serverPromise = new Promise(resolve => {
+                resolveServer = resolve;
+            });
+
+            const plugin = serve({
+                port: 0,
+                dirs: ['.'],
+                https: { key, cert },
+                onListen: server => {
+                    resolveServer(server);
+                    return true;
+                },
+            });
+
+            plugin.outputOptions.call({ meta: { watchMode: true } });
+            if (plugin.renderStart) {
+                plugin.renderStart.call({ meta: { watchMode: true } }, {}, {});
+            }
+            const hookFn = plugin.writeBundle || plugin.generateBundle;
+            await hookFn.call({ meta: { watchMode: true } }, {}, {});
+
+            const server = await serverPromise;
+            serversToClose.push(server);
+
+            expect(server).toBeDefined();
+            expect(server.listening).toBe(true);
+
+            await rm(certTmpDir, { recursive: true, force: true });
+        });
+    });
 });
