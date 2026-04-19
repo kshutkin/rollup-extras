@@ -1,5 +1,11 @@
 Changelog
 
+## 2.0.1
+
+### Patch Changes
+
+- 3fc06c6: Removed dead `if (targets)` guard in `buildStart()` — `targets` is always initialized by `optionsHook` before `buildStart` runs.
+
 ## 2.0.0
 
 ### Major Changes

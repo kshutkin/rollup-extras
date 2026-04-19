@@ -1,5 +1,11 @@
 Changelog
 
+## 2.0.1
+
+### Patch Changes
+
+- 3fc06c6: Fixed error propagation when `templateFactory` throws — errors are now re-thrown after logging instead of being silently swallowed.
+
 ## 2.0.0
 
 ### Major Changes

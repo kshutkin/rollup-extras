@@ -1,5 +1,11 @@
 Changelog
 
+## 1.0.1
+
+### Patch Changes
+
+- 3fc06c6: Added `await` to exec callback invocation so async callbacks complete before the build finishes and errors are properly propagated.
+
 ## 1.0.0
 
 ### Major Changes
