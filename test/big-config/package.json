@@ -9,7 +9,7 @@
     "author": "Konstantin Shutkin",
     "license": "MIT",
     "dependencies": {
-        "rollup": "^4.37.0",
+        "rollup": "^4.59.0",
         "@niceties/logger": "^2.1.0",
         "@niceties/draftlog-appender": "^2.1.0",
         "@rollup-extras/plugin-clean": "workspace:^",
