@@ -70,6 +70,11 @@ export default function (options) {
     return /** @type {Plugin} */ ({
         name: pluginName,
 
+        buildStart() {
+            propertyMap.clear();
+            counter = 0;
+        },
+
         renderChunk(code, chunk) {
             const ast = this.parse(code);
             const magicString = new MagicString(code, {
@@ -111,13 +116,29 @@ export default function (options) {
                         magicString.overwrite(lit.start, lit.end, quote + getMangled(/** @type {string} */ (lit.value)) + quote);
                         mangleCount++;
                     }
+                    // Template literal with no interpolation that matches the prefix exactly
+                    else if (
+                        node.type === 'TemplateLiteral' &&
+                        node.expressions.length === 0 &&
+                        node.quasis.length === 1 &&
+                        shouldMangle(node.quasis[0].value.cooked)
+                    ) {
+                        const tmpl = /** @type {import('estree').TemplateLiteral & Loc} */ (node);
+                        magicString.overwrite(
+                            tmpl.start,
+                            tmpl.end,
+                            `\`${getMangled(/** @type {string} */ (node.quasis[0].value.cooked))}\``
+                        );
+                        mangleCount++;
+                    }
                     // Identifier used as variable that matches the prefix
                     else if (node.type === 'Identifier' && shouldMangle(node.name)) {
                         const isPropertyKey = parent?.type === 'Property' && parent.key === node;
-                        const isPropertyValue = parent?.type === 'Property' && parent.value === node;
+                        const isShorthandValue =
+                            parent?.type === 'Property' && /** @type {Property} */ (parent).shorthand && parent.value === node;
                         const isMemberProp = parent?.type === 'MemberExpression' && parent.property === node && !parent.computed;
 
-                        if (!isPropertyKey && !isPropertyValue && !isMemberProp) {
+                        if (!isPropertyKey && !isShorthandValue && !isMemberProp) {
                             const ident = /** @type {Identifier & Loc} */ (node);
                             magicString.overwrite(ident.start, ident.end, getMangled(ident.name));
                             mangleCount++;

@@ -190,47 +190,6 @@ describe('@rollup-extras/plugin-binify integration', () => {
 // --- NEW TESTS FOR BRANCH COVERAGE ---
 
 describe('@rollup-extras/plugin-binify (additional coverage)', () => {
-    function virtual(modules) {
-        return {
-            name: 'virtual-input',
-            resolveId(id) {
-                if (modules[id]) return id;
-            },
-            load(id) {
-                if (modules[id]) return modules[id];
-            },
-        };
-    }
-
-    describe('generate - asset and filter', () => {
-        it('should prepend shebang to emitted asset source when custom filter returns true for all items', async () => {
-            const bundle = await rollup({
-                input: 'entry',
-                plugins: [
-                    virtual({ entry: 'console.log("hello")' }),
-                    {
-                        name: 'emit-asset',
-                        generateBundle() {
-                            this.emitFile({
-                                type: 'asset',
-                                fileName: 'run.sh',
-                                source: 'echo hello',
-                            });
-                        },
-                    },
-                    binify({ filter: () => true }),
-                ],
-            });
-            const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
-            const asset = output.find(o => o.type === 'asset' && o.fileName === 'run.sh');
-            expect(asset).toBeDefined();
-            expect(String(asset.source).startsWith('#!/usr/bin/env node\n')).toBe(true);
-            const chunk = output.find(o => o.type === 'chunk');
-            expect(chunk.code.startsWith('#!/usr/bin/env node\n')).toBe(true);
-            await bundle.close();
-        });
-    });
-
     describe('write - chmod and executableFlag', () => {
         let tmpDir;
 
@@ -267,45 +226,12 @@ describe('@rollup-extras/plugin-binify (additional coverage)', () => {
 
             await bundle.close();
         });
-
-        it('should not call chmod when executableFlag is explicitly false', async () => {
-            if (process.platform === 'win32') return;
-
-            const bundle = await rollup({
-                input: 'entry',
-                plugins: [virtual({ entry: 'console.log("hello")' }), binify({ executableFlag: false })],
-            });
-            await bundle.write({ format: 'es', dir: tmpDir });
-
-            // The shebang should still be present
-            const { readFile } = await import('node:fs/promises');
-            const fileContent = await readFile(join(tmpDir, 'entry.js'), 'utf-8');
-            expect(fileContent.startsWith('#!/usr/bin/env node\n')).toBe(true);
-
-            // Permissions should NOT be 0o755 (chmod was never called)
-            const fileStat = await stat(join(tmpDir, 'entry.js'));
-            expect(fileStat.mode & 0o777).not.toBe(0o755);
-
-            await bundle.close();
-        });
     });
 });
 
 // --- ADDITIONAL TESTS FOR NEAR-100% BRANCH COVERAGE ---
 
 describe('@rollup-extras/plugin-binify (branch coverage)', () => {
-    function virtual(modules) {
-        return {
-            name: 'virtual-input',
-            resolveId(id) {
-                if (modules[id]) return id;
-            },
-            load(id) {
-                if (modules[id]) return modules[id];
-            },
-        };
-    }
-
     describe('generate - asset with filter: () => true', () => {
         it('should prepend shebang to an emitted asset source (not just chunk code)', async () => {
             const emitAsset = {
@@ -507,18 +433,6 @@ describe('@rollup-extras/plugin-binify (branch coverage)', () => {
 // --- VERBOSE BRANCH COVERAGE ---
 
 describe('@rollup-extras/plugin-binify (verbose branch)', () => {
-    function virtual(modules) {
-        return {
-            name: 'virtual-input',
-            resolveId(id) {
-                if (modules[id]) return id;
-            },
-            load(id) {
-                if (modules[id]) return modules[id];
-            },
-        };
-    }
-
     it('should produce correct output when verbose option is enabled', async () => {
         const bundle = await rollup({
             input: 'entry',
@@ -533,18 +447,6 @@ describe('@rollup-extras/plugin-binify (verbose branch)', () => {
 // --- MISSING TESTS PLAN ---
 
 describe('@rollup-extras/plugin-binify (missing tests plan)', () => {
-    function virtual(modules) {
-        return {
-            name: 'virtual-input',
-            resolveId(id) {
-                if (modules[id]) return id;
-            },
-            load(id) {
-                if (modules[id]) return modules[id];
-            },
-        };
-    }
-
     it('should set executableFlag to false on win32 platform (default)', () => {
         // The default behavior: when process.platform === 'win32', executableFlag defaults to false
         // Since we can't change process.platform in this test, we verify the option is accepted

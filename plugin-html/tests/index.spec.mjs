@@ -433,7 +433,7 @@ describe('@rollup-extras/plugin-html integration', () => {
     });
 
     // 9. templateFactory that throws
-    it('should produce output gracefully when templateFactory throws an error', async () => {
+    it('should propagate error when templateFactory throws', async () => {
         const bundle = await rollup({
             input: 'entry',
             plugins: [
@@ -445,8 +445,7 @@ describe('@rollup-extras/plugin-html integration', () => {
                 }),
             ],
         });
-        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
-        expect(output).toBeDefined();
+        await expect(bundle.generate({ format: 'es', dir: 'dist' })).rejects.toThrow('fail');
     });
 
     // 10. assetsFactory returning a string

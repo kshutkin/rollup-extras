@@ -49,7 +49,7 @@ export default function (options) {
 
             newContext.logger = logger;
 
-            exec.apply(newContext);
+            await exec.apply(newContext);
         }
     }
 }

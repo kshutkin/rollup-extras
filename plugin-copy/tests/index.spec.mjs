@@ -443,42 +443,6 @@ describe('@rollup-extras/plugin-copy integration', () => {
         expect(await readFile(join(destDir, 'new.txt'), 'utf8')).toBe('new-content');
     });
 
-    it('should copy files and produce output when verbose is list-filenames', async () => {
-        const srcDir = join(tmpDir, 'src');
-        const outDir = join(tmpDir, 'out');
-        await mkdir(srcDir, { recursive: true });
-        await writeFile(join(srcDir, 'a.txt'), 'aaa');
-        await writeFile(join(srcDir, 'b.txt'), 'bbb');
-
-        const bundle = await rollup({
-            input: 'entry',
-            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, '*.txt'), verbose: 'list-filenames' })],
-        });
-        await bundle.write({ format: 'es', dir: outDir });
-        await bundle.close();
-
-        const files = await readdir(outDir);
-        expect(files).toContain('a.txt');
-        expect(files).toContain('b.txt');
-    });
-
-    it('should copy files and produce output when verbose is true', async () => {
-        const srcDir = join(tmpDir, 'src');
-        const outDir = join(tmpDir, 'out');
-        await mkdir(srcDir, { recursive: true });
-        await writeFile(join(srcDir, 'a.txt'), 'aaa');
-
-        const bundle = await rollup({
-            input: 'entry',
-            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, '*.txt'), verbose: true })],
-        });
-        await bundle.write({ format: 'es', dir: outDir });
-        await bundle.close();
-
-        const files = await readdir(outDir);
-        expect(files).toContain('a.txt');
-    });
-
     it('should set relative originalFileName when emitOriginalFileName is relative', async () => {
         const srcDir = join(tmpDir, 'src');
         await mkdir(srcDir, { recursive: true });

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
-import { basename } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 
+import remapping from '@ampproject/remapping';
 import MagicString, { Bundle } from 'magic-string';
 
 /**
@@ -103,7 +104,7 @@ export default function (options = {}) {
         const externalMatch = code.match(/\/\/[#@]\s*sourceMappingURL=(.+?)\s*$/);
         if (externalMatch && !externalMatch[1].startsWith('data:')) {
             try {
-                const mapPath = `${filePath}.map`;
+                const mapPath = join(dirname(filePath), externalMatch[1]);
                 const mapContent = await readFile(mapPath, 'utf8');
                 return JSON.parse(mapContent);
             } catch {
@@ -282,7 +283,7 @@ export default function (options = {}) {
             let generatedMap;
 
             if (sourcemap) {
-                generatedMap = /** @type {SourceMap} */ (
+                const magicMap = /** @type {SourceMap} */ (
                     magicBundle.generateMap({
                         file: name,
                         source: name,
@@ -290,6 +291,28 @@ export default function (options = {}) {
                         hires: true,
                     })
                 );
+
+                // Build a lookup of original sourcemaps by filePath
+                const originalMaps = new Map(sortedEntries.filter(e => e.originalMap).map(e => [e.filePath, e.originalMap]));
+
+                if (originalMaps.size > 0) {
+                    // Compose the MagicString map with the per-source original maps.
+                    // Track returned maps to avoid infinite recursion from self-referencing maps.
+                    const returned = new Set();
+                    generatedMap = /** @type {SourceMap} */ (
+                        remapping(magicMap, file => {
+                            if (returned.has(file)) return null;
+                            const orig = originalMaps.get(file);
+                            if (orig) {
+                                returned.add(file);
+                                return orig;
+                            }
+                            return null;
+                        })
+                    );
+                } else {
+                    generatedMap = magicMap;
+                }
             }
 
             // Apply minification if configured

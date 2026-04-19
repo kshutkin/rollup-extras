@@ -167,9 +167,17 @@ describe('@rollup-extras/plugin-mangle', () => {
         expect(output[0].code).not.toContain('$_prop');
     });
 
-    it('should not mangle prefixed names inside template literals', async () => {
+    it('should mangle prefixed names inside template literals without interpolation', async () => {
         const output = await build('export default `$_prop`;');
-        // Template literals are TemplateLiteral nodes, not Literal - should not be mangled
+        // Template literal with no interpolation and exact prefix match should be mangled
+        expect(output[0].code).not.toContain('$_prop');
+        expect(output[0].code).toContain('`a`');
+    });
+
+    it('should not mangle template literals with interpolation', async () => {
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: source code passed to build
+        const output = await build('const x = 1; export default `$_prop' + '${x}`;');
+        // Template literal with expressions should not be mangled
         expect(output[0].code).toContain('$_prop');
     });
 
@@ -209,5 +217,38 @@ describe('@rollup-extras/plugin-mangle', () => {
     it('should mangle arrow function parameters', async () => {
         const output = await build('const fn = ($_param) => $_param; export default fn(1);');
         expect(output[0].code).not.toContain('$_param');
+    });
+
+    it('should mangle prefixed variable used as property value', async () => {
+        const output = await build('const $_var = 1; const obj = { normalKey: $_var }; export default obj;');
+        expect(output[0].code).not.toContain('$_var');
+        // The property value should be mangled to 'a'
+        expect(output[0].code).toMatch(/normalKey:\s*a/);
+    });
+
+    it('should mangle destructured alias and its later usages', async () => {
+        const output = await build('const obj = { x: 1 }; const { x: $_var } = obj; export default $_var;');
+        expect(output[0].code).not.toContain('$_var');
+    });
+
+    it('should reset state between builds', async () => {
+        const plugin = mangle();
+        // First build
+        const bundle1 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'const obj = {}; obj.$_alpha = 1; export default obj;' }), plugin],
+        });
+        const { output: output1 } = await bundle1.generate({ format: 'es' });
+
+        // Second build with the same plugin instance
+        const bundle2 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'const obj = {}; obj.$_beta = 1; export default obj;' }), plugin],
+        });
+        const { output: output2 } = await bundle2.generate({ format: 'es' });
+
+        // Both should start with 'a' since state is reset between builds
+        expect(output1[0].code).toContain('.a');
+        expect(output2[0].code).toContain('.a');
     });
 });

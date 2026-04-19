@@ -44,6 +44,7 @@
         "test:types": "tsc -p tsconfig.types.json"
     },
     "dependencies": {
+        "@ampproject/remapping": "^2.3.0",
         "@niceties/logger": "^2.1.0",
         "@rollup-extras/utils": "workspace:^",
         "magic-string": "^0.30.21"

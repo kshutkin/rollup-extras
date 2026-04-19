@@ -3,10 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { shebang } from '../src/factories';
 
 describe('@rollup-extras/plugin-binify/factories', () => {
-    it('should be defined', () => {
-        expect(shebang).toBeDefined();
-    });
-
     it('should add at least one new line', () => {
         expect(shebang({ shebang: 'sdfsdf' })).toEqual('sdfsdf\n');
     });

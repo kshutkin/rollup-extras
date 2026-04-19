@@ -300,6 +300,7 @@ export default function (options = {}) {
             logger.finish('html file generated');
         } catch (e) {
             logger.finish('html generation failed', LogLevel.error, e);
+            throw e;
         }
     }
 

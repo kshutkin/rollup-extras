@@ -195,8 +195,10 @@ describe('@rollup-extras/plugin-exec', () => {
     });
 
     it('should handle an async exec callback that returns a Promise', async () => {
+        let asyncDone = false;
         const callback = vi.fn(async () => {
             await new Promise(resolve => setTimeout(resolve, 10));
+            asyncDone = true;
         });
         const bundle = await rollup({
             input: 'entry',
@@ -204,8 +206,20 @@ describe('@rollup-extras/plugin-exec', () => {
         });
         await bundle.write({ format: 'es', dir: tmpDir });
         expect(callback).toHaveBeenCalledTimes(1);
-        // Note: the plugin calls exec.apply() but doesn't await - so asyncDone may or may not be true
-        // The key thing is no error is thrown
+        // With await, the async callback should complete before write() resolves
+        expect(asyncDone).toBe(true);
+        await bundle.close();
+    });
+
+    it('should propagate errors from an async exec callback that rejects', async () => {
+        const callback = vi.fn(async () => {
+            throw new Error('async-error');
+        });
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), exec(callback)],
+        });
+        await expect(bundle.write({ format: 'es', dir: tmpDir })).rejects.toThrow('async-error');
         await bundle.close();
     });
 });

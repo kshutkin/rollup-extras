@@ -390,18 +390,6 @@ describe('@rollup-extras/plugin-size integration', () => {
 describe('@rollup-extras/plugin-size (additional coverage)', () => {
     let tmpDir;
 
-    function virtual(modules) {
-        return {
-            name: 'virtual-input',
-            resolveId(id) {
-                if (modules[id] != null) return id;
-            },
-            load(id) {
-                if (modules[id] != null) return modules[id];
-            },
-        };
-    }
-
     beforeEach(async () => {
         tmpDir = await mkdtemp(join(tmpdir(), 'plugin-size-cov-'));
     });
@@ -661,18 +649,6 @@ describe('@rollup-extras/plugin-size (additional coverage)', () => {
 describe('@rollup-extras/plugin-size (final branch coverage)', () => {
     let tmpDir;
 
-    function virtual(modules) {
-        return {
-            name: 'virtual-input',
-            resolveId(id) {
-                if (modules[id] != null) return id;
-            },
-            load(id) {
-                if (modules[id] != null) return modules[id];
-            },
-        };
-    }
-
     beforeEach(async () => {
         tmpDir = await mkdtemp(join(tmpdir(), 'plugin-size-final-'));
     });
@@ -815,18 +791,6 @@ describe('@rollup-extras/plugin-size (final branch coverage)', () => {
 describe('@rollup-extras/plugin-size (lines 48 & 109 coverage)', () => {
     let tmpDir;
 
-    function virtual(modules) {
-        return {
-            name: 'virtual-input',
-            resolveId(id) {
-                if (modules[id] != null) return id;
-            },
-            load(id) {
-                if (modules[id] != null) return modules[id];
-            },
-        };
-    }
-
     beforeEach(async () => {
         tmpDir = await mkdtemp(join(tmpdir(), 'plugin-size-lines-'));
     });
@@ -881,18 +845,6 @@ describe('@rollup-extras/plugin-size (lines 48 & 109 coverage)', () => {
 
 describe('@rollup-extras/plugin-size (missing tests plan)', () => {
     let tmpDir;
-
-    function virtual(modules) {
-        return {
-            name: 'virtual-input',
-            resolveId(id) {
-                if (modules[id] != null) return id;
-            },
-            load(id) {
-                if (modules[id] != null) return modules[id];
-            },
-        };
-    }
 
     beforeEach(async () => {
         tmpDir = await mkdtemp(join(tmpdir(), 'size-plan-'));
@@ -970,5 +922,34 @@ describe('@rollup-extras/plugin-size (missing tests plan)', () => {
         // The asset should NOT have a minified size
         expect(stats.assets['.json']).toBeDefined();
         expect(stats.assets['.json'].minified).toBeUndefined();
+    });
+
+    it('should not carry over stats from a previous build (watch mode)', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const plugin = size({ statsFile: statsPath });
+
+        // First build: entry with one chunk
+        const bundle1 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default "first build";' }), plugin],
+        });
+        await bundle1.generate({ format: 'es', dir: 'dist' });
+        await bundle1.close();
+
+        const stats1 = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats1.entries.es).toBeDefined();
+
+        // Second build: entry with different code
+        const bundle2 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default "second build with more content for different size";' }), plugin],
+        });
+        await bundle2.generate({ format: 'es', dir: 'dist' });
+        await bundle2.close();
+
+        const stats2 = JSON.parse(await readFile(statsPath, 'utf8'));
+        // Stats should reflect only the second build, not accumulate
+        expect(stats2.entries.es.raw).not.toBe(stats1.entries.es.raw + stats2.entries.es.raw);
+        expect(stats2.entries.es.raw).toBeGreaterThan(stats1.entries.es.raw);
     });
 });
