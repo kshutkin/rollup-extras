@@ -461,6 +461,7 @@ function collectTransitiveImports(bundle, entryFileName) {
     const queue = [.../** @type {OutputChunk} */ (bundle[entryFileName]).imports];
     while (queue.length > 0) {
         const importFileName = /** @type {string} */ (queue.pop());
+        // TODO: investigate if this branch is reachable — Rollup may never produce diamond-shaped chunk graphs
         if (collected.has(importFileName)) {
             continue;
         }
