@@ -126,6 +126,46 @@ export default function (options) {
                     )
             );
 
+            // When preserveSymlinks is enabled, detect symlinked directories in paths
+            // and replace files inside them with the directory symlink itself
+            if (preserveSymlinks && !emitFiles) {
+                /** @type {Map<string, boolean>} */
+                const symlinkDirCache = new Map();
+                for (const result of results) {
+                    /** @type {Set<string>} */
+                    const symlinkDirs = new Set();
+                    /** @type {Set<string>} */
+                    const filesToRemove = new Set();
+                    for (const file of result.src) {
+                        const rel = relative(result.parent, file);
+                        const parts = rel.split(/[/\\]/);
+                        let current = result.parent;
+                        for (let i = 0; i < parts.length - 1; i++) {
+                            current = join(current, parts[i]);
+                            if (symlinkDirCache.has(current)) {
+                                if (symlinkDirCache.get(current)) {
+                                    symlinkDirs.add(current);
+                                    filesToRemove.add(file);
+                                    break;
+                                }
+                                continue;
+                            }
+                            const s = await lstat(current);
+                            symlinkDirCache.set(current, s.isSymbolicLink());
+                            if (s.isSymbolicLink()) {
+                                symlinkDirs.add(current);
+                                filesToRemove.add(file);
+                                break;
+                            }
+                        }
+                    }
+                    result.src = result.src.filter((/** @type {string} */ f) => !filesToRemove.has(f));
+                    for (const dir of symlinkDirs) {
+                        result.src.push(dir);
+                    }
+                }
+            }
+
             for (const result of results) {
                 for (const file of result.src) {
                     /** @type {FileDesc} */

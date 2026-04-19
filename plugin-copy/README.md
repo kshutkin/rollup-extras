@@ -157,6 +157,8 @@ To preserve symlinks as symlinks at the destination (instead of copying the file
 copy({ src: "assets/*", dest: "public", emitFiles: false, preserveSymlinks: true });
 ```
 
+When a glob pattern matches files inside a symlinked directory, the directory symlink itself is preserved at the destination instead of copying the individual files through it.
+
 ## Configuration
 
 ```typescript
