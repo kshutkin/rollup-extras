@@ -3,12 +3,12 @@ import { createServer as createHttpsServer } from 'node:https';
 /**
  * @import { Server } from 'node:http'
  * @import { AddressInfo } from 'node:net'
- * @import { NormalizedInputOptions, NormalizedOutputOptions, Plugin, PluginContext } from 'rollup'
+ * @import { NormalizedInputOptions, NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, Plugin, PluginContext } from 'rollup'
  * @import { ServerType } from '@hono/node-server'
  */
 
 /**
- * @typedef {{ pluginName?: string, useWriteBundle?: boolean, dirs?: string | string[], port?: number, useLogger?: boolean, staticOptions?: object, host?: string, https?: { cert: string, key: string, ca?: string }, customize?: (app: Hono) => void, onListen?: (server: Server) => true | void }} ServePluginOptionsObject
+ * @typedef {{ pluginName?: string, useWriteBundle?: boolean, inMemory?: boolean, dirs?: string | string[], port?: number, useLogger?: boolean, staticOptions?: object, host?: string, https?: { cert: string, key: string, ca?: string }, customize?: (app: Hono) => void, onListen?: (server: Server) => true | void }} ServePluginOptionsObject
  */
 
 /**
@@ -19,6 +19,7 @@ import { createAdaptorServer } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { logger as honoLogger } from 'hono/logger';
+import { getMimeType } from 'hono/utils/mime';
 
 import { LogLevel } from '@niceties/logger';
 import logger from '@rollup-extras/utils/logger';
@@ -46,8 +47,14 @@ export default function (options = {}) {
         'dirs',
         factories
     );
-    const { pluginName, useWriteBundle, port, host, https, useLogger, customize, staticOptions, onListen, logger } = normalizedOptions;
-    const instance = multiConfigPluginBase(useWriteBundle, pluginName, serve);
+    const { pluginName, port, host, https, useLogger, customize, staticOptions, onListen, logger, inMemory } = normalizedOptions;
+    const useWriteBundle = inMemory ? false : normalizedOptions.useWriteBundle;
+    const instance = inMemory
+        ? multiConfigPluginBase(useWriteBundle, pluginName, serve, captureOutput)
+        : multiConfigPluginBase(useWriteBundle, pluginName, serve);
+
+    /** @type {Map<string, { content: string | Uint8Array, type: string }>} */
+    const memoryFiles = new Map();
 
     let { dirs } = normalizedOptions,
         collectDirs = false,
@@ -60,6 +67,8 @@ export default function (options = {}) {
         dirs = [];
         collectDirs = true;
         pluginInstance.renderStart = renderStart;
+    } else if (inMemory) {
+        pluginInstance.renderStart = renderStart;
     }
 
     return /** @type {Plugin} */ (pluginInstance);
@@ -68,6 +77,9 @@ export default function (options = {}) {
     function renderStart(/** @type {NormalizedOutputOptions} */ outputOptions, /** @type {NormalizedInputOptions} */ inputOptions) {
         /** @type {(this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) => void | Promise<void>} */
         (/** @type {Required<typeof instance>} */ (instance).renderStart).call(this, outputOptions, inputOptions);
+        if (inMemory) {
+            memoryFiles.clear();
+        }
         if (collectDirs) {
             if (outputOptions.dir) {
                 /** @type {string[]} */ (dirs).push(outputOptions.dir);
@@ -79,6 +91,27 @@ export default function (options = {}) {
     function outputOptions() {
         watchMode = this.meta.watchMode;
         return null;
+    }
+
+    /**
+     * @param {OutputBundle} bundle
+     */
+    function captureBundle(bundle) {
+        for (const key in bundle) {
+            const item = /** @type {OutputAsset | OutputChunk} */ (bundle[key]);
+            const content = item.type === 'chunk' ? item.code : item.source;
+            memoryFiles.set(item.fileName, { content, type: getMimeType(item.fileName) || 'application/octet-stream' });
+        }
+    }
+
+    /** @this {PluginContext} */
+    function captureOutput(
+        /** @type {NormalizedOutputOptions} */ _options,
+        /** @type {OutputBundle} */ bundle,
+        /** @type {number} */ _remainingConfigsCount,
+        /** @type {number} */ _remainingOutputsCount
+    ) {
+        captureBundle(bundle);
     }
 
     /** @this {PluginContext} */
@@ -99,6 +132,10 @@ export default function (options = {}) {
 
             if (useLogger) {
                 app.use('*', honoLogger());
+            }
+
+            if (inMemory) {
+                app.use('*', inMemoryMiddleware(memoryFiles));
             }
 
             for (const dir of /** @type {string[]} */ (dirs)) {
@@ -163,4 +200,23 @@ function linkFromAddressInfo({ address, port, family }, https) {
     }
     const protocol = `http${https ? 's' : ''}://`;
     return `${protocol}${serverName}:${port}`;
+}
+
+/**
+ * @param {Map<string, { content: string | Uint8Array, type: string }>} files
+ * @returns {import('hono').MiddlewareHandler}
+ */
+function inMemoryMiddleware(files) {
+    return async (c, next) => {
+        let pathname = new URL(c.req.url).pathname;
+        if (pathname.endsWith('/')) {
+            pathname += 'index.html';
+        }
+        const fileName = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+        const file = files.get(fileName);
+        if (file) {
+            return c.body(file.content, 200, { 'Content-Type': file.type });
+        }
+        await next();
+    };
 }

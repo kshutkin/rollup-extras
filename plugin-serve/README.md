@@ -60,6 +60,20 @@ Optional, `boolean`, default: `true`.
 
 Option to use `writeBundle` hook instead of `generateBundle`.
 
+### inMemory
+
+Optional, `boolean`, default: `false`.
+
+When enabled, serves all emitted assets directly from memory instead of from disk. This is similar to how webpack-dev-server works — Rollup output never needs to hit the filesystem.
+
+When `inMemory` is `true`, the plugin automatically uses the `generateBundle` hook (regardless of `useWriteBundle`) to capture all chunks and assets in memory. A custom Hono middleware serves these files before falling through to any disk-based static serving configured via `dirs`.
+
+For a fully disk-free dev server, set `watch: { skipWrite: true }` in your Rollup config to prevent Rollup from writing files to disk. The plugin does not force this — you control it.
+
+**Limitations:**
+- Only covers Rollup's own output. Other plugins (e.g., plugin-copy, plugin-html) may still perform disk I/O independently.
+- Plugins that only use the `writeBundle` hook won't participate when `skipWrite` is enabled.
+
 ### dirs
 
 Optional, `string` | `string[]`, default: `output.dir`.
@@ -108,12 +122,37 @@ Optional, `(server: Server) => void | true`
 
 Extension point after the server is live. Please return true to suppress the default banner.
 
+## In-Memory Serving
+
+```javascript
+import serve from "@rollup-extras/plugin-serve";
+
+export default {
+  input: "src/index.js",
+  output: {
+    format: "es",
+    dir: "dest",
+  },
+  watch: {
+    skipWrite: true, // recommended: avoid writing files to disk
+  },
+  plugins: [serve({ inMemory: true })],
+};
+```
+
+Hybrid mode — bundle from memory, static assets from disk:
+
+```javascript
+serve({ inMemory: true, dirs: ["public"] })
+```
+
 ## Configuration
 
 ```typescript
 type ServePluginOptions = {
     pluginName?: string;
     useWriteBundle?: boolean;
+    inMemory?: boolean;
     dirs?: string | string[];
     port?: number;
     useLogger?: boolean;

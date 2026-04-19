@@ -698,3 +698,176 @@ describe('@rollup-extras/plugin-serve \u2013 additional coverage', () => {
         });
     });
 });
+
+describe('@rollup-extras/plugin-serve – inMemory mode', () => {
+    let serversToClose = [];
+
+    beforeEach(() => {
+        serversToClose = [];
+    });
+
+    afterEach(async () => {
+        for (const server of serversToClose) {
+            if (server?.listening) {
+                await new Promise(resolve => {
+                    server.close(resolve);
+                });
+            }
+        }
+        serversToClose = [];
+    });
+
+    function createInMemoryPlugin(overrides) {
+        let resolveServer;
+        const serverPromise = new Promise(resolve => {
+            resolveServer = resolve;
+        });
+
+        const plugin = serve(
+            Object.assign(
+                {
+                    port: 0,
+                    dirs: [],
+                    inMemory: true,
+                },
+                overrides,
+                {
+                    onListen: server => {
+                        resolveServer(server);
+                        return true;
+                    },
+                }
+            )
+        );
+
+        return { plugin, serverPromise };
+    }
+
+    function triggerInMemoryWatchMode(plugin, bundle) {
+        plugin.outputOptions.call({ meta: { watchMode: true } });
+        if (plugin.renderStart) {
+            plugin.renderStart.call({ meta: { watchMode: true } }, {}, {});
+        }
+        return plugin.generateBundle.call({ meta: { watchMode: true } }, {}, bundle || {});
+    }
+
+    it('should use generateBundle hook when inMemory is true', () => {
+        const plugin = serve({ inMemory: true, port: 0, dirs: [] });
+        expect(plugin.generateBundle).toBeDefined();
+        expect(plugin.writeBundle).toBeUndefined();
+    });
+
+    it('should serve bundled JS file from memory with correct Content-Type', async () => {
+        const res = createInMemoryPlugin();
+        const bundle = {
+            'entry.js': { type: 'chunk', fileName: 'entry.js', code: 'console.log("hello");\n' },
+        };
+        await triggerInMemoryWatchMode(res.plugin, bundle);
+        const server = await res.serverPromise;
+        serversToClose.push(server);
+
+        const addr = server.address();
+        const response = await fetch(`http://127.0.0.1:${addr.port}/entry.js`);
+        expect(response.status).toBe(200);
+        expect(response.headers.get('content-type')).toContain('text/javascript');
+        const text = await response.text();
+        expect(text).toBe('console.log("hello");\n');
+    });
+
+    it('should serve bundled CSS asset from memory', async () => {
+        const res = createInMemoryPlugin();
+        const bundle = {
+            'styles.css': { type: 'asset', fileName: 'styles.css', source: 'body { color: red; }' },
+        };
+        await triggerInMemoryWatchMode(res.plugin, bundle);
+        const server = await res.serverPromise;
+        serversToClose.push(server);
+
+        const addr = server.address();
+        const response = await fetch(`http://127.0.0.1:${addr.port}/styles.css`);
+        expect(response.status).toBe(200);
+        expect(response.headers.get('content-type')).toContain('text/css');
+        const text = await response.text();
+        expect(text).toBe('body { color: red; }');
+    });
+
+    it('should serve index.html for root path', async () => {
+        const res = createInMemoryPlugin();
+        const bundle = {
+            'index.html': { type: 'asset', fileName: 'index.html', source: '<html><body>hello</body></html>' },
+        };
+        await triggerInMemoryWatchMode(res.plugin, bundle);
+        const server = await res.serverPromise;
+        serversToClose.push(server);
+
+        const addr = server.address();
+        const response = await fetch(`http://127.0.0.1:${addr.port}/`);
+        expect(response.status).toBe(200);
+        expect(response.headers.get('content-type')).toContain('text/html');
+        const text = await response.text();
+        expect(text).toBe('<html><body>hello</body></html>');
+    });
+
+    it('should serve binary assets (Uint8Array source)', async () => {
+        const res = createInMemoryPlugin();
+        const pngBytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+        const bundle = {
+            'image.png': { type: 'asset', fileName: 'image.png', source: pngBytes },
+        };
+        await triggerInMemoryWatchMode(res.plugin, bundle);
+        const server = await res.serverPromise;
+        serversToClose.push(server);
+
+        const addr = server.address();
+        const response = await fetch(`http://127.0.0.1:${addr.port}/image.png`);
+        expect(response.status).toBe(200);
+        expect(response.headers.get('content-type')).toContain('image/png');
+        const arrayBuf = await response.arrayBuffer();
+        expect(new Uint8Array(arrayBuf)).toEqual(pngBytes);
+    });
+
+    it('should return 404 for files not in the bundle', async () => {
+        const res = createInMemoryPlugin();
+        const bundle = {
+            'entry.js': { type: 'chunk', fileName: 'entry.js', code: '// code' },
+        };
+        await triggerInMemoryWatchMode(res.plugin, bundle);
+        const server = await res.serverPromise;
+        serversToClose.push(server);
+
+        const addr = server.address();
+        const response = await fetch(`http://127.0.0.1:${addr.port}/nonexistent.js`);
+        expect(response.status).toBe(404);
+    });
+
+    it('should serve multiple files from the same bundle', async () => {
+        const res = createInMemoryPlugin();
+        const bundle = {
+            'entry.js': { type: 'chunk', fileName: 'entry.js', code: 'const a = 1;' },
+            'entry.js.map': { type: 'asset', fileName: 'entry.js.map', source: '{"version":3}' },
+            'styles.css': { type: 'asset', fileName: 'styles.css', source: 'body {}' },
+        };
+        await triggerInMemoryWatchMode(res.plugin, bundle);
+        const server = await res.serverPromise;
+        serversToClose.push(server);
+
+        const addr = server.address();
+
+        const jsRes = await fetch(`http://127.0.0.1:${addr.port}/entry.js`);
+        expect(jsRes.status).toBe(200);
+        expect(await jsRes.text()).toBe('const a = 1;');
+
+        const mapRes = await fetch(`http://127.0.0.1:${addr.port}/entry.js.map`);
+        expect(mapRes.status).toBe(200);
+        expect(mapRes.headers.get('content-type')).toContain('application/json');
+
+        const cssRes = await fetch(`http://127.0.0.1:${addr.port}/styles.css`);
+        expect(cssRes.status).toBe(200);
+        expect(await cssRes.text()).toBe('body {}');
+    });
+
+    it('should have renderStart hook when inMemory is true even with explicit dirs', () => {
+        const plugin = serve({ inMemory: true, port: 0, dirs: ['dist'] });
+        expect(typeof plugin.renderStart).toBe('function');
+    });
+});

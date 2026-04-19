@@ -7,6 +7,7 @@ import type { Plugin } from 'rollup';
 export type ServePluginOptionsObject = {
     pluginName?: string;
     useWriteBundle?: boolean;
+    inMemory?: boolean;
     dirs?: string | string[];
     port?: number;
     useLogger?: boolean;
