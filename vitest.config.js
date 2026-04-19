@@ -6,6 +6,7 @@ export default defineConfig({
         exclude: ['**/node_modules/**'],
         environment: 'node',
         pool: 'forks',
+        silent: true,
         coverage: {
             provider: 'v8',
             reportsDirectory: './coverage',
