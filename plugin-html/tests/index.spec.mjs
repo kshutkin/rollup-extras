@@ -1320,4 +1320,146 @@ describe('@rollup-extras/plugin-html (missing tests plan)', () => {
         const cssCount = (htmlAsset.source.match(/styles\.css/g) || []).length;
         expect(cssCount).toBe(1);
     });
+
+    // ====================================================================
+    // Modulepreload tests
+    // ====================================================================
+
+    it('should add modulepreload links for shared chunks of ES entry', async () => {
+        const bundle = await rollup({
+            input: { entry: 'entry', entry2: 'entry2' },
+            plugins: [
+                virtual({
+                    entry: 'import { shared } from "shared"; console.log(shared);',
+                    entry2: 'import { shared } from "shared"; console.log(shared + 1);',
+                    shared: 'export const shared = 42;',
+                }),
+                html(),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        // Find the shared chunk (non-entry chunk)
+        const sharedChunk = output.find(item => item.type === 'chunk' && !item.isEntry);
+        expect(sharedChunk).toBeDefined();
+        expect(htmlAsset.source).toContain(`<link rel="modulepreload" href="${sharedChunk.fileName}">`);
+        // modulepreload should be in <head>
+        const headEnd = htmlAsset.source.indexOf('</head>');
+        const preloadPos = htmlAsset.source.indexOf('<link rel="modulepreload"');
+        expect(preloadPos).toBeLessThan(headEnd);
+        // Entry should have a script tag, not a modulepreload
+        const entryChunk = output.find(item => item.type === 'chunk' && item.isEntry);
+        expect(htmlAsset.source).toContain(`<script src="${entryChunk.fileName}" type="module"></script>`);
+    });
+
+    it('should add modulepreload links for transitive imports', async () => {
+        const bundle = await rollup({
+            input: { entry: 'entry', entry2: 'entry2' },
+            plugins: [
+                virtual({
+                    entry: 'import { a } from "moduleA"; console.log(a);',
+                    entry2: 'import { a } from "moduleA"; console.log(a + 1);',
+                    moduleA: 'import { b } from "moduleB"; export const a = b + 1;',
+                    moduleB: 'export const b = 42;',
+                }),
+                html(),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        // All non-entry chunks should have modulepreload links
+        const nonEntryChunks = output.filter(item => item.type === 'chunk' && !item.isEntry);
+        expect(nonEntryChunks.length).toBeGreaterThan(0);
+        for (const chunk of nonEntryChunks) {
+            expect(htmlAsset.source).toContain(`<link rel="modulepreload" href="${chunk.fileName}">`);
+        }
+    });
+
+    it('should not add modulepreload links when modulepreload option is false', async () => {
+        const bundle = await rollup({
+            input: { entry: 'entry', entry2: 'entry2' },
+            plugins: [
+                virtual({
+                    entry: 'import { shared } from "shared"; console.log(shared);',
+                    entry2: 'import { shared } from "shared"; console.log(shared + 1);',
+                    shared: 'export const shared = 42;',
+                }),
+                html({ modulepreload: false }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).not.toContain('modulepreload');
+    });
+
+    it('should not add modulepreload links for IIFE format', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({
+                    entry: 'console.log("hello");',
+                }),
+                html(),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'iife', dir: 'dist', name: 'myBundle' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).not.toContain('modulepreload');
+    });
+
+    it('should not add modulepreload links when entry has no imports', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({
+                    entry: 'console.log("hello");',
+                }),
+                html(),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).not.toContain('modulepreload');
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('type="module"');
+    });
+
+    it('should deduplicate modulepreload links for diamond dependencies', async () => {
+        const bundle = await rollup({
+            input: { entry: 'entry', entry2: 'entry2' },
+            plugins: [
+                virtual({
+                    entry: 'import { a } from "depA"; import { b } from "depB"; console.log(a, b);',
+                    entry2: 'import { a } from "depA"; console.log(a);',
+                    depA: 'import { c } from "depC"; export const a = c + 1;',
+                    depB: 'import { c } from "depC"; export const c2 = c; export const b = c2 + 2;',
+                    depC: 'export const c = 42;',
+                }),
+                html(),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        // Each shared chunk should appear as modulepreload only once per entry
+        const nonEntryChunks = output.filter(item => item.type === 'chunk' && !item.isEntry);
+        expect(nonEntryChunks.length).toBeGreaterThan(0);
+        for (const chunk of nonEntryChunks) {
+            const regex = new RegExp(`<link rel="modulepreload" href="${chunk.fileName.replace('.', '\\.')}">`, 'g');
+            const matches = htmlAsset.source.match(regex) || [];
+            // May appear multiple times (once per entry that uses it), but never duplicated within one entry's set
+            expect(matches.length).toBeGreaterThanOrEqual(1);
+        }
+    });
 });

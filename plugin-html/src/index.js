@@ -43,7 +43,7 @@ import { dirname, join, relative } from 'node:path';
  */
 
 /**
- * @typedef {{ pluginName?: string, outputFile?: string, template?: string, watch?: boolean, emitFile?: boolean | 'auto', verbose?: boolean, useWriteBundle?: boolean, useEmittedTemplate?: boolean, conditionalLoading?: boolean, injectIntoHead?: PredicateSource, ignore?: PredicateSource, assetsFactory?: AssetFactory, templateFactory?: TemplateFactory }} HtmlPluginOptions
+ * @typedef {{ pluginName?: string, outputFile?: string, template?: string, watch?: boolean, emitFile?: boolean | 'auto', verbose?: boolean, useWriteBundle?: boolean, useEmittedTemplate?: boolean, conditionalLoading?: boolean, modulepreload?: boolean, injectIntoHead?: PredicateSource, ignore?: PredicateSource, assetsFactory?: AssetFactory, templateFactory?: TemplateFactory }} HtmlPluginOptions
  */
 
 import { createLogger, LogLevel } from '@niceties/logger';
@@ -51,7 +51,7 @@ import logger from '@rollup-extras/utils/logger';
 import { multiConfigPluginBase } from '@rollup-extras/utils/multi-config-plugin-base';
 import { getOptionsObject } from '@rollup-extras/utils/options';
 
-import { getLinkElement, getModuleScriptElement, getNonModuleScriptElement, toAssetPredicate } from './shared.js';
+import { getLinkElement, getModulePreloadElement, getModuleScriptElement, getNonModuleScriptElement, toAssetPredicate } from './shared.js';
 
 const defaultTemplate = '<!DOCTYPE html><html><head></head><body></body></html>';
 const headClosingElement = '</head>';
@@ -66,6 +66,7 @@ const defaults = {
     watch: true,
     useWriteBundle: false,
     emitFile: 'auto',
+    modulepreload: true,
     injectIntoHead: /** @type {AssetPredicate} */ ((/** @type {string} */ fileName) => fileName.endsWith(cssExtention)),
     ignore: /** @type {AssetPredicate} */ (toAssetPredicate(false)),
     templateFactory: /** @type {TemplateFactory} */ (
@@ -92,6 +93,7 @@ export default function (options = {}) {
             watch,
             emitFile,
             conditionalLoading,
+            modulepreload,
             logger,
             useWriteBundle,
             logLevel,
@@ -349,6 +351,17 @@ export default function (options = {}) {
                             type: 'asset',
                         });
                     }
+                    if (modulepreload && options.format === 'es') {
+                        const transitiveImports = collectTransitiveImports(bundle, fileName);
+                        for (const importFileName of transitiveImports) {
+                            const importAssetPath = relative(initialDir, join(dir, importFileName));
+                            /** @type {AssetDescriptor[]} */ (assets.asset).push({
+                                html: getModulePreloadElement(importAssetPath),
+                                head: true,
+                                type: 'asset',
+                            });
+                        }
+                    }
                 }
             }
         }
@@ -434,4 +447,28 @@ function defaultTemplateFactory(template, assets) {
     template = `${template.substring(0, headIndex)}${headElements.join('')}${template.substring(headIndex)}`;
     const bodyIndex = template.toLowerCase().indexOf(bodyClosingElement);
     return `${template.substring(0, bodyIndex)}${bodyElements.join('')}${template.substring(bodyIndex)}`;
+}
+
+/**
+ * @param {OutputBundle} bundle
+ * @param {string} entryFileName
+ * @returns {Set<string>}
+ */
+function collectTransitiveImports(bundle, entryFileName) {
+    /** @type {Set<string>} */
+    const collected = new Set();
+    /** @type {string[]} */
+    const queue = [.../** @type {OutputChunk} */ (bundle[entryFileName]).imports];
+    while (queue.length > 0) {
+        const importFileName = /** @type {string} */ (queue.pop());
+        if (collected.has(importFileName)) {
+            continue;
+        }
+        collected.add(importFileName);
+        const chunk = bundle[importFileName];
+        if (chunk?.type === 'chunk') {
+            queue.push(...chunk.imports);
+        }
+    }
+    return collected;
 }

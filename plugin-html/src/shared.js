@@ -28,6 +28,14 @@ export function getModuleScriptElement(fileName) {
 }
 
 /**
+ * @param {string} fileName
+ * @returns {string}
+ */
+export function getModulePreloadElement(fileName) {
+    return `<link rel="modulepreload" href="${fileName}">`;
+}
+
+/**
  * @param {PredicateSource} sourceOption
  * @returns {AssetPredicate | undefined}
  */

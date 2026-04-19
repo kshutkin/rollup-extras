@@ -108,6 +108,12 @@ Optional, boolean, default: undefined.
 
 Defines if the plugin adds `nomodule` attributes for non-modular js chunks. By default, it is done only if we have an `es` output in one of the bundles processed by the plugin. Also plugin values `iife` outputs higher than `umd` and if we have both filters out `umd` ones. This can be changed only by providing a custom `assetFactory`.
 
+### modulepreload
+
+Optional, boolean, default: true.
+
+When enabled and the output format is `es`, the plugin automatically injects `<link rel="modulepreload">` tags into `<head>` for all static dependencies (including transitive ones) of each entry chunk. This eliminates the browser's sequential module discovery waterfall, allowing all chunks to be fetched in parallel as soon as the HTML is parsed.
+
 ### injectIntoHead
 
 Optional, RegExp | function | boolean, default: `(fileName: string) => fileName.endsWith(cssExtention)`.
