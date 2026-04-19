@@ -349,7 +349,7 @@ describe('@rollup-extras/plugin-copy integration', () => {
         expect(await readFile(join(outDir, 'file.txt'), 'utf8')).toBe('output-plugin-content');
     });
 
-    it('should disable watch and warn when outputPlugin is true and watch is true', async () => {
+    it('should ignore watch option and still copy when outputPlugin is true and watch is true', async () => {
         const srcDir = join(tmpDir, 'src');
         const outDir = join(tmpDir, 'out');
         await mkdir(srcDir, { recursive: true });
@@ -367,7 +367,7 @@ describe('@rollup-extras/plugin-copy integration', () => {
         expect(await readFile(join(outDir, 'file.txt'), 'utf8')).toBe('watch-output');
     });
 
-    it('should disable watch and warn when emitFiles is false and outputPlugin is false', async () => {
+    it('should ignore watch option and still copy when emitFiles is false', async () => {
         const srcDir = join(tmpDir, 'src');
         const destDir = join(tmpDir, 'dest');
         await mkdir(srcDir, { recursive: true });
@@ -443,7 +443,7 @@ describe('@rollup-extras/plugin-copy integration', () => {
         expect(await readFile(join(destDir, 'new.txt'), 'utf8')).toBe('new-content');
     });
 
-    it('should work with verbose set to list-filenames', async () => {
+    it('should copy files and produce output when verbose is list-filenames', async () => {
         const srcDir = join(tmpDir, 'src');
         const outDir = join(tmpDir, 'out');
         await mkdir(srcDir, { recursive: true });
@@ -462,7 +462,7 @@ describe('@rollup-extras/plugin-copy integration', () => {
         expect(files).toContain('b.txt');
     });
 
-    it('should work with verbose set to true', async () => {
+    it('should copy files and produce output when verbose is true', async () => {
         const srcDir = join(tmpDir, 'src');
         const outDir = join(tmpDir, 'out');
         await mkdir(srcDir, { recursive: true });
@@ -580,7 +580,7 @@ describe('@rollup-extras/plugin-copy integration', () => {
         expect(await readFile(join(outDir, 'good.txt'), 'utf8')).toBe('good-content');
     });
 
-    it('should handle error during file copy gracefully', async () => {
+    it('should not throw when file copy encounters a filesystem error', async () => {
         const srcDir = join(tmpDir, 'src');
         const destDir = join(tmpDir, 'dest');
         await mkdir(srcDir, { recursive: true });

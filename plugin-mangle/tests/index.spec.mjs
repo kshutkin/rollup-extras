@@ -25,19 +25,19 @@ async function build(code, mangleOptions, outputOptions = {}) {
 }
 
 describe('@rollup-extras/plugin-mangle', () => {
-    it('should mangle member expression properties (obj.$_prop)', async () => {
+    it('should mangle dot-notation member expression properties', async () => {
         const output = await build('export const x = { $_prop: 1 }; x.$_prop;');
         expect(output[0].code).not.toContain('$_prop');
         expect(output[0].code).toContain('.a');
     });
 
-    it('should mangle object literal keys ({ $_prop: 1 })', async () => {
+    it('should mangle property keys in object literals', async () => {
         const output = await build('export default { $_prop: 1 };');
         expect(output[0].code).not.toContain('$_prop');
         expect(output[0].code).toMatch(/{\s*a:\s*1\s*}/);
     });
 
-    it('should mangle string literals containing prefixed names', async () => {
+    it('should mangle prefixed names inside string literals', async () => {
         const output = await build("export default '$_prop';");
         expect(output[0].code).not.toContain('$_prop');
         expect(output[0].code).toContain("'a'");
@@ -78,7 +78,7 @@ describe('@rollup-extras/plugin-mangle', () => {
         expect(output[0].code).not.toContain('$$foo');
     });
 
-    it('should produce a sourcemap when sourcemap: true', async () => {
+    it('should return a valid sourcemap with mappings when sourcemap is enabled', async () => {
         const output = await build('const obj = {}; obj.$_prop = 1; export default obj;', undefined, { sourcemap: true });
         expect(output[0].map).toBeDefined();
         expect(output[0].map).not.toBeNull();
@@ -96,12 +96,12 @@ describe('@rollup-extras/plugin-mangle', () => {
         expect(unique.size).toBe(2);
     });
 
-    it('should handle code with no mangleable references', async () => {
+    it('should pass through code unchanged when no mangleable references exist', async () => {
         const output = await build('export default 1 + 2;');
         expect(output[0].code).toContain('1 + 2');
     });
 
-    it('should persist mangled names across chunks', async () => {
+    it('should use consistent mangled names across multiple output chunks', async () => {
         const modules = {
             entry: "export { default as a } from 'mod'; export const obj = {}; obj.$_foo = 1;",
             mod: 'const obj = {}; obj.$_foo = 2; export default obj;',
@@ -119,26 +119,26 @@ describe('@rollup-extras/plugin-mangle', () => {
         expect(allCode).not.toContain('$_foo');
     });
 
-    it('should expand shorthand properties when mangling', async () => {
+    it('should expand shorthand property syntax when the key is mangled', async () => {
         const output = await build('const obj = { $_prop: 1 }; const { $_prop } = obj; export default $_prop;');
         expect(output[0].code).not.toContain('$_prop');
         // shorthand { $_prop } should become { a: a } not just { a }
         expect(output[0].code).not.toMatch(/\{\s*a\s*\}/);
     });
 
-    it('should mangle double-quote string literals preserving double quotes', async () => {
+    it('should mangle prefixed names in double-quoted strings while preserving quote style', async () => {
         const output = await build('export default "$_prop";');
         expect(output[0].code).not.toContain('$_prop');
         expect(output[0].code).toContain('"a"');
     });
 
-    it('should mangle computed member expression with variable (obj[$_prop])', async () => {
+    it('should mangle variable identifiers used in computed member expressions', async () => {
         const output = await build("const $_prop = 'key'; const obj = {}; const val = obj[$_prop]; export default val;");
         // $_prop is a variable, so it should be mangled
         expect(output[0].code).not.toContain('$_prop');
     });
 
-    it('should generate two-letter names when more than 26 identifiers are used', async () => {
+    it('should generate multi-letter names when the alphabet is exhausted', async () => {
         const code = `let $_v0 = 0; let $_v1 = 1; let $_v2 = 2; let $_v3 = 3; let $_v4 = 4; let $_v5 = 5; let $_v6 = 6; let $_v7 = 7; let $_v8 = 8; let $_v9 = 9; let $_v10 = 10; let $_v11 = 11; let $_v12 = 12; let $_v13 = 13; let $_v14 = 14; let $_v15 = 15; let $_v16 = 16; let $_v17 = 17; let $_v18 = 18; let $_v19 = 19; let $_v20 = 20; let $_v21 = 21; let $_v22 = 22; let $_v23 = 23; let $_v24 = 24; let $_v25 = 25; let $_v26 = 26; export default $_v0 + $_v1 + $_v2 + $_v3 + $_v4 + $_v5 + $_v6 + $_v7 + $_v8 + $_v9 + $_v10 + $_v11 + $_v12 + $_v13 + $_v14 + $_v15 + $_v16 + $_v17 + $_v18 + $_v19 + $_v20 + $_v21 + $_v22 + $_v23 + $_v24 + $_v25 + $_v26;`;
         const output = await build(code);
         // None of the original names should remain
@@ -154,11 +154,11 @@ describe('@rollup-extras/plugin-mangle', () => {
         expect(output[0].code).not.toContain('$_param');
     });
 
-    it('should have default pluginName', () => {
+    it('should use the default plugin name when no pluginName option is provided', () => {
         expect(mangle().name).toBe('@rollup-extras/plugin-mangle');
     });
 
-    it('should accept custom pluginName', () => {
+    it('should use a custom plugin name when pluginName option is provided', () => {
         expect(mangle({ pluginName: 'my-mangle' }).name).toBe('my-mangle');
     });
 
@@ -167,13 +167,13 @@ describe('@rollup-extras/plugin-mangle', () => {
         expect(output[0].code).not.toContain('$_prop');
     });
 
-    it('should NOT mangle template literals', async () => {
+    it('should not mangle prefixed names inside template literals', async () => {
         const output = await build('export default `$_prop`;');
         // Template literals are TemplateLiteral nodes, not Literal - should not be mangled
         expect(output[0].code).toContain('$_prop');
     });
 
-    it('should populate sourcemap sources when mangling with sourcemap: true', async () => {
+    it('should include sources in the sourcemap when sourcemap is enabled', async () => {
         const output = await build('const obj = {}; obj.$_prop = 1; export default obj;', undefined, { sourcemap: true });
         expect(output[0].map).toBeDefined();
         expect(output[0].map).not.toBeNull();

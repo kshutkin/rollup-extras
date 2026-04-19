@@ -30,7 +30,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
         await rm(tmpDir, { recursive: true, force: true });
     });
 
-    it('should inline templates with $templateCache.put', async () => {
+    it('should generate $templateCache.put calls for each template file', async () => {
         const templatesDir = join(tmpDir, 'templates');
         await mkdir(templatesDir, { recursive: true });
         await writeFile(join(templatesDir, 'hello.html'), '<div>Hello</div>');
@@ -177,7 +177,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
         expect(code).not.toContain(', []');
     });
 
-    it('should include all template files when there are multiple', async () => {
+    it('should include templates from nested subdirectories', async () => {
         const templatesDir = join(tmpDir, 'templates');
         const subDir = join(templatesDir, 'partials');
         await mkdir(subDir, { recursive: true });
@@ -369,7 +369,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
         expect(code).toContain('$templateCache');
     });
 
-    it('should have the correct default plugin name', () => {
+    it('should use the default plugin name when no pluginName option is provided', () => {
         const plugin = templateCache({
             templates: '*.html',
             importAngular: false,
@@ -403,7 +403,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
 
 // --- NEW TESTS FOR BRANCH COVERAGE ---
 
-describe('@rollup-extras/plugin-angularjs-template-cache (additional coverage)', () => {
+describe('@rollup-extras/plugin-angularjs-template-cache auto-import, watch, glob options, and edge cases', () => {
     let tmpDir;
 
     function entryPlugin2(code) {
@@ -450,7 +450,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache (additional coverage)',
         expect(allCode).toContain('Auto');
     });
 
-    it('should build without calling addWatchFile when watch is false', async () => {
+    it('should not crash when watch option is false', async () => {
         const templatesDir = join(tmpDir, 'templates');
         await mkdir(templatesDir, { recursive: true });
         await writeFile(join(templatesDir, 'watched.html'), '<div>Watched</div>');
@@ -499,7 +499,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache (additional coverage)',
         expect(putCount).toBe(1);
     });
 
-    it('should build successfully with verbose: list-filenames', async () => {
+    it('should produce correct output when verbose is set to list-filenames', async () => {
         const templatesDir = join(tmpDir, 'templates');
         await mkdir(templatesDir, { recursive: true });
         await writeFile(join(templatesDir, 'verbose.html'), '<div>Verbose</div>');
@@ -570,7 +570,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache (additional coverage)',
         expect(putCount).toBe(2);
     });
 
-    it('should return null from resolveId for non-matching IDs', () => {
+    it('should return null from resolveId when the module ID does not match', () => {
         const plugin = templateCache({
             templates: '*.html',
             importAngular: false,
@@ -579,7 +579,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache (additional coverage)',
         expect(result).toBeNull();
     });
 
-    it('should return null from load for non-matching IDs', async () => {
+    it('should return null from load when the module ID does not match', async () => {
         const plugin = templateCache({
             templates: '*.html',
             importAngular: false,
@@ -589,7 +589,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache (additional coverage)',
     });
 });
 
-describe('@rollup-extras/plugin-angularjs-template-cache (verbose and error coverage)', () => {
+describe('@rollup-extras/plugin-angularjs-template-cache verbose logging and error handling', () => {
     let tmpDir;
 
     function entryPlugin3(code) {
@@ -612,7 +612,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache (verbose and error cove
         await rm(tmpDir, { recursive: true, force: true });
     });
 
-    it('should build successfully with verbose: true (not list-filenames)', async () => {
+    it('should produce correct output when verbose is set to true', async () => {
         const templatesDir = join(tmpDir, 'templates');
         await mkdir(templatesDir, { recursive: true });
         await writeFile(join(templatesDir, 'info.html'), '<div>Info</div>');
@@ -696,7 +696,7 @@ describe('@rollup-extras/plugin-angularjs-template-cache (verbose and error cove
         await chmod(noReadFile, 0o644);
     });
 
-    it('should resolve .html import without importer (falsy importer branch)', () => {
+    it('should resolve .html import path when no importer is provided', () => {
         const plugin = templateCache({
             templates: '*.html',
             importAngular: false,

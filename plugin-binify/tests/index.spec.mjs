@@ -82,11 +82,11 @@ describe('@rollup-extras/plugin-binify integration', () => {
             await bundle.close();
         });
 
-        it('should have default pluginName', () => {
+        it('should use the default plugin name when no pluginName option is provided', () => {
             expect(binify().name).toBe('@rollup-extras/plugin-binify');
         });
 
-        it('should accept custom pluginName', () => {
+        it('should use custom pluginName when provided in options', () => {
             expect(binify({ pluginName: 'custom' }).name).toBe('custom');
         });
 
@@ -112,7 +112,7 @@ describe('@rollup-extras/plugin-binify integration', () => {
             await bundle.close();
         });
 
-        it('should add shebang but no sourcemap when sourcemap is not enabled', async () => {
+        it('should add shebang without generating a sourcemap when sourcemap option is disabled', async () => {
             const bundle = await rollup({
                 input: 'entry',
                 plugins: [virtual({ entry: 'console.log("hello")' }), binify()],
@@ -203,7 +203,7 @@ describe('@rollup-extras/plugin-binify (additional coverage)', () => {
     }
 
     describe('generate - asset and filter', () => {
-        it('should prepend shebang to asset source when filter matches all items', async () => {
+        it('should prepend shebang to emitted asset source when custom filter returns true for all items', async () => {
             const bundle = await rollup({
                 input: 'entry',
                 plugins: [
@@ -242,7 +242,7 @@ describe('@rollup-extras/plugin-binify (additional coverage)', () => {
             await rm(tmpDir, { recursive: true, force: true });
         });
 
-        it('should handle chmod failure gracefully (error logged, build does not crash)', async () => {
+        it('should not throw when chmod fails on a nonexistent directory', async () => {
             if (process.platform === 'win32') return;
 
             const plugin = binify();
@@ -400,7 +400,7 @@ describe('@rollup-extras/plugin-binify (branch coverage)', () => {
     });
 
     describe('generate - outputOptions without dir', () => {
-        it('should handle missing dir in outputOptions (falsy dir branch)', async () => {
+        it('should resolve file paths correctly when outputOptions uses file instead of dir', async () => {
             const bundle = await rollup({
                 input: 'entry',
                 plugins: [virtual({ entry: 'console.log("no-dir")' }), binify()],
@@ -466,7 +466,7 @@ describe('@rollup-extras/plugin-binify (branch coverage)', () => {
             await rm(tmpDir, { recursive: true, force: true });
         });
 
-        it('should handle multiple matching entries (countFiles > 0 after first decrement)', async () => {
+        it('should add shebang and set executable permissions on all matching entry chunks', async () => {
             if (process.platform === 'win32') return;
 
             const bundle = await rollup({
@@ -519,7 +519,7 @@ describe('@rollup-extras/plugin-binify (verbose branch)', () => {
         };
     }
 
-    it('should work with verbose: true (covers verbose ternary true branch)', async () => {
+    it('should produce correct output when verbose option is enabled', async () => {
         const bundle = await rollup({
             input: 'entry',
             plugins: [virtual({ entry: 'console.log("verbose")' }), binify({ verbose: true })],

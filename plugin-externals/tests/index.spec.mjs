@@ -56,7 +56,7 @@ async function build(modules, pluginOptions, buildOptions = {}) {
 }
 
 describe('@rollup-extras/plugin-externals integration', () => {
-    it('marks Node.js builtins as external', async () => {
+    it('should mark Node.js builtins with node: prefix as external', async () => {
         const code = await build({
             entry: "import fs from 'node:fs'; export default fs;",
         });
@@ -65,7 +65,7 @@ describe('@rollup-extras/plugin-externals integration', () => {
         expect(code).toContain("from 'node:fs'");
     });
 
-    it('marks imports whose specifier contains node_modules as external', async () => {
+    it('should mark imports containing node_modules in the specifier as external', async () => {
         const code = await build({
             entry: "import foo from 'node_modules/some-pkg/index.js'; export default foo;",
         });
@@ -74,7 +74,7 @@ describe('@rollup-extras/plugin-externals integration', () => {
         expect(code).toContain("from 'node_modules/some-pkg/index.js'");
     });
 
-    it('bundles local relative imports inline (not external)', async () => {
+    it('should bundle local relative imports inline instead of marking them external', async () => {
         const code = await build({
             entry: "import { foo } from './local';\nexport default foo;",
             './local': 'export const foo = 42;',
@@ -85,7 +85,7 @@ describe('@rollup-extras/plugin-externals integration', () => {
         expect(code).toContain('const foo = 42');
     });
 
-    it('handles a mix of builtins, node_modules, and local imports together', async () => {
+    it('should handle a mix of builtins, node_modules, and local imports correctly', async () => {
         const code = await build({
             entry: [
                 "import fs from 'node:fs';",
@@ -109,7 +109,7 @@ describe('@rollup-extras/plugin-externals integration', () => {
         expect(code).toContain("const helper = 'hi'");
     });
 
-    it('uses a custom external predicate to override decisions', async () => {
+    it('should use a custom external predicate to override default decisions', async () => {
         // Place the externals plugin before virtual so that the custom
         // predicate can intercept './local' before the virtual plugin
         // resolves it.
@@ -135,7 +135,7 @@ describe('@rollup-extras/plugin-externals integration', () => {
         expect(code).toMatch(/from\s+['"].*local['"]/);
     });
 
-    it('accepts a function directly as the options (shorthand for external predicate)', async () => {
+    it('should accept a bare function as shorthand for the external predicate option', async () => {
         // A bare function is treated as the external predicate.
         // Place externals first so it can intercept './mylib'.
         const code = await build(
@@ -153,7 +153,7 @@ describe('@rollup-extras/plugin-externals integration', () => {
         expect(code).toMatch(/from\s+['"].*mylib['"]/);
     });
 
-    it('marks bare builtins without node: prefix as external', async () => {
+    it('should mark bare builtins without the node: prefix as external', async () => {
         const code = await build({
             entry: "import fs from 'fs'; export default fs;",
         });
@@ -162,7 +162,7 @@ describe('@rollup-extras/plugin-externals integration', () => {
         expect(code).toContain("from 'fs'");
     });
 
-    it('custom external predicate can override a builtin to not-external', async () => {
+    it('should allow a custom predicate to override a builtin to not-external', async () => {
         // When the predicate returns false for a builtin, the plugin's resolveId
         // returns null instead of false. We verify this by calling resolveId directly.
         const plugin = externals({
@@ -181,17 +181,17 @@ describe('@rollup-extras/plugin-externals integration', () => {
         expect(defaultResult).toBe(false);
     });
 
-    it('default plugin name is @rollup-extras/plugin-externals', () => {
+    it('should use @rollup-extras/plugin-externals as the default plugin name', () => {
         const plugin = externals();
         expect(plugin.name).toBe('@rollup-extras/plugin-externals');
     });
 
-    it('custom pluginName overrides the default name', () => {
+    it('should override the default name when custom pluginName is provided', () => {
         const plugin = externals({ pluginName: 'my-ext' });
         expect(plugin.name).toBe('my-ext');
     });
 
-    it('empty options object works the same as no options', async () => {
+    it('should behave identically with an empty options object as with no options', async () => {
         const code = await build(
             {
                 entry: "import fs from 'node:fs'; import { helper } from './lib'; export { fs, helper };",
@@ -207,7 +207,7 @@ describe('@rollup-extras/plugin-externals integration', () => {
         expect(code).toContain("const helper = 'local'");
     });
 
-    it('marks multiple builtins without node: prefix as external', async () => {
+    it('should mark multiple bare builtins without the node: prefix as external', async () => {
         const code = await build({
             entry: ["import http from 'http';", "import path from 'path';", "import os from 'os';", 'export { http, path, os };'].join(
                 '\n'
@@ -219,7 +219,7 @@ describe('@rollup-extras/plugin-externals integration', () => {
         expect(code).toContain("from 'os'");
     });
 
-    it('does not mark a non-builtin bare specifier as external by default', async () => {
+    it('should not mark a non-builtin bare specifier as external by default', async () => {
         // 'lodash' is not a builtin and doesn't contain 'node_modules' in the id,
         // so it should not be treated as external. It will be unresolved (warning
         // silenced by onwarn), and Rollup will leave it as an external import only
@@ -238,7 +238,7 @@ describe('@rollup-extras/plugin-externals integration', () => {
 // --- NEW TESTS FOR BRANCH COVERAGE ---
 
 describe('@rollup-extras/plugin-externals (additional coverage)', () => {
-    it('resolves correctly when importer is undefined (first entry resolution)', async () => {
+    it('should resolve builtins as external when importer is undefined', async () => {
         const plugin = externals();
         // When importer is undefined, the fallback to empty string is used
         const result = await plugin.resolveId.call({}, 'node:fs', undefined);
@@ -246,14 +246,14 @@ describe('@rollup-extras/plugin-externals (additional coverage)', () => {
         expect(result).toBe(false);
     });
 
-    it('resolves a non-builtin with undefined importer', async () => {
+    it('should resolve a non-builtin as not-external when importer is undefined', async () => {
         const plugin = externals();
         const result = await plugin.resolveId.call({}, './local', undefined);
         // ./local resolved from dirname('') = '.' so it stays local
         expect(result).toBeNull();
     });
 
-    it('flips external decisions when custom predicate inverts isExternal', async () => {
+    it('should flip external decisions when the custom predicate inverts isExternal', async () => {
         const { resolve } = await import('node:path');
         const plugin = externals({
             external: (_id, isExternal) => !isExternal,
@@ -270,7 +270,7 @@ describe('@rollup-extras/plugin-externals (additional coverage)', () => {
         expect(localResult).toBe(false);
     });
 
-    it('falls back to "." when packageDirectory() returns undefined', async () => {
+    it('should fall back to "." as pkgDir when packageDirectory() returns undefined', async () => {
         // Mock packageDirectory to return undefined for this test,
         // triggering the ?? '.' fallback on line 41
         packageDirectory.mockResolvedValueOnce(undefined);
@@ -289,7 +289,7 @@ describe('@rollup-extras/plugin-externals (additional coverage)', () => {
         expect(localResult).toBeNull();
     });
 
-    it('falls back to "." for packageDirectory and handles undefined importer together', async () => {
+    it('should handle both undefined packageDirectory and undefined importer together', async () => {
         // Both branches in one test: packageDirectory -> undefined AND importer -> undefined
         packageDirectory.mockResolvedValueOnce(undefined);
 
@@ -301,7 +301,7 @@ describe('@rollup-extras/plugin-externals (additional coverage)', () => {
         expect(result).toBe(false);
     });
 
-    it('falls back to "." for packageDirectory with a non-builtin and undefined importer', async () => {
+    it('should resolve non-builtins as local when both pkgDir and importer are undefined', async () => {
         packageDirectory.mockResolvedValueOnce(undefined);
 
         const plugin = externals();
@@ -313,7 +313,7 @@ describe('@rollup-extras/plugin-externals (additional coverage)', () => {
         expect(result).toBeNull();
     });
 
-    it('custom predicate that inverts isExternal works with undefined importer', async () => {
+    it('should support a custom predicate that inverts isExternal with undefined importer', async () => {
         const plugin = externals({
             external: (_id, isExternal, _importer) => !isExternal,
         });
@@ -330,7 +330,7 @@ describe('@rollup-extras/plugin-externals (additional coverage)', () => {
         expect(localResult).toBe(false);
     });
 
-    it('works with verbose option enabled', async () => {
+    it('should resolve correctly when the verbose option is enabled', async () => {
         const plugin = externals({ verbose: true });
 
         // Exercises the verbose ? LogLevel.info : LogLevel.verbose branch (truthy side)

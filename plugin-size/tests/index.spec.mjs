@@ -50,7 +50,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         await rm(tmpDir, { recursive: true, force: true });
     });
 
-    it('should create a stats file after build', async () => {
+    it('should create a .stats.json file on disk after generating a bundle', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -63,7 +63,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         await expect(access(statsPath, constants.F_OK)).resolves.toBeUndefined();
     });
 
-    it('should write stats file containing entry sizes with raw field', async () => {
+    it('should write entry raw byte size to the stats file', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -78,7 +78,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(stats.entries.es.raw).toBeGreaterThan(0);
     });
 
-    it('should include gzip field by default (gzip: true)', async () => {
+    it('should include a non-zero gzip field for entries when using default options', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -92,7 +92,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(stats.entries.es.gzip).toBeGreaterThan(0);
     });
 
-    it('should include brotli field when brotli: true', async () => {
+    it('should include a non-zero brotli field for entries when brotli is enabled', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -106,7 +106,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(stats.entries.es.brotli).toBeGreaterThan(0);
     });
 
-    it('should not write stats file when updateStats: false', async () => {
+    it('should skip writing the stats file when updateStats is set to false', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -118,7 +118,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         await expect(access(statsPath, constants.F_OK)).rejects.toThrow();
     });
 
-    it('should group emitted assets under the assets key by extension', async () => {
+    it('should group emitted asset sizes under assets keyed by file extension', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -139,7 +139,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(stats.assets['.css'].gzip).toBeGreaterThan(0);
     });
 
-    it('should separate entries and non-entry chunks', async () => {
+    it('should record entry chunks under entries and dynamic chunks under chunks', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -163,7 +163,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(stats.chunks.es.raw).toBeGreaterThan(0);
     });
 
-    it('should handle multiple asset types', async () => {
+    it('should track multiple asset extensions independently in the stats file', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -184,7 +184,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(stats.assets['.svg'].raw).toBeGreaterThan(0);
     });
 
-    it('should include brotli on assets when brotli is enabled', async () => {
+    it('should include non-zero brotli sizes for assets when brotli is enabled', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -202,7 +202,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(stats.assets['.css'].brotli).toBeGreaterThan(0);
     });
 
-    it('should not include gzip field when gzip: false', async () => {
+    it('should omit the gzip field from entries when gzip is disabled', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -215,7 +215,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(stats.entries.es.gzip).toBeUndefined();
     });
 
-    it('should not include brotli field by default', async () => {
+    it('should omit the brotli field from entries when brotli is not explicitly enabled', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -228,7 +228,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(stats.entries.es.brotli).toBeUndefined();
     });
 
-    it('should support both gzip and brotli simultaneously', async () => {
+    it('should record both gzip and brotli sizes when both compression options are enabled', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -242,7 +242,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(stats.entries.es.brotli).toBeGreaterThan(0);
     });
 
-    it('should record correct format key for cjs output', async () => {
+    it('should use cjs as the format key in entries when output format is CommonJS', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -256,7 +256,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(stats.entries.cjs.raw).toBeGreaterThan(0);
     });
 
-    it('should include minified field when minify option is provided', async () => {
+    it('should record a minified size that is less than or equal to raw when a minify function is provided', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -274,7 +274,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(stats.entries.es.minified).toBeLessThanOrEqual(stats.entries.es.raw);
     });
 
-    it('should omit both gzip and brotli when both are disabled', async () => {
+    it('should record only raw size when both gzip and brotli are disabled', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -289,7 +289,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(stats.entries.es.brotli).toBeUndefined();
     });
 
-    it('should merge multiple output formats into the same stats file', async () => {
+    it('should accumulate entries from multiple generate calls into a single stats file', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -306,17 +306,17 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(stats.entries.cjs.raw).toBeGreaterThan(0);
     });
 
-    it('should have the default plugin name', () => {
+    it('should use @rollup-extras/plugin-size as the default plugin name', () => {
         const plugin = size();
         expect(plugin.name).toBe('@rollup-extras/plugin-size');
     });
 
-    it('should use a custom pluginName', () => {
+    it('should use the provided pluginName as the plugin name property', () => {
         const plugin = size({ pluginName: 'my-size' });
         expect(plugin.name).toBe('my-size');
     });
 
-    it('should handle a second build (delta reporting) without crashing', async () => {
+    it('should complete a second build with delta comparison without errors', async () => {
         const statsPath = join(tmpDir, '.stats.json');
 
         // First build
@@ -343,7 +343,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(secondStats.entries.es.raw).toBeGreaterThan(0);
     });
 
-    it('should work with default options (no arguments) using temp dir as cwd', async () => {
+    it('should write .stats.json to the current working directory when no statsFile is specified', async () => {
         const originalCwd = process.cwd();
         process.chdir(tmpDir);
         try {
@@ -364,7 +364,7 @@ describe('@rollup-extras/plugin-size integration', () => {
         }
     });
 
-    it('should produce a properly formatted stats JSON file', async () => {
+    it('should write human-readable JSON with 2-space indentation and a trailing newline', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -410,7 +410,7 @@ describe('@rollup-extras/plugin-size (additional coverage)', () => {
         await rm(tmpDir, { recursive: true, force: true });
     });
 
-    it('should report delta increase when second build is larger', async () => {
+    it('should record a larger raw size in the stats file when the second build has more code', async () => {
         const statsPath = join(tmpDir, '.stats.json');
 
         // First build: small code
@@ -441,7 +441,7 @@ describe('@rollup-extras/plugin-size (additional coverage)', () => {
         expect(secondStats.entries.es.raw).toBeGreaterThan(firstRaw);
     });
 
-    it('should report delta decrease when second build is smaller', async () => {
+    it('should record a smaller raw size in the stats file when the second build has less code', async () => {
         const statsPath = join(tmpDir, '.stats.json');
 
         // First build: larger code
@@ -472,7 +472,7 @@ describe('@rollup-extras/plugin-size (additional coverage)', () => {
         expect(secondStats.entries.es.raw).toBeLessThan(firstRaw);
     });
 
-    it('should handle a removed entry format in stats comparison', async () => {
+    it('should drop previously-tracked format keys from stats when they are absent in the current build', async () => {
         const statsPath = join(tmpDir, '.stats.json');
 
         // Pre-seed stats file with an entry format that will not exist in current build
@@ -500,7 +500,7 @@ describe('@rollup-extras/plugin-size (additional coverage)', () => {
         expect(stats.entries.cjs).toBeUndefined();
     });
 
-    it('should handle assets with Uint8Array source', async () => {
+    it('should correctly measure raw size of assets emitted as Uint8Array buffers', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -527,7 +527,7 @@ describe('@rollup-extras/plugin-size (additional coverage)', () => {
         expect(stats.assets['.bin'].raw).toBe(5);
     });
 
-    it('should handle assets without file extension (fallback to filename)', async () => {
+    it('should use the full filename as the assets key when the file has no extension', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -555,7 +555,7 @@ describe('@rollup-extras/plugin-size (additional coverage)', () => {
         expect(stats.assets.LICENSE.raw).toBeGreaterThan(0);
     });
 
-    it('should produce stats with neither gzip nor brotli when both disabled', async () => {
+    it('should omit gzip and brotli from both entries and assets when both are disabled', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -584,7 +584,7 @@ describe('@rollup-extras/plugin-size (additional coverage)', () => {
         expect(stats.assets['.css'].brotli).toBeUndefined();
     });
 
-    it('should report different minified size with a real minify function', async () => {
+    it('should record a minified size smaller than raw when the minify function removes whitespace and renames identifiers', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -617,7 +617,7 @@ describe('@rollup-extras/plugin-size (additional coverage)', () => {
         expect(stats.entries.es.minified).toBeLessThan(stats.entries.es.raw);
     });
 
-    it('should build successfully with verbose: true option', async () => {
+    it('should generate valid stats without errors when verbose mode is enabled', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -631,7 +631,7 @@ describe('@rollup-extras/plugin-size (additional coverage)', () => {
         expect(stats.entries.es.raw).toBeGreaterThan(0);
     });
 
-    it('should accumulate sizes from multiple non-entry chunks', async () => {
+    it('should sum sizes of all non-entry dynamic chunks under a single chunks format key', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({
             input: 'entry',
@@ -681,7 +681,7 @@ describe('@rollup-extras/plugin-size (final branch coverage)', () => {
         await rm(tmpDir, { recursive: true, force: true });
     });
 
-    it('should format sizes in kB range when output exceeds 1024 bytes', async () => {
+    it('should record a raw size greater than 1024 for bundles exceeding 1 kB', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         // Generate code large enough to exceed 1024 bytes raw
         const longExport = `export const data = ${JSON.stringify('x'.repeat(1200))};`;
@@ -696,7 +696,7 @@ describe('@rollup-extras/plugin-size (final branch coverage)', () => {
         expect(stats.entries.es.raw).toBeGreaterThan(1024);
     });
 
-    it('should report removed chunks and removed assets from previous stats', async () => {
+    it('should drop previously-tracked chunk and asset keys that are absent in the current build', async () => {
         const statsPath = join(tmpDir, '.stats.json');
 
         // Pre-seed stats with entries, chunks, AND assets that won't be in current build
@@ -725,7 +725,7 @@ describe('@rollup-extras/plugin-size (final branch coverage)', () => {
         expect(stats.assets).toBeUndefined();
     });
 
-    it('should handle delta = 0 for gzip when code is identical across two builds', async () => {
+    it('should produce identical raw and gzip values when building the same code twice', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const code = 'export default 42';
 
@@ -752,7 +752,7 @@ describe('@rollup-extras/plugin-size (final branch coverage)', () => {
         expect(secondStats.entries.es.gzip).toBe(firstStats.entries.es.gzip);
     });
 
-    it('should exercise delta reporting on kB-sized bundles with brotli', async () => {
+    it('should record increasing raw and brotli sizes across two kB-range builds', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const smallCode = `export const data = ${JSON.stringify('a'.repeat(1200))};`;
         const largeCode = `export const data = ${JSON.stringify('b'.repeat(2400))}; export const extra = ${JSON.stringify('c'.repeat(1200))};`;
@@ -782,7 +782,7 @@ describe('@rollup-extras/plugin-size (final branch coverage)', () => {
         expect(secondStats.entries.es.brotli).toBeGreaterThan(0);
     });
 
-    it('should handle delta decrease on kB-range bundles with brotli', async () => {
+    it('should record decreasing raw size when the second kB-range build is smaller with brotli enabled', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const largeCode = `export const data = ${JSON.stringify('a'.repeat(2400))}; export const extra = ${JSON.stringify('b'.repeat(1200))};`;
         const smallCode = `export const data = ${JSON.stringify('c'.repeat(1200))};`;
@@ -835,7 +835,7 @@ describe('@rollup-extras/plugin-size (lines 48 & 109 coverage)', () => {
         await rm(tmpDir, { recursive: true, force: true });
     });
 
-    it('should format sizes in MB range when output exceeds 1 MB (line 48)', async () => {
+    it('should record a raw size of at least 1 MB for megabyte-scale bundles', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         // Generate a string constant > 1 MB so the chunk raw size hits the MB branch
         const hugeExport = `export default "${'X'.repeat(1_100_000)}";`;
@@ -851,7 +851,7 @@ describe('@rollup-extras/plugin-size (lines 48 & 109 coverage)', () => {
         expect(stats.entries.es.raw).toBeGreaterThanOrEqual(1024 * 1024);
     });
 
-    it('should early-return in printReport when bundle is empty (line 109)', async () => {
+    it('should write an empty stats object when all bundle items are removed before the size plugin runs', async () => {
         const statsPath = join(tmpDir, '.stats.json');
 
         // Plugin that removes every item from the bundle before the size plugin sees it

@@ -199,12 +199,12 @@ describe('@rollup-extras/plugin-html integration', () => {
         expect(htmlAsset.source).toContain('entry.js');
     });
 
-    it('should have the default plugin name', () => {
+    it('should return the default plugin name when no pluginName option is provided', () => {
         const plugin = html();
         expect(plugin.name).toBe('@rollup-extras/plugin-html');
     });
 
-    it('should use a custom pluginName', () => {
+    it('should use the pluginName option as the plugin name property', () => {
         const plugin = html({ pluginName: 'my-html' });
         expect(plugin.name).toBe('my-html');
     });
@@ -433,7 +433,7 @@ describe('@rollup-extras/plugin-html integration', () => {
     });
 
     // 9. templateFactory that throws
-    it('should not crash when templateFactory throws', async () => {
+    it('should produce output gracefully when templateFactory throws an error', async () => {
         const bundle = await rollup({
             input: 'entry',
             plugins: [
@@ -584,7 +584,7 @@ describe('@rollup-extras/plugin-html integration', () => {
     });
 
     // 17. ignore with invalid value (number) - should fall back to defaults
-    it('should fall back to default ignore when ignore option is an invalid value (number)', async () => {
+    it('should ignore the ignore option and include all assets when it is an invalid type', async () => {
         const bundle = await rollup({
             input: 'entry',
             plugins: [virtual({ entry: 'console.log("hello")' }), html({ ignore: 0 })],
@@ -598,7 +598,7 @@ describe('@rollup-extras/plugin-html integration', () => {
     });
 
     // 18. verbose: true - verify it does not crash
-    it('should not crash when verbose is true', async () => {
+    it('should generate valid HTML when verbose option is enabled', async () => {
         const bundle = await rollup({
             input: 'entry',
             plugins: [virtual({ entry: 'console.log("hello")' }), html({ verbose: true })],
@@ -797,7 +797,7 @@ describe('@rollup-extras/plugin-html integration', () => {
     });
 
     // 28. CJS format entry chunk - covers L332/L338 false paths (format not in es/iife/umd)
-    it('should handle CJS format without adding script tags', async () => {
+    it('should not inject any script tags for CJS format entries', async () => {
         const bundle = await rollup({
             input: 'entry',
             plugins: [virtual({ entry: 'module.exports = 1;' }), html()],
@@ -864,7 +864,7 @@ describe('@rollup-extras/plugin-html integration', () => {
     });
 
     // 31. Generate with output.file instead of output.dir (covers dir ?? '' fallback branches)
-    it('should handle generate when no dir is specified', async () => {
+    it('should emit index.html when output.dir is undefined', async () => {
         const bundle = await rollup({
             input: 'entry',
             plugins: [virtual({ entry: 'console.log("hello")' }), html()],
@@ -968,7 +968,7 @@ describe('@rollup-extras/plugin-html integration', () => {
     });
 
     // Cover line 403: predicateFactory logs warning for injectIntoHead with invalid type
-    it('should fall back to default injectIntoHead when option is an invalid value (number)', async () => {
+    it('should ignore the injectIntoHead option and use defaults when it is an invalid type', async () => {
         const bundle = await rollup({
             input: 'entry',
             plugins: [

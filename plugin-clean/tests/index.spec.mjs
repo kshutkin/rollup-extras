@@ -39,7 +39,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         await rm(tmpDir, { recursive: true, force: true });
     });
 
-    it('basic cleaning: old files are removed from output dir', async () => {
+    it('should remove old files from output directory on build', async () => {
         const outputDir = join(tmpDir, 'dist');
         await mkdir(outputDir, { recursive: true });
         await writeFile(join(outputDir, 'old-file.txt'), 'old content');
@@ -56,7 +56,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(files).toContain('entry.js');
     });
 
-    it('custom targets: specified directories are deleted', async () => {
+    it('should delete all specified custom target directories', async () => {
         const target1 = join(tmpDir, 'target1');
         const target2 = join(tmpDir, 'target2');
         const outputDir = join(tmpDir, 'out');
@@ -80,7 +80,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(files).toContain('entry.js');
     });
 
-    it('deleteOnce true (default): second build does not re-delete', async () => {
+    it('should not re-delete on second build when deleteOnce is true (default)', async () => {
         const outputDir = join(tmpDir, 'dist');
         const v = virtual({ entry: 'export default 1' });
         const p = clean();
@@ -111,7 +111,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(files).toContain('entry.js');
     });
 
-    it('outputPlugin false: cleaning happens during buildStart before write', async () => {
+    it('should clean during buildStart before bundle.write when outputPlugin is false', async () => {
         const outputDir = join(tmpDir, 'dist');
         await mkdir(outputDir, { recursive: true });
         await writeFile(join(outputDir, 'old-file.txt'), 'old content');
@@ -132,7 +132,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(files).not.toContain('old-file.txt');
     });
 
-    it('multiple output dirs: both get cleaned', async () => {
+    it('should clean both output directories when writing to multiple outputs', async () => {
         const outputDir1 = join(tmpDir, 'dist1');
         const outputDir2 = join(tmpDir, 'dist2');
 
@@ -159,7 +159,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(files2).toContain('entry.js');
     });
 
-    it('string shorthand option: clean(dir) cleans the directory', async () => {
+    it('should clean the directory when a string is passed as the option', async () => {
         const outputDir = join(tmpDir, 'dist');
         await mkdir(outputDir, { recursive: true });
         await writeFile(join(outputDir, 'old-file.txt'), 'old content');
@@ -176,7 +176,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(files).toContain('entry.js');
     });
 
-    it('array shorthand option: clean([dir1, dir2]) cleans both directories', async () => {
+    it('should clean all directories when an array is passed as the option', async () => {
         const target1 = join(tmpDir, 'dir1');
         const target2 = join(tmpDir, 'dir2');
         const outputDir = join(tmpDir, 'out');
@@ -197,7 +197,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(await exists(target2)).toBe(false);
     });
 
-    it('ENOENT handling: non-existent target does not crash the build', async () => {
+    it('should not throw when a target directory does not exist', async () => {
         const nonExistent = join(tmpDir, 'does-not-exist');
         const outputDir = join(tmpDir, 'out');
 
@@ -212,7 +212,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(files).toContain('entry.js');
     });
 
-    it('deleteOnce false with repeated builds: marker files are deleted each time', async () => {
+    it('should delete on every build when deleteOnce is false', async () => {
         const outputDir = join(tmpDir, 'dist');
         const v = virtual({ entry: 'export default 1' });
         const p = clean({ deleteOnce: false });
@@ -243,7 +243,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(files).toContain('entry.js');
     });
 
-    it('no dir in output (file-based output) with outputPlugin: true does not throw', async () => {
+    it('should not throw when output uses file instead of dir with outputPlugin true', async () => {
         const outFile = join(tmpDir, 'out.js');
 
         const bundle = await rollup({
@@ -254,7 +254,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         await bundle.close();
     });
 
-    it('trailing slash normalization: target with trailing slash is cleaned', async () => {
+    it('should normalize and clean a target path with a trailing slash', async () => {
         const targetDir = join(tmpDir, 'trail');
         await mkdir(targetDir, { recursive: true });
         await writeFile(join(targetDir, 'old.txt'), 'old');
@@ -272,11 +272,11 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(await exists(targetDir)).toBe(false);
     });
 
-    it('default plugin name is @rollup-extras/plugin-clean', () => {
+    it('should have default plugin name @rollup-extras/plugin-clean', () => {
         expect(clean().name).toBe('@rollup-extras/plugin-clean');
     });
 
-    it('custom pluginName option is reflected in plugin name', () => {
+    it('should use custom pluginName as the plugin name', () => {
         expect(clean({ pluginName: 'my-cleaner' }).name).toBe('my-cleaner');
     });
 
@@ -284,7 +284,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
     // NEW TESTS for coverage gaps
     // ========================================================================
 
-    it('addInstance() with outputPlugin: true cleans both output dirs', async () => {
+    it('should clean both output dirs when using addInstance with outputPlugin true', async () => {
         const dir1 = join(tmpDir, 'out1');
         const dir2 = join(tmpDir, 'out2');
         await mkdir(dir1, { recursive: true });
@@ -318,7 +318,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(files2).toContain('entry.js');
     });
 
-    it('addInstance() with outputPlugin: false cleans via buildStart', async () => {
+    it('should clean via buildStart when using addInstance with outputPlugin false', async () => {
         const dir1 = join(tmpDir, 'target1');
         const outDir = join(tmpDir, 'out');
         await mkdir(dir1, { recursive: true });
@@ -346,7 +346,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(await exists(dir1)).toBe(false);
     });
 
-    it('optionsHook extracts targets from single config.output', async () => {
+    it('should extract and clean targets from a single config.output object', async () => {
         const outputDir = join(tmpDir, 'inferred');
         await mkdir(outputDir, { recursive: true });
         await writeFile(join(outputDir, 'old.txt'), 'old');
@@ -367,7 +367,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(files).toContain('entry.js');
     });
 
-    it('optionsHook extracts targets from array config.output', async () => {
+    it('should extract and clean targets from a config.output array', async () => {
         const dir1 = join(tmpDir, 'esm');
         const dir2 = join(tmpDir, 'cjs');
         await mkdir(dir1, { recursive: true });
@@ -392,7 +392,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         await bundle.close();
     });
 
-    it('buildStart early return when deleted (outputPlugin: false, deleteOnce: true)', async () => {
+    it('should skip buildStart cleanup on second build when deleteOnce is true and outputPlugin is false', async () => {
         const targetDir = join(tmpDir, 'target');
         const outDir = join(tmpDir, 'out');
         await mkdir(targetDir, { recursive: true });
@@ -417,7 +417,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(await exists(join(targetDir, 'marker.txt'))).toBe(true);
     });
 
-    it('duplicate target: same dir listed twice in targets (outputPlugin: true)', async () => {
+    it('should handle duplicate targets gracefully with outputPlugin true', async () => {
         const dir = join(tmpDir, 'dup');
         const outDir = join(tmpDir, 'out');
         await mkdir(dir, { recursive: true });
@@ -433,7 +433,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(await exists(dir)).toBe(false);
     });
 
-    it('duplicate target with outputPlugin: false', async () => {
+    it('should handle duplicate targets gracefully with outputPlugin false', async () => {
         const dir = join(tmpDir, 'dup');
         const outDir = join(tmpDir, 'out');
         await mkdir(dir, { recursive: true });
@@ -450,7 +450,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         await bundle.close();
     });
 
-    it('nested targets: parent then child (child skipped via parentsInProgress)', async () => {
+    it('should skip child deletion when parent is listed first in targets', async () => {
         const parent = join(tmpDir, 'parent');
         const child = join(parent, 'child');
         const outDir = join(tmpDir, 'out');
@@ -468,7 +468,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(await exists(parent)).toBe(false);
     });
 
-    it('nested targets: child then parent (parent waits for child)', async () => {
+    it('should delete both when child is listed before parent in targets', async () => {
         const parent = join(tmpDir, 'parent');
         const child = join(parent, 'child');
         const outDir = join(tmpDir, 'out');
@@ -486,7 +486,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(await exists(parent)).toBe(false);
     });
 
-    it('verbose: true logs at info level without error', async () => {
+    it('should not throw when verbose is true', async () => {
         const dir = join(tmpDir, 'verbose-target');
         const outDir = join(tmpDir, 'out');
         await mkdir(dir, { recursive: true });
@@ -502,7 +502,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         expect(await exists(dir)).toBe(false);
     });
 
-    it('non-ENOENT filesystem error does not crash build', async () => {
+    it('should handle non-ENOENT filesystem errors without crashing the build', async () => {
         const protectedParent = join(tmpDir, 'protected');
         const targetInside = join(protectedParent, 'inner');
         await mkdir(targetInside, { recursive: true });
@@ -528,7 +528,7 @@ describe('@rollup-extras/plugin-clean integration', () => {
         }
     });
 
-    it('outputPlugin false with no targets and no output dir in config: buildStart is a no-op', async () => {
+    it('should be a no-op on buildStart when outputPlugin is false and no targets are configured', async () => {
         const outDir = join(tmpDir, 'out');
         const p = clean({ outputPlugin: false });
         const bundle = await rollup({

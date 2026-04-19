@@ -48,7 +48,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
             expect(output[0].code).toContain('console.log');
         });
 
-        it('should inline multiple scripts preserving all content', async () => {
+        it('should inline multiple script imports and preserve all content in the bundle', async () => {
             await writeFile(join(tmpDir, 'lib1.js'), 'window.LIB_ONE = 1;');
             await writeFile(join(tmpDir, 'lib2.js'), 'window.LIB_TWO = 2;');
 
@@ -103,7 +103,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
             expect(output[0].code).toContain('CUSTOM_PREFIX');
         });
 
-        it('should NOT intercept the default prefix when a custom one is set', async () => {
+        it('should leave imports with the default prefix unresolved when a custom prefix is configured', async () => {
             await writeFile(join(tmpDir, 'ignored.js'), 'window.SHOULD_NOT_APPEAR = true;');
 
             // Using the default prefix while plugin is configured with a different one.
@@ -129,7 +129,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('asset mode (emit: asset)', () => {
-        it('should emit a separate asset file with concatenated scripts', async () => {
+        it('should emit a separate asset containing all scripts concatenated together', async () => {
             await writeFile(join(tmpDir, 'lib1.js'), 'var LIB1 = true;');
             await writeFile(join(tmpDir, 'lib2.js'), 'var LIB2 = true;');
 
@@ -154,7 +154,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
             expect(asset.source).toContain('LIB2');
         });
 
-        it('should not inline asset-mode scripts into the main chunk', async () => {
+        it('should exclude asset-mode scripts from the main JS chunk', async () => {
             await writeFile(join(tmpDir, 'external.js'), 'var EXTERNAL_ONLY = true;');
 
             const bundle = await rollup({
@@ -176,7 +176,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('asset mode ordering', () => {
-        it('should maintain import order in the concatenated asset', async () => {
+        it('should concatenate scripts in the asset file respecting their import order', async () => {
             await writeFile(join(tmpDir, 'first.js'), 'var FIRST_SCRIPT = 1;');
             await writeFile(join(tmpDir, 'second.js'), 'var SECOND_SCRIPT = 2;');
             await writeFile(join(tmpDir, 'third.js'), 'var THIRD_SCRIPT = 3;');
@@ -212,7 +212,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('watch file tracking', () => {
-        it('should add loaded scripts to watchFiles', async () => {
+        it('should register loaded script paths in Rollup watchFiles for HMR', async () => {
             await writeFile(join(tmpDir, 'watched.js'), 'window.WATCHED = true;');
 
             const bundle = await rollup({
@@ -230,7 +230,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('sourcemap in asset mode', () => {
-        it('should emit a .map file alongside the asset by default', async () => {
+        it('should emit a .map sourcemap file alongside the asset when sourcemap defaults to true', async () => {
             await writeFile(join(tmpDir, 'lib.js'), 'var MAPPED_LIB = true;');
 
             const bundle = await rollup({
@@ -254,7 +254,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
             expect(parsed).toHaveProperty('sources');
         });
 
-        it('should NOT emit a .map file when sourcemap is false', async () => {
+        it('should suppress sourcemap emission when sourcemap option is false', async () => {
             await writeFile(join(tmpDir, 'lib.js'), 'var NO_MAP_LIB = true;');
 
             const bundle = await rollup({
@@ -276,7 +276,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('minify option', () => {
-        it('should apply minify function to the emitted asset', async () => {
+        it('should pass the concatenated asset source through the minify function before emitting', async () => {
             await writeFile(join(tmpDir, 'spacey.js'), 'var   SPACEY   =   true;');
 
             const bundle = await rollup({
@@ -302,7 +302,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('exactFileName: false', () => {
-        it('should produce a hashed filename when exactFileName is false', async () => {
+        it('should use Rollup asset hashing for the filename when exactFileName is false', async () => {
             await writeFile(join(tmpDir, 'hashed.js'), 'var HASHED_ASSET = true;');
 
             const bundle = await rollup({
@@ -331,17 +331,17 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('plugin name', () => {
-        it('should have the correct default plugin name', () => {
+        it('should default to @rollup-extras/plugin-script-loader as the plugin name', () => {
             expect(scriptLoader().name).toBe('@rollup-extras/plugin-script-loader');
         });
 
-        it('should use a custom pluginName when provided', () => {
+        it('should use the provided pluginName as the Rollup plugin name', () => {
             expect(scriptLoader({ pluginName: 'my-loader' }).name).toBe('my-loader');
         });
     });
 
     describe('closeBundle cleanup (rebuild simulation)', () => {
-        it('should produce correct output on a second build with the same plugin instance', async () => {
+        it('should reset internal state between builds so a reused plugin instance produces correct output', async () => {
             await writeFile(join(tmpDir, 'build1.js'), 'var BUILD_ONE = 1;');
             await writeFile(join(tmpDir, 'build2.js'), 'var BUILD_TWO = 2;');
 
@@ -376,7 +376,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('single script in asset mode', () => {
-        it('should emit a single script as an asset correctly', async () => {
+        it('should emit an asset file even when only a single script is imported', async () => {
             await writeFile(join(tmpDir, 'solo.js'), 'var SOLO_SCRIPT = true;');
 
             const bundle = await rollup({
@@ -399,7 +399,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     // ----------------------------------------------------------------
 
     describe('unresolvable specifier', () => {
-        it('should warn and leave the import unresolved when module cannot be found', async () => {
+        it('should emit a warning and leave the import unresolved when the specifier cannot be resolved', async () => {
             const warnings = [];
             const bundle = await rollup({
                 input: 'entry',
@@ -416,7 +416,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('resolved ID with null byte prefix', () => {
-        it('should strip the null prefix from the resolved path and load from disk', async () => {
+        it('should strip the null-byte virtual-module prefix from the resolved ID before reading from disk', async () => {
             await writeFile(join(tmpDir, 'null-prefixed.js'), 'window.NULL_PREFIX_WORKS = true;');
 
             function nullPrefixPlugin() {
@@ -443,7 +443,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('resolved ID with ?query suffix', () => {
-        it('should strip the ?query suffix from resolved path and load from disk', async () => {
+        it('should strip query suffixes from resolved IDs before reading from disk', async () => {
             await writeFile(join(tmpDir, 'query-mod.js'), 'window.QUERY_STRIPPED = true;');
 
             function queryPlugin() {
@@ -470,7 +470,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('script with inline base64 sourcemap', () => {
-        it('should parse inline base64 sourcemap when emit asset with sourcemap true', async () => {
+        it('should extract and merge inline base64 sourcemaps when emitting an asset with sourcemap enabled', async () => {
             const inlineMap = 'eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInRlc3QuanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUEifQ==';
             const code = `var INLINE_MAP = 1;\n//# sourceMappingURL=data:application/json;base64,${inlineMap}`;
             await writeFile(join(tmpDir, 'inline-map.js'), code);
@@ -497,7 +497,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('script with external .map file', () => {
-        it('should read external sourcemap file when it exists', async () => {
+        it('should read and merge an external .map file referenced by sourceMappingURL comment', async () => {
             const mapContent = JSON.stringify({
                 version: 3,
                 file: 'ext-map.js',
@@ -529,7 +529,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('script with missing external .map file', () => {
-        it('should gracefully handle a missing external sourcemap file', async () => {
+        it('should emit the asset without error when a referenced external .map file is missing', async () => {
             await writeFile(join(tmpDir, 'no-map.js'), 'var NO_MAP = 1;\n//# sourceMappingURL=no-map.js.map');
 
             const bundle = await rollup({
@@ -551,7 +551,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('minify function that throws', () => {
-        it('should report an error when the minify function throws', async () => {
+        it('should propagate minify errors as build errors with a descriptive message', async () => {
             await writeFile(join(tmpDir, 'to-minify.js'), 'var TO_MINIFY = 1;');
 
             let buildError;
@@ -581,7 +581,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('minify returns a sourcemap', () => {
-        it('should use the sourcemap returned by the minify function', async () => {
+        it('should emit the sourcemap returned by the minify function instead of the pre-minify map', async () => {
             await writeFile(join(tmpDir, 'min-map.js'), 'var   MIN_MAP   =   true;');
 
             const bundle = await rollup({
@@ -614,7 +614,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('verbose: true in asset mode', () => {
-        it('should log emitted asset information when verbose is true', async () => {
+        it('should log asset filename and size to the logger when verbose is true', async () => {
             await writeFile(join(tmpDir, 'verbose-lib.js'), 'var VERBOSE_LIB = 1;');
 
             const bundle = await rollup({
@@ -633,7 +633,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('sourcemap: true in inline mode', () => {
-        it('should still inline correctly when sourcemap is true in inline mode', async () => {
+        it('should ignore the sourcemap option and inline normally when emit mode is inline', async () => {
             await writeFile(join(tmpDir, 'inline-sm.js'), 'window.INLINE_SM = true;');
 
             const bundle = await rollup({
@@ -650,7 +650,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('stripSourcemapComment in asset mode', () => {
-        it('should strip the sourceMappingURL comment from the emitted asset', async () => {
+        it('should remove existing sourceMappingURL comments from individual scripts before concatenating', async () => {
             await writeFile(join(tmpDir, 'has-comment.js'), 'var HAS_COMMENT = 1;\n//# sourceMappingURL=something.map');
 
             const bundle = await rollup({
@@ -670,7 +670,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('load hook returns null for non-script IDs', () => {
-        it('should return null from load for modules not prefixed with script prefix', async () => {
+        it('should pass through non-script modules to other plugins by returning null from the load hook', async () => {
             await writeFile(join(tmpDir, 'helper.mjs'), 'export const HELPER = 42;');
             await writeFile(join(tmpDir, 'script-side.js'), 'var SCRIPT_SIDE = 1;');
 
@@ -704,7 +704,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('sort comparator edge cases (lines 257-259)', () => {
-        it('should place scripts in importOrder before scripts not in importOrder', async () => {
+        it('should sort statically-imported scripts before dynamically-loaded scripts in the concatenated asset', async () => {
             // Create scripts: one will be statically imported (in importOrder),
             // the other will be force-loaded (NOT in importOrder).
             await writeFile(join(tmpDir, 'ordered.js'), 'var ORDERED_SCRIPT = 1;');
@@ -752,7 +752,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
             expect(idxOrdered).toBeLessThan(idxUnordered);
         });
 
-        it('should preserve relative order for scripts both absent from importOrder', async () => {
+        it('should preserve Map insertion order for scripts that are both absent from importOrder', async () => {
             // Both scripts are force-loaded (neither in importOrder).
             // The comparator returns 0, preserving insertion order.
             await writeFile(join(tmpDir, 'alpha.js'), 'var ALPHA_SCRIPT = 1;');

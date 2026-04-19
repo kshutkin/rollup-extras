@@ -30,7 +30,7 @@ describe('@rollup-extras/plugin-exec', () => {
         await rm(tmpDir, { recursive: true, force: true });
     });
 
-    it('callback is called after bundle.write()', async () => {
+    it('should invoke the exec callback once after bundle.write()', async () => {
         const callback = vi.fn();
         const bundle = await rollup({
             input: 'entry',
@@ -41,7 +41,7 @@ describe('@rollup-extras/plugin-exec', () => {
         await bundle.close();
     });
 
-    it('callback receives context with logger property', async () => {
+    it('should expose a logger function on the callback this context', async () => {
         let receivedLogger;
         const callback = vi.fn(function () {
             receivedLogger = this.logger;
@@ -57,7 +57,7 @@ describe('@rollup-extras/plugin-exec', () => {
         await bundle.close();
     });
 
-    it('works when no callback is provided (no error)', async () => {
+    it('should not throw when no callback is provided', async () => {
         const bundle = await rollup({
             input: 'entry',
             plugins: [virtual({ entry: 'export default 1' }), exec(undefined)],
@@ -66,7 +66,7 @@ describe('@rollup-extras/plugin-exec', () => {
         await bundle.close();
     });
 
-    it('supports custom plugin name option', async () => {
+    it('should use the custom pluginName when provided in the options object', async () => {
         const callback = vi.fn();
         const pluginInstance = exec({ pluginName: 'my-custom-exec', exec: callback });
         expect(pluginInstance.name).toBe('my-custom-exec');
@@ -80,7 +80,7 @@ describe('@rollup-extras/plugin-exec', () => {
         await bundle.close();
     });
 
-    it('callback is only called once even with multiple outputs', async () => {
+    it('should invoke the callback only once across multiple bundle.write() calls', async () => {
         const callback = vi.fn();
         const bundle = await rollup({
             input: 'entry',
@@ -94,12 +94,12 @@ describe('@rollup-extras/plugin-exec', () => {
         await bundle.close();
     });
 
-    it('default plugin name is @rollup-extras/plugin-exec', () => {
+    it('should default the plugin name to @rollup-extras/plugin-exec', () => {
         const callback = vi.fn();
         expect(exec(callback).name).toBe('@rollup-extras/plugin-exec');
     });
 
-    it('options object with only exec: callback is called, name is default', async () => {
+    it('should accept an options object with only exec and use the default name', async () => {
         const callback = vi.fn();
         const pluginInstance = exec({ exec: callback });
         expect(pluginInstance.name).toBe('@rollup-extras/plugin-exec');
@@ -113,7 +113,7 @@ describe('@rollup-extras/plugin-exec', () => {
         await bundle.close();
     });
 
-    it('options object with only pluginName: does not throw, name matches', async () => {
+    it('should accept an options object with only pluginName and not throw', async () => {
         const pluginInstance = exec({ pluginName: 'foo' });
         expect(pluginInstance.name).toBe('foo');
 
@@ -125,7 +125,7 @@ describe('@rollup-extras/plugin-exec', () => {
         await bundle.close();
     });
 
-    it('empty object: does not throw, name is default', async () => {
+    it('should not throw when passed an empty options object', async () => {
         const pluginInstance = exec({});
         expect(pluginInstance.name).toBe('@rollup-extras/plugin-exec');
 
@@ -137,7 +137,7 @@ describe('@rollup-extras/plugin-exec', () => {
         await bundle.close();
     });
 
-    it('generate() does NOT trigger callback', async () => {
+    it('should not invoke the callback when using bundle.generate()', async () => {
         const callback = vi.fn();
         const bundle = await rollup({
             input: 'entry',
@@ -148,7 +148,7 @@ describe('@rollup-extras/plugin-exec', () => {
         await bundle.close();
     });
 
-    it('context has PluginContext properties inside callback', async () => {
+    it('should provide PluginContext methods (warn, emitFile) on the callback this context', async () => {
         let hasWarn = false;
         let hasEmitFile = false;
         const callback = vi.fn(function () {

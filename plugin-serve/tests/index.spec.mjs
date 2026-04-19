@@ -140,7 +140,7 @@ describe('@rollup-extras/plugin-serve', () => {
             expect(typeof pluginInstance.renderStart).toBe('function');
         });
 
-        it('should not have custom renderStart hook when dirs are provided', () => {
+        it('should use a different renderStart implementation when dirs are explicitly provided', () => {
             const withDirs = serve({ dirs: ['dist'] });
             const withoutDirs = serve();
             expect(withDirs.renderStart).not.toBe(withoutDirs.renderStart);
@@ -157,7 +157,7 @@ describe('@rollup-extras/plugin-serve', () => {
             expect(pluginInstance.writeBundle).toBeUndefined();
         });
 
-        it('should have expected plugin shape (name, outputOptions)', () => {
+        it('should expose name as string and outputOptions as function', () => {
             const pluginInstance = serve();
             expect(typeof pluginInstance.name).toBe('string');
             expect(pluginInstance.name.length).toBeGreaterThan(0);
@@ -222,7 +222,7 @@ describe('@rollup-extras/plugin-serve', () => {
             expect(typeof customizeArg.fetch).toBe('function');
         });
 
-        it('should start server with useLogger false', async () => {
+        it('should start server without hono request logger when useLogger is false', async () => {
             const res = createTestPlugin({ useLogger: false });
             await triggerWatchMode(res.plugin);
             const server = await res.serverPromise;
@@ -230,7 +230,7 @@ describe('@rollup-extras/plugin-serve', () => {
             expect(server.listening).toBe(true);
         });
 
-        it('should start server with useLogger true (default)', async () => {
+        it('should start server with hono request logger when useLogger is true', async () => {
             const res = createTestPlugin({ useLogger: true });
             await triggerWatchMode(res.plugin);
             const server = await res.serverPromise;
@@ -260,7 +260,7 @@ describe('@rollup-extras/plugin-serve', () => {
     });
 
     describe('EADDRINUSE error handling', () => {
-        it('should handle EADDRINUSE gracefully', async () => {
+        it('should not throw when port is already in use (EADDRINUSE)', async () => {
             const blocker = createNetServer();
             await new Promise(resolve => {
                 blocker.listen(0, resolve);
@@ -299,7 +299,7 @@ describe('@rollup-extras/plugin-serve', () => {
     });
 
     describe('onListen callback and address formatting', () => {
-        it('should skip logger when onListen returns true', async () => {
+        it('should suppress default log message when onListen returns true', async () => {
             let onListenCalled = false;
             let resolveServer;
             const serverPromise = new Promise(resolve => {
@@ -320,7 +320,7 @@ describe('@rollup-extras/plugin-serve', () => {
             expect(onListenCalled).toBe(true);
         });
 
-        it('should call logger when onListen returns void', async () => {
+        it('should log server address when onListen returns undefined', async () => {
             let resolveServer;
             const serverPromise = new Promise(resolve => {
                 resolveServer = resolve;
@@ -338,7 +338,7 @@ describe('@rollup-extras/plugin-serve', () => {
             expect(server.listening).toBe(true);
         });
 
-        it('should call logger when onListen is not provided', async () => {
+        it('should log server address when no onListen callback is configured', async () => {
             const plugin = serve({
                 port: 0,
                 dirs: ['.'],
@@ -349,7 +349,7 @@ describe('@rollup-extras/plugin-serve', () => {
             });
         });
 
-        it('should format IPv4 address correctly (host 127.0.0.1)', async () => {
+        it('should preserve explicit IPv4 host address in server binding', async () => {
             let resolveServer;
             const serverPromise = new Promise(resolve => {
                 resolveServer = resolve;
@@ -370,7 +370,7 @@ describe('@rollup-extras/plugin-serve', () => {
             expect(addr.address).toBe('127.0.0.1');
         });
 
-        it('should format IPv6 [::] as localhost (default host)', async () => {
+        it('should resolve IPv6 wildcard [::] to localhost in log output', async () => {
             let resolveServer;
             const serverPromise = new Promise(resolve => {
                 resolveServer = resolve;
@@ -503,7 +503,7 @@ describe('@rollup-extras/plugin-serve', () => {
     });
 
     describe('staticOptions', () => {
-        it('should pass staticOptions to serveStatic without crashing', async () => {
+        it('should forward staticOptions to the underlying serveStatic middleware', async () => {
             const res = createTestPlugin({
                 staticOptions: { rewriteRequestPath: path => path },
             });
@@ -515,7 +515,7 @@ describe('@rollup-extras/plugin-serve', () => {
     });
 
     describe('multiple outputs', () => {
-        it('should survive multiple renderStart/writeBundle cycles in non-watch', async () => {
+        it('should not error when reused across multiple sequential rollup builds in non-watch mode', async () => {
             const pluginInstance = serve({ port: 0 });
             const sharedPlugins = [virtual({ entry: 'export default 9' }), pluginInstance];
             const bundle1 = await rollup({ input: 'entry', plugins: sharedPlugins });
@@ -549,7 +549,7 @@ describe('@rollup-extras/plugin-serve \u2013 additional coverage', () => {
     });
 
     describe('EADDRINUSE logger.finish branch (line 126)', () => {
-        it('should exercise the EADDRINUSE error handler and call logger.finish', async () => {
+        it('should call logger.finish with error message on EADDRINUSE without onListen', async () => {
             // Block a port with a plain net server
             const blocker = createNetServer();
             await new Promise(resolve => {
@@ -588,7 +588,7 @@ describe('@rollup-extras/plugin-serve \u2013 additional coverage', () => {
     });
 
     describe('linkFromAddress string/null branch (line 151)', () => {
-        it('should format a string address returned by server.address()', async () => {
+        it('should log raw string when server.address() returns a Unix socket path', async () => {
             let capturedServer;
             let resolveListened;
             const listenedPromise = new Promise(resolve => {
@@ -620,7 +620,7 @@ describe('@rollup-extras/plugin-serve \u2013 additional coverage', () => {
             expect(capturedServer).toBeDefined();
         });
 
-        it('should format a null address returned by server.address()', async () => {
+        it('should handle null from server.address() without throwing', async () => {
             let capturedServer;
             let resolveListened;
             const listenedPromise = new Promise(resolve => {
