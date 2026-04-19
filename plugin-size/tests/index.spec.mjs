@@ -809,3 +809,70 @@ describe('@rollup-extras/plugin-size (final branch coverage)', () => {
         expect(secondStats.entries.es.raw).toBeLessThan(firstStats.entries.es.raw);
     });
 });
+
+// --- TESTS FOR UNCOVERED LINES 48 AND 109 ---
+
+describe('@rollup-extras/plugin-size (lines 48 & 109 coverage)', () => {
+    let tmpDir;
+
+    function virtual(modules) {
+        return {
+            name: 'virtual-input',
+            resolveId(id) {
+                if (modules[id] != null) return id;
+            },
+            load(id) {
+                if (modules[id] != null) return modules[id];
+            },
+        };
+    }
+
+    beforeEach(async () => {
+        tmpDir = await mkdtemp(join(tmpdir(), 'plugin-size-lines-'));
+    });
+
+    afterEach(async () => {
+        await rm(tmpDir, { recursive: true, force: true });
+    });
+
+    it('should format sizes in MB range when output exceeds 1 MB (line 48)', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        // Generate a string constant > 1 MB so the chunk raw size hits the MB branch
+        const hugeExport = `export default "${'X'.repeat(1_100_000)}";`;
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: hugeExport }), size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        // The raw size must be >= 1 MB to exercise the MB branch in formatSize
+        expect(stats.entries.es.raw).toBeGreaterThanOrEqual(1024 * 1024);
+    });
+
+    it('should early-return in printReport when bundle is empty (line 109)', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+
+        // Plugin that removes every item from the bundle before the size plugin sees it
+        const emptyBundlePlugin = {
+            name: 'empty-bundle',
+            generateBundle(_options, bundle) {
+                for (const key of Object.keys(bundle)) {
+                    delete bundle[key];
+                }
+            },
+        };
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1;' }), emptyBundlePlugin, size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        // With an empty bundle the stats object should have no entries, chunks, or assets
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats).toEqual({});
+    });
+});

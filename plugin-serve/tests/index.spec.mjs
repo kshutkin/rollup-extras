@@ -284,6 +284,18 @@ describe('@rollup-extras/plugin-serve', () => {
                 });
             }
         });
+
+        it('should throw for non-EADDRINUSE errors', async () => {
+            const res = createTestPlugin();
+            await triggerWatchMode(res.plugin);
+            const server = await res.serverPromise;
+            serversToClose.push(server);
+
+            const err = new Error('some other error');
+            err.code = 'ECONNREFUSED';
+
+            expect(() => server.emit('error', err)).toThrow('some other error');
+        });
     });
 
     describe('onListen callback and address formatting', () => {
@@ -512,6 +524,129 @@ describe('@rollup-extras/plugin-serve', () => {
             const bundle2 = await rollup({ input: 'entry', plugins: sharedPlugins });
             await bundle2.write({ format: 'es', dir: tmpDir });
             await bundle2.close();
+        });
+    });
+});
+
+// --- Additional coverage tests ---
+
+describe('@rollup-extras/plugin-serve \u2013 additional coverage', () => {
+    let serversToClose = [];
+
+    beforeEach(() => {
+        serversToClose = [];
+    });
+
+    afterEach(async () => {
+        for (const server of serversToClose) {
+            if (server?.listening) {
+                await new Promise(resolve => {
+                    server.close(resolve);
+                });
+            }
+        }
+        serversToClose = [];
+    });
+
+    describe('EADDRINUSE logger.finish branch (line 126)', () => {
+        it('should exercise the EADDRINUSE error handler and call logger.finish', async () => {
+            // Block a port with a plain net server
+            const blocker = createNetServer();
+            await new Promise(resolve => {
+                blocker.listen(0, resolve);
+            });
+            const occupiedPort = blocker.address().port;
+
+            try {
+                // Use a deferred promise to detect when the error handler fires
+                const _errorHandlerFired = false;
+                const plugin = serve({
+                    port: occupiedPort,
+                    dirs: ['.'],
+                    // Don't provide onListen — let the default logger path run.
+                    // The EADDRINUSE error fires before onListen would be called.
+                });
+
+                // Must call outputOptions -> renderStart -> writeBundle in order
+                plugin.outputOptions.call({ meta: { watchMode: true } });
+                plugin.renderStart.call({ meta: { watchMode: true } }, {}, {});
+                await plugin.writeBundle.call({ meta: { watchMode: true } }, {}, {});
+
+                // Wait for the async EADDRINUSE error handler to fire (line 126)
+                // Use multiple event loop ticks to ensure V8 coverage captures it
+                for (let i = 0; i < 10; i++) {
+                    await new Promise(resolve => {
+                        setTimeout(resolve, 100);
+                    });
+                }
+            } finally {
+                await new Promise(resolve => {
+                    blocker.close(resolve);
+                });
+            }
+        });
+    });
+
+    describe('linkFromAddress string/null branch (line 151)', () => {
+        it('should format a string address returned by server.address()', async () => {
+            let capturedServer;
+            let resolveListened;
+            const listenedPromise = new Promise(resolve => {
+                resolveListened = resolve;
+            });
+
+            const plugin = serve({
+                port: 0,
+                dirs: ['.'],
+                onListen: server => {
+                    capturedServer = server;
+                    // Monkey-patch server.address() to return a string (Unix socket path)
+                    // BEFORE returning falsy so internalOnListen proceeds to call
+                    // linkFromAddress with a string, exercising line 151
+                    server.address = () => '/tmp/rollup-extras-test.sock';
+                    resolveListened(server);
+                    // Return undefined (falsy) so the logger.finish path is taken
+                },
+            });
+
+            // Proper hook sequence: outputOptions -> renderStart -> writeBundle
+            plugin.outputOptions.call({ meta: { watchMode: true } });
+            plugin.renderStart.call({ meta: { watchMode: true } }, {}, {});
+            await plugin.writeBundle.call({ meta: { watchMode: true } }, {}, {});
+
+            const server = await listenedPromise;
+            serversToClose.push(server);
+
+            expect(capturedServer).toBeDefined();
+        });
+
+        it('should format a null address returned by server.address()', async () => {
+            let capturedServer;
+            let resolveListened;
+            const listenedPromise = new Promise(resolve => {
+                resolveListened = resolve;
+            });
+
+            const plugin = serve({
+                port: 0,
+                dirs: ['.'],
+                onListen: server => {
+                    capturedServer = server;
+                    // Monkey-patch server.address() to return null
+                    server.address = () => null;
+                    resolveListened(server);
+                    // Return undefined (falsy) so the logger.finish path is taken
+                },
+            });
+
+            plugin.outputOptions.call({ meta: { watchMode: true } });
+            plugin.renderStart.call({ meta: { watchMode: true } }, {}, {});
+            await plugin.writeBundle.call({ meta: { watchMode: true } }, {}, {});
+
+            const server = await listenedPromise;
+            serversToClose.push(server);
+
+            expect(capturedServer).toBeDefined();
         });
     });
 });

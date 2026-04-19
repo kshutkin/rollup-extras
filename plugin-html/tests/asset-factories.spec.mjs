@@ -77,4 +77,15 @@ describe('@rollup-extras/plugin-html/asset-factories', () => {
         expect(result1).toEqual('<script src="test.js" type="text/javascript" nomodule></script>');
         expect(result2).toEqual('<script src="test.mjs" type="module"></script>');
     });
+
+    // Cover line 97: getLogger creates the logger via createLogger on first invocation.
+    // Uses vi.resetModules() to ensure the module-level logger is unset.
+    it('should call createLogger when getLogger is invoked for the first time', async () => {
+        vi.resetModules();
+        const { simpleES5FallbackScript: fresh } = await import('../src/asset-factories');
+
+        fresh({});
+
+        expect(vi.mocked(createLogger)).toHaveBeenCalledWith('@rollup-extras/plugin-html/asset-factories');
+    });
 });

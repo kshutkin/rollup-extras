@@ -877,4 +877,113 @@ describe('@rollup-extras/plugin-html integration', () => {
         expect(htmlAsset.source).toContain('<script');
         expect(htmlAsset.source).toContain('entry.js');
     });
+
+    // ====================================================================
+    // Additional coverage tests
+    // ====================================================================
+
+    // Cover line 226: multi-config scenario where existing emitted index.html
+    // is found but useEmittedTemplate is false (template option provided).
+    // First config has remainingConfigsCount > 0, second has remainingConfigsCount === 0.
+    it('should handle multi-config scenario removing existing emitted html', async () => {
+        const customTemplate = '<!DOCTYPE html><html><head></head><body><div id="multi"></div></body></html>';
+        const plugin = html({ template: customTemplate });
+        const secondInstance = plugin.api.addInstance();
+
+        const bundle1 = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("config1")' }),
+                {
+                    name: 'emit-html-1',
+                    generateBundle() {
+                        this.emitFile({
+                            type: 'asset',
+                            fileName: 'index.html',
+                            source: '<!DOCTYPE html><html><head></head><body>emitted1</body></html>',
+                        });
+                    },
+                },
+                plugin,
+            ],
+        });
+
+        const bundle2 = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("config2")' }),
+                {
+                    name: 'emit-html-2',
+                    generateBundle() {
+                        this.emitFile({
+                            type: 'asset',
+                            fileName: 'index.html',
+                            source: '<!DOCTYPE html><html><head></head><body>emitted2</body></html>',
+                        });
+                    },
+                },
+                secondInstance,
+            ],
+        });
+
+        // First generate: remainingConfigsCount = 1 (second config pending)
+        const { output: _output1 } = await bundle1.generate({ format: 'es', dir: 'dist' });
+
+        // Second generate: remainingConfigsCount = 0, triggers final generateBundle
+        const { output: output2 } = await bundle2.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output2.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<div id="multi"></div>');
+        expect(htmlAsset.source).toContain('<script');
+    });
+
+    // Cover line 332: CSS asset detected via .css extension in multi-config scenario
+    // where assets are collected across multiple outputs.
+    it('should collect CSS assets across multi-config outputs', async () => {
+        const plugin = html();
+        const secondInstance = plugin.api.addInstance();
+
+        const bundle1 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("config1")' }), emitCss('styles.css', 'body { margin: 0; }'), plugin],
+        });
+
+        const bundle2 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("config2")' }), secondInstance],
+        });
+
+        // First generate: collects CSS assets, remainingConfigsCount = 1
+        const { output: _output1 } = await bundle1.generate({ format: 'es', dir: 'dist' });
+
+        // Second generate: remainingConfigsCount = 0, triggers final generateBundle
+        const { output: output2 } = await bundle2.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output2.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<link rel="stylesheet"');
+        expect(htmlAsset.source).toContain('styles.css');
+        expect(htmlAsset.source).toContain('<script');
+    });
+
+    // Cover line 403: predicateFactory logs warning for injectIntoHead with invalid type
+    it('should fall back to default injectIntoHead when option is an invalid value (number)', async () => {
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log("hello")' }),
+                emitCss('styles.css', 'body { margin: 0; }'),
+                html({ injectIntoHead: 0 }),
+            ],
+        });
+        const { output } = await bundle.generate({ format: 'es', dir: 'dist' });
+
+        const htmlAsset = output.find(item => item.fileName === 'index.html');
+        expect(htmlAsset).toBeDefined();
+        expect(htmlAsset.source).toContain('<script');
+        expect(htmlAsset.source).toContain('entry.js');
+        // CSS link should still be present (default injectIntoHead is used)
+        expect(htmlAsset.source).toContain('<link rel="stylesheet"');
+    });
 });

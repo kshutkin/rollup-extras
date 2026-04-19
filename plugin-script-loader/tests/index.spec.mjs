@@ -702,4 +702,108 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
             expect(asset.source).toContain('SCRIPT_SIDE');
         });
     });
+
+    describe('sort comparator edge cases (lines 257-259)', () => {
+        it('should place scripts in importOrder before scripts not in importOrder', async () => {
+            // Create scripts: one will be statically imported (in importOrder),
+            // the other will be force-loaded (NOT in importOrder).
+            await writeFile(join(tmpDir, 'ordered.js'), 'var ORDERED_SCRIPT = 1;');
+            await writeFile(join(tmpDir, 'unordered.js'), 'var UNORDERED_SCRIPT = 2;');
+
+            const orderedPath = join(tmpDir, 'ordered.js');
+            const unorderedPath = join(tmpDir, 'unordered.js');
+
+            // This plugin force-loads a script via this.load() without any module
+            // importing it, so the script ends up in the scripts Map but NOT in
+            // importOrder (because moduleParsed only records importedIds).
+            function forceLoadPlugin() {
+                return {
+                    name: 'force-load',
+                    async buildStart() {
+                        const resolved = await this.resolve(`script!${unorderedPath}`, 'entry');
+                        if (resolved) {
+                            await this.load({ id: resolved.id });
+                        }
+                    },
+                };
+            }
+
+            // Entry only statically imports ordered.js => it goes into importOrder.
+            // unordered.js is force-loaded => in scripts Map but NOT in importOrder.
+            const entryCode = `import 'script!${orderedPath}'; console.log('app');`;
+
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [entryPlugin(entryCode), forceLoadPlugin(), scriptLoader({ emit: 'asset', name: 'vendor.js', sourcemap: false })],
+            });
+            const { output } = await bundle.generate({ format: 'es' });
+
+            const asset = output.find(item => item.type === 'asset' && item.fileName === 'vendor.js');
+            expect(asset).toBeDefined();
+
+            const source = asset.source;
+            const idxOrdered = source.indexOf('ORDERED_SCRIPT');
+            const idxUnordered = source.indexOf('UNORDERED_SCRIPT');
+
+            expect(idxOrdered).toBeGreaterThanOrEqual(0);
+            expect(idxUnordered).toBeGreaterThanOrEqual(0);
+
+            // The ordered script (in importOrder) should come before the unordered one
+            expect(idxOrdered).toBeLessThan(idxUnordered);
+        });
+
+        it('should preserve relative order for scripts both absent from importOrder', async () => {
+            // Both scripts are force-loaded (neither in importOrder).
+            // The comparator returns 0, preserving insertion order.
+            await writeFile(join(tmpDir, 'alpha.js'), 'var ALPHA_SCRIPT = 1;');
+            await writeFile(join(tmpDir, 'beta.js'), 'var BETA_SCRIPT = 2;');
+
+            const alphaPath = join(tmpDir, 'alpha.js');
+            const betaPath = join(tmpDir, 'beta.js');
+
+            function forceLoadTwoPlugin() {
+                return {
+                    name: 'force-load-two',
+                    async buildStart() {
+                        // Load alpha first, then beta - insertion order matters
+                        const resolvedA = await this.resolve(`script!${alphaPath}`, 'entry');
+                        if (resolvedA) {
+                            await this.load({ id: resolvedA.id });
+                        }
+                        const resolvedB = await this.resolve(`script!${betaPath}`, 'entry');
+                        if (resolvedB) {
+                            await this.load({ id: resolvedB.id });
+                        }
+                    },
+                };
+            }
+
+            // Entry imports NO scripts - both come from force-loading only
+            const entryCode = "console.log('app');";
+
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [
+                    entryPlugin(entryCode),
+                    forceLoadTwoPlugin(),
+                    scriptLoader({ emit: 'asset', name: 'vendor.js', sourcemap: false }),
+                ],
+            });
+            const { output } = await bundle.generate({ format: 'es' });
+
+            const asset = output.find(item => item.type === 'asset' && item.fileName === 'vendor.js');
+            expect(asset).toBeDefined();
+
+            const source = asset.source;
+            const idxAlpha = source.indexOf('ALPHA_SCRIPT');
+            const idxBeta = source.indexOf('BETA_SCRIPT');
+
+            expect(idxAlpha).toBeGreaterThanOrEqual(0);
+            expect(idxBeta).toBeGreaterThanOrEqual(0);
+
+            // Both are absent from importOrder, so comparator returns 0
+            // and stable sort preserves Map insertion order (alpha first)
+            expect(idxAlpha).toBeLessThan(idxBeta);
+        });
+    });
 });
