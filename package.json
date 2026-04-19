@@ -7,6 +7,7 @@
     "scripts": {
         "build": "pnpm --aggregate-output --reporter=append-only --stream -r build",
         "test": "pnpm --aggregate-output --reporter=append-only --stream --parallel -r test",
+        "test:rolldown": "BUNDLER=rolldown pnpm --aggregate-output --reporter=append-only --stream --parallel -r test",
         "lint": "biome check .",
         "lint:fix": "biome check --write .",
         "ci:publish": "changeset publish"
@@ -18,7 +19,8 @@
         "@vitest/coverage-v8": "^4.0.18",
         "dts-buddy": "^0.7.0",
         "pkgprn-internal": "^0.8.0",
-        "vitest": "^4.0.18",
-        "rollup": "^4.0.0"
+        "rolldown": "1.0.0-rc.16",
+        "rollup": "^4.0.0",
+        "vitest": "^4.0.18"
     }
 }
