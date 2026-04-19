@@ -1,5 +1,11 @@
 Changelog
 
+## 2.1.0
+
+### Minor Changes
+
+- b24dfa1: Added `preserveSymlinks` option to recreate symlinks as symlinks at the destination instead of dereferencing them. Only effective with `emitFiles: false`.
+
 ## 2.0.0
 
 ### Major Changes

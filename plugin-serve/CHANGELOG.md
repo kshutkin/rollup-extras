@@ -1,5 +1,11 @@
 Changelog
 
+## 2.1.0
+
+### Minor Changes
+
+- 402c7a7: Added `inMemory` option to serve all emitted Rollup assets from memory without writing to disk, similar to webpack-dev-server. Uses Hono's built-in MIME type utility for content type detection.
+
 ## 2.0.1
 
 ### Patch Changes

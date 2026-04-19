@@ -1,5 +1,11 @@
 Changelog
 
+## 2.1.0
+
+### Minor Changes
+
+- 6e0eb82: Added automatic `<link rel="modulepreload">` generation for ES module entry chunks' static dependencies, eliminating the browser's sequential module discovery waterfall. Controlled by the new `modulepreload` option (default: `true`).
+
 ## 2.0.1
 
 ### Patch Changes
