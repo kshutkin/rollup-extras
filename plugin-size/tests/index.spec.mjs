@@ -1,858 +1,993 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { constants } from 'node:fs';
+import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
-import { createLogger } from '@niceties/logger';
+import { rollup } from 'rollup';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import plugin from '../src/index.js';
+import size from '../src/index.js';
 
-let loggerMessages, loggerFinish, logger;
-
-vi.mock('@niceties/logger', () => ({
-    LogLevel: { verbose: 0, info: 1, warn: 2, error: 3 },
-    createLogger: vi.fn(() => {
-        loggerMessages = [];
-        logger = vi.fn(msg => loggerMessages.push(msg));
-        loggerFinish = vi.fn();
-        return Object.assign(logger, {
-            finish: loggerFinish,
-            start: vi.fn(),
-        });
-    }),
-}));
-
-/** Mock minify function that can be passed to the plugin */
-const mockMinify = vi.fn((code, _fileName) => Promise.resolve(code.replace(/\s+/g, '')));
-
-vi.mock('@niceties/ansi', () => ({
-    bold: vi.fn(s => `<bold>${s}</bold>`),
-    dim: vi.fn(s => `<dim>${s}</dim>`),
-    green: vi.fn(s => `<green>${s}</green>`),
-    red: vi.fn(s => `<red>${s}</red>`),
-    cyan: vi.fn(s => `<cyan>${s}</cyan>`),
-    yellow: vi.fn(s => `<yellow>${s}</yellow>`),
-}));
-
-const fsMock = {
-    readFile: vi.fn(() => Promise.reject(new Error('ENOENT'))),
-    writeFile: vi.fn(() => Promise.resolve()),
-};
-
-vi.mock('node:fs/promises', () => ({
-    readFile: (...args) => fsMock.readFile(...args),
-    writeFile: (...args) => fsMock.writeFile(...args),
-}));
-
-function createMockBundle(items) {
-    return items.reduce((bundle, item) => {
-        bundle[item.fileName] = item;
-        return bundle;
-    }, {});
-}
-
-function makeEntryChunk(fileName, code) {
+/**
+ * Virtual input plugin that resolves and loads modules from an in-memory map.
+ * @param {Record<string, string>} modules
+ */
+function virtual(modules) {
     return {
-        type: 'chunk',
-        fileName,
-        code,
-        isEntry: true,
-        isDynamicEntry: false,
+        name: 'virtual-input',
+        resolveId(id) {
+            if (modules[id] != null) return id;
+        },
+        load(id) {
+            if (modules[id] != null) return modules[id];
+        },
     };
-}
-
-function makeChunk(fileName, code) {
-    return {
-        type: 'chunk',
-        fileName,
-        code,
-        isEntry: false,
-        isDynamicEntry: false,
-    };
-}
-
-function makeAsset(fileName, source) {
-    return {
-        type: 'asset',
-        fileName,
-        source,
-    };
-}
-
-function makeOutputOptions(format = 'es') {
-    return { format };
 }
 
 /**
- * Simulate the Rollup lifecycle for a single output: renderStart → generateBundle.
- * Both hooks are async in multiConfigPluginBase so we must await them.
+ * Helper plugin that emits an asset during the build.
+ * @param {string} fileName
+ * @param {string} source
  */
-async function runOutput(p, format, bundle) {
-    await p.renderStart();
-    await p.generateBundle(makeOutputOptions(format), bundle);
+function emitAsset(fileName, source) {
+    return {
+        name: 'emit-asset',
+        generateBundle() {
+            this.emitFile({ type: 'asset', fileName, source });
+        },
+    };
 }
 
-/**
- * Same as runOutput but for multiple plugins / configs.
- * Both share the same internal counters so we call renderStart on all
- * outputs first, then generateBundle on all outputs.
- */
-async function runMultiConfigOutputs(configs) {
-    // renderStart phase for every output across every config
-    for (const { plugin: p, outputs } of configs) {
-        for (let i = 0; i < outputs.length; i++) {
-            await p.renderStart();
+describe('@rollup-extras/plugin-size integration', () => {
+    /** @type {string} */
+    let tmpDir;
+
+    beforeEach(async () => {
+        tmpDir = await mkdtemp(join(tmpdir(), 'plugin-size-test-'));
+    });
+
+    afterEach(async () => {
+        await rm(tmpDir, { recursive: true, force: true });
+    });
+
+    it('should create a .stats.json file on disk after generating a bundle', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        // Stats file should exist
+        await expect(access(statsPath, constants.F_OK)).resolves.toBeUndefined();
+    });
+
+    it('should write entry raw byte size to the stats file', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries).toBeDefined();
+        expect(stats.entries.es).toBeDefined();
+        expect(stats.entries.es.raw).toBeGreaterThan(0);
+    });
+
+    it('should include a non-zero gzip field for entries when using default options', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es.gzip).toBeDefined();
+        expect(stats.entries.es.gzip).toBeGreaterThan(0);
+    });
+
+    it('should include a non-zero brotli field for entries when brotli is enabled', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath, brotli: true })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es.brotli).toBeDefined();
+        expect(stats.entries.es.brotli).toBeGreaterThan(0);
+    });
+
+    it('should skip writing the stats file when updateStats is set to false', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath, updateStats: false })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        await expect(access(statsPath, constants.F_OK)).rejects.toThrow();
+    });
+
+    it('should group emitted asset sizes under assets keyed by file extension', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 42' }),
+                emitAsset('styles.css', 'body { margin: 0; padding: 0; color: red; }'),
+                size({ statsFile: statsPath }),
+            ],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.assets).toBeDefined();
+        expect(stats.assets['.css']).toBeDefined();
+        expect(stats.assets['.css'].raw).toBeGreaterThan(0);
+        // gzip is enabled by default so it should be present on assets too
+        expect(stats.assets['.css'].gzip).toBeGreaterThan(0);
+    });
+
+    it('should record entry chunks under entries and dynamic chunks under chunks', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({
+                    entry: 'export default () => import("chunk")',
+                    chunk: 'export const value = 123',
+                }),
+                size({ statsFile: statsPath }),
+            ],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries).toBeDefined();
+        expect(stats.entries.es).toBeDefined();
+        expect(stats.entries.es.raw).toBeGreaterThan(0);
+        expect(stats.chunks).toBeDefined();
+        expect(stats.chunks.es).toBeDefined();
+        expect(stats.chunks.es.raw).toBeGreaterThan(0);
+    });
+
+    it('should track multiple asset extensions independently in the stats file', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 42' }),
+                emitAsset('styles.css', 'body { margin: 0; }'),
+                emitAsset('icon.svg', '<svg></svg>'),
+                size({ statsFile: statsPath }),
+            ],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.assets['.css']).toBeDefined();
+        expect(stats.assets['.css'].raw).toBeGreaterThan(0);
+        expect(stats.assets['.svg']).toBeDefined();
+        expect(stats.assets['.svg'].raw).toBeGreaterThan(0);
+    });
+
+    it('should include non-zero brotli sizes for assets when brotli is enabled', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 42' }),
+                emitAsset('styles.css', 'body { margin: 0; padding: 0; }'),
+                size({ statsFile: statsPath, brotli: true }),
+            ],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.assets['.css'].brotli).toBeDefined();
+        expect(stats.assets['.css'].brotli).toBeGreaterThan(0);
+    });
+
+    it('should omit the gzip field from entries when gzip is disabled', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath, gzip: false })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es.gzip).toBeUndefined();
+    });
+
+    it('should omit the brotli field from entries when brotli is not explicitly enabled', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es.brotli).toBeUndefined();
+    });
+
+    it('should record both gzip and brotli sizes when both compression options are enabled', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath, gzip: true, brotli: true })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es.gzip).toBeGreaterThan(0);
+        expect(stats.entries.es.brotli).toBeGreaterThan(0);
+    });
+
+    it('should use cjs as the format key in entries when output format is CommonJS', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'cjs', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.cjs).toBeDefined();
+        expect(stats.entries.cjs.raw).toBeGreaterThan(0);
+    });
+
+    it('should record a minified size that is less than or equal to raw when a minify function is provided', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default function hello() { return 42; }' }),
+                size({ statsFile: statsPath, minify: async code => code.replace(/\s+/g, ' ') }),
+            ],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es.minified).toBeDefined();
+        expect(stats.entries.es.minified).toBeGreaterThan(0);
+        expect(stats.entries.es.minified).toBeLessThanOrEqual(stats.entries.es.raw);
+    });
+
+    it('should record only raw size when both gzip and brotli are disabled', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath, gzip: false, brotli: false })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es.raw).toBeGreaterThan(0);
+        expect(stats.entries.es.gzip).toBeUndefined();
+        expect(stats.entries.es.brotli).toBeUndefined();
+    });
+
+    it('should accumulate entries from multiple generate calls into a single stats file', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.generate({ format: 'cjs', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es).toBeDefined();
+        expect(stats.entries.es.raw).toBeGreaterThan(0);
+        expect(stats.entries.cjs).toBeDefined();
+        expect(stats.entries.cjs.raw).toBeGreaterThan(0);
+    });
+
+    it('should use @rollup-extras/plugin-size as the default plugin name', () => {
+        const plugin = size();
+        expect(plugin.name).toBe('@rollup-extras/plugin-size');
+    });
+
+    it('should use the provided pluginName as the plugin name property', () => {
+        const plugin = size({ pluginName: 'my-size' });
+        expect(plugin.name).toBe('my-size');
+    });
+
+    it('should complete a second build with delta comparison without errors', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+
+        // First build
+        const bundle1 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath })],
+        });
+        await bundle1.generate({ format: 'es', dir: 'dist' });
+        await bundle1.close();
+
+        const firstStats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(firstStats.entries.es).toBeDefined();
+
+        // Second build with same statsFile (triggers delta comparison)
+        const bundle2 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath })],
+        });
+        await bundle2.generate({ format: 'es', dir: 'dist' });
+        await bundle2.close();
+
+        const secondStats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(secondStats.entries.es).toBeDefined();
+        expect(secondStats.entries.es.raw).toBeGreaterThan(0);
+    });
+
+    it('should write .stats.json to the current working directory when no statsFile is specified', async () => {
+        const originalCwd = process.cwd();
+        process.chdir(tmpDir);
+        try {
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'export default 42' }), size()],
+            });
+            await bundle.generate({ format: 'es', dir: 'dist' });
+            await bundle.close();
+
+            // Default stats file should be created at .stats.json in cwd (tmpDir)
+            const statsPath = join(tmpDir, '.stats.json');
+            await expect(access(statsPath, constants.F_OK)).resolves.toBeUndefined();
+            const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+            expect(stats.entries.es).toBeDefined();
+        } finally {
+            process.chdir(originalCwd);
         }
-    }
-    // generateBundle phase for every output across every config
-    for (const { plugin: p, outputs } of configs) {
-        for (const { format, bundle } of outputs) {
-            await p.generateBundle(makeOutputOptions(format), bundle);
-        }
-    }
-}
-
-/** Helper to parse the JSON written to the stats file. */
-function getWrittenStats() {
-    return JSON.parse(fsMock.writeFile.mock.calls[0][1]);
-}
-
-describe('@rollup-extras/plugin-size', () => {
-    beforeEach(() => {
-        fsMock.readFile.mockReset().mockRejectedValue(new Error('ENOENT'));
-        fsMock.writeFile.mockReset().mockResolvedValue(undefined);
-        loggerMessages = [];
     });
 
-    it('should be defined', () => {
-        expect(plugin).toBeDefined();
+    it('should write human-readable JSON with 2-space indentation and a trailing newline', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const raw = await readFile(statsPath, 'utf8');
+        // Should end with a newline
+        expect(raw.endsWith('\n')).toBe(true);
+        // Should be properly indented (2-space indent from JSON.stringify(_, null, 2))
+        expect(raw).toContain('  "entries"');
+        // Should be valid JSON
+        const parsed = JSON.parse(raw);
+        expect(parsed).toBeDefined();
+        expect(parsed.entries).toBeDefined();
+    });
+});
+
+// --- NEW TESTS FOR BRANCH COVERAGE ---
+
+describe('@rollup-extras/plugin-size (additional coverage)', () => {
+    let tmpDir;
+
+    beforeEach(async () => {
+        tmpDir = await mkdtemp(join(tmpdir(), 'plugin-size-cov-'));
     });
 
-    it('should return a plugin object', () => {
-        const p = plugin();
-        expect(p).toBeDefined();
-        expect(p.name).toEqual('@rollup-extras/plugin-size');
+    afterEach(async () => {
+        await rm(tmpDir, { recursive: true, force: true });
     });
 
-    it('should use default plugin name', () => {
-        const p = plugin();
-        expect(p.name).toEqual('@rollup-extras/plugin-size');
-        expect(createLogger).toHaveBeenCalledWith('@rollup-extras/plugin-size');
+    it('should record a larger raw size in the stats file when the second build has more code', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+
+        // First build: small code
+        const bundle1 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), size({ statsFile: statsPath })],
+        });
+        await bundle1.generate({ format: 'es', dir: 'dist' });
+        await bundle1.close();
+
+        const firstStats = JSON.parse(await readFile(statsPath, 'utf8'));
+        const firstRaw = firstStats.entries.es.raw;
+
+        // Second build: larger code
+        const bundle2 = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({
+                    entry: 'export default function aVeryLongFunctionNameForTesting() { return "a long string to increase bundle size significantly over the first build output size"; }',
+                }),
+                size({ statsFile: statsPath }),
+            ],
+        });
+        await bundle2.generate({ format: 'es', dir: 'dist' });
+        await bundle2.close();
+
+        const secondStats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(secondStats.entries.es.raw).toBeGreaterThan(firstRaw);
     });
 
-    it('should use custom plugin name', () => {
-        const p = plugin({ pluginName: 'test-size' });
-        expect(p.name).toEqual('test-size');
-        expect(createLogger).toHaveBeenCalledWith('test-size');
+    it('should record a smaller raw size in the stats file when the second build has less code', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+
+        // First build: larger code
+        const bundle1 = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({
+                    entry: 'export default function aVeryLongFunctionNameForTesting() { return "a long string to increase the initial bundle size significantly"; }',
+                }),
+                size({ statsFile: statsPath }),
+            ],
+        });
+        await bundle1.generate({ format: 'es', dir: 'dist' });
+        await bundle1.close();
+
+        const firstStats = JSON.parse(await readFile(statsPath, 'utf8'));
+        const firstRaw = firstStats.entries.es.raw;
+
+        // Second build: smaller code
+        const bundle2 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), size({ statsFile: statsPath })],
+        });
+        await bundle2.generate({ format: 'es', dir: 'dist' });
+        await bundle2.close();
+
+        const secondStats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(secondStats.entries.es.raw).toBeLessThan(firstRaw);
     });
 
-    it('should have generateBundle and renderStart methods', () => {
-        const p = plugin();
-        expect(typeof p.generateBundle).toBe('function');
-        expect(typeof p.renderStart).toBe('function');
+    it('should drop previously-tracked format keys from stats when they are absent in the current build', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+
+        // Pre-seed stats file with an entry format that will not exist in current build
+        await writeFile(
+            statsPath,
+            JSON.stringify({
+                entries: { cjs: { raw: 100, gzip: 50 } },
+                chunks: {},
+                assets: {},
+            })
+        );
+
+        // Build only es format
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es).toBeDefined();
+        expect(stats.entries.es.raw).toBeGreaterThan(0);
+        // cjs was in previous stats but not in current build, triggers 'removed' path
+        expect(stats.entries.cjs).toBeUndefined();
     });
 
-    it('should expose api.addInstance', () => {
-        const p = plugin();
-        expect(typeof p.api.addInstance).toBe('function');
-    });
-
-    describe('generateBundle lifecycle', () => {
-        it('should collect entry chunk stats and report them', async () => {
-            const p = plugin({ minify: mockMinify });
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            expect(loggerMessages.length).toBe(1);
-            expect(loggerMessages[0]).toContain('<cyan>es</cyan>');
-            expect(loggerMessages[0]).toContain('entry');
-            expect(loggerMessages[0]).toContain('gzip');
-        });
-
-        it('should collect entry chunk stats without minify function', async () => {
-            const p = plugin();
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            expect(loggerMessages.length).toBe(1);
-            expect(loggerMessages[0]).toContain('<cyan>es</cyan>');
-            expect(loggerMessages[0]).toContain('entry');
-            expect(loggerMessages[0]).toContain('gzip');
-            // Should only have one arrow (for compression), not two (raw → minified → gzip)
-            const arrowCount = (loggerMessages[0].match(/→/g) || []).length;
-            expect(arrowCount).toBe(1);
-        });
-
-        it('should collect non-entry chunk stats', async () => {
-            const p = plugin({ minify: mockMinify });
-            const bundle = createMockBundle([makeChunk('chunk-abc123.mjs', 'const y = 2;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            expect(loggerMessages.length).toBe(1);
-            expect(loggerMessages[0]).toContain('chunks');
-            expect(loggerMessages[0]).toContain('<cyan>es</cyan>');
-        });
-
-        it('should collect asset stats grouped by extension', async () => {
-            const p = plugin();
-            const bundle = createMockBundle([makeAsset('styles.css', 'body { color: red; }\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            expect(loggerMessages.length).toBe(1);
-            expect(loggerMessages[0]).toContain('<yellow>.css</yellow>');
-            expect(loggerMessages[0]).toContain('assets');
-            expect(loggerMessages[0]).toContain('gzip');
-        });
-
-        it('should handle binary asset source', async () => {
-            const p = plugin();
-            const buf = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]);
-            const bundle = createMockBundle([makeAsset('image.png', buf)]);
-
-            await runOutput(p, 'es', bundle);
-
-            expect(loggerMessages.length).toBe(1);
-            expect(loggerMessages[0]).toContain('.png');
-        });
-
-        it('should accumulate sizes across multiple items of same category and format', async () => {
-            const p = plugin({ minify: mockMinify });
-            const bundle = createMockBundle([makeEntryChunk('a.mjs', 'const a = 1;\n'), makeEntryChunk('b.mjs', 'const b = 2;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            const entryLines = loggerMessages.filter(m => m.includes('entry'));
-            expect(entryLines).toHaveLength(1);
-        });
-
-        it('should handle multiple formats across outputs', async () => {
-            const p = plugin({ minify: mockMinify });
-
-            const esBundle = createMockBundle([makeEntryChunk('index.mjs', 'export const x = 1;\n')]);
-            const cjsBundle = createMockBundle([makeEntryChunk('index.cjs', 'module.exports = { x: 1 };\n')]);
-
-            // renderStart for both outputs first, then generateBundle for both
-            await p.renderStart();
-            await p.renderStart();
-            await p.generateBundle(makeOutputOptions('es'), esBundle);
-            await p.generateBundle(makeOutputOptions('cjs'), cjsBundle);
-
-            const entryLines = loggerMessages.filter(m => m.includes('entry'));
-            expect(entryLines).toHaveLength(2);
-            expect(entryLines.some(l => l.includes('es'))).toBe(true);
-            expect(entryLines.some(l => l.includes('cjs'))).toBe(true);
-        });
-
-        it('should handle mixed entries, chunks, and assets', async () => {
-            const p = plugin({ minify: mockMinify });
-            const bundle = createMockBundle([
-                makeEntryChunk('index.mjs', 'const x = 1;\n'),
-                makeChunk('chunk-abc.mjs', 'const y = 2;\n'),
-                makeAsset('styles.css', 'body { color: red; }\n'),
-            ]);
-
-            await runOutput(p, 'es', bundle);
-
-            expect(loggerMessages.length).toBe(3);
-            expect(loggerMessages.some(m => m.includes('entry'))).toBe(true);
-            expect(loggerMessages.some(m => m.includes('chunks'))).toBe(true);
-            expect(loggerMessages.some(m => m.includes('assets'))).toBe(true);
-        });
-
-        it('should not print anything for an empty bundle', async () => {
-            const p = plugin();
-            await runOutput(p, 'es', {});
-
-            expect(loggerMessages).toHaveLength(0);
-        });
-
-        it('should accumulate asset sizes by extension', async () => {
-            const p = plugin();
-            const bundle = createMockBundle([
-                makeAsset('a.css', 'body { color: red; }\n'),
-                makeAsset('b.css', 'h1 { font-size: 2em; }\n'),
-                makeAsset('icon.svg', '<svg></svg>'),
-            ]);
-
-            await runOutput(p, 'es', bundle);
-
-            const cssLines = loggerMessages.filter(m => m.includes('.css'));
-            const svgLines = loggerMessages.filter(m => m.includes('.svg'));
-            expect(cssLines).toHaveLength(1);
-            expect(svgLines).toHaveLength(1);
-        });
-
-        it('should use the full file name for assets without an extension', async () => {
-            const p = plugin();
-            const bundle = createMockBundle([makeAsset('LICENSE', 'MIT License\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            expect(loggerMessages.length).toBe(1);
-            expect(loggerMessages[0]).toContain('<yellow>LICENSE</yellow>');
-            expect(loggerMessages[0]).toContain('assets');
-        });
-
-        it('should format sizes in kB for chunks larger than 1 kB', async () => {
-            const p = plugin({ minify: mockMinify });
-            // ~2 kB of code — well above 1024 bytes raw
-            const code = `const data = "${new Array(2048).fill('x').join('')}";\n`;
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', code)]);
-
-            await runOutput(p, 'es', bundle);
-
-            const entryLine = loggerMessages.find(m => m.includes('entry'));
-            expect(entryLine).toBeDefined();
-            expect(entryLine).toContain('kB');
-        });
-
-        it('should format sizes in MB for chunks larger than 1 MB', async () => {
-            const p = plugin({ minify: mockMinify });
-            // ~1.1 MB of code
-            const code = `const data = "${new Array(1_100_000).fill('x').join('')}";\n`;
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', code)]);
-
-            await runOutput(p, 'es', bundle);
-
-            const entryLine = loggerMessages.find(m => m.includes('entry'));
-            expect(entryLine).toBeDefined();
-            expect(entryLine).toContain('MB');
-        });
-    });
-
-    describe('stats file', () => {
-        it('should write stats file by default', async () => {
-            const p = plugin({ minify: mockMinify });
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            expect(fsMock.writeFile).toHaveBeenCalledTimes(1);
-            const [path, content] = fsMock.writeFile.mock.calls[0];
-            expect(path).toContain('.stats.json');
-            const parsed = JSON.parse(content);
-            expect(parsed.entries).toBeDefined();
-            expect(parsed.entries.es).toBeDefined();
-            expect(parsed.entries.es.raw).toBeGreaterThan(0);
-            expect(parsed.entries.es.minified).toBeGreaterThan(0);
-            expect(parsed.entries.es.gzip).toBeGreaterThan(0);
-        });
-
-        it('should write stats file without minified when no minify function', async () => {
-            const p = plugin();
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            expect(fsMock.writeFile).toHaveBeenCalledTimes(1);
-            const [path, content] = fsMock.writeFile.mock.calls[0];
-            expect(path).toContain('.stats.json');
-            const parsed = JSON.parse(content);
-            expect(parsed.entries).toBeDefined();
-            expect(parsed.entries.es).toBeDefined();
-            expect(parsed.entries.es.raw).toBeGreaterThan(0);
-            expect(parsed.entries.es.minified).toBeUndefined();
-            expect(parsed.entries.es.gzip).toBeGreaterThan(0);
-        });
-
-        it('should not write stats file when updateStats is false', async () => {
-            const p = plugin({ updateStats: false });
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            expect(fsMock.writeFile).not.toHaveBeenCalled();
-        });
-
-        it('should use custom stats file path', async () => {
-            const p = plugin({ statsFile: 'build/custom-stats.json' });
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            expect(fsMock.writeFile).toHaveBeenCalledTimes(1);
-            const [path] = fsMock.writeFile.mock.calls[0];
-            expect(path).toContain('custom-stats.json');
-        });
-
-        it('should load previous stats and show delta', async () => {
-            const previousStats = {
-                entries: {
-                    es: { raw: 100, minified: 50, gzip: 30 },
-                },
-            };
-            fsMock.readFile.mockResolvedValueOnce(JSON.stringify(previousStats));
-
-            const p = plugin({ minify: mockMinify });
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            // Should show some delta (either increase or decrease compared to mock previous)
-            // The exact delta depends on the minified / gzip sizes but we just check structure.
-            const entryLine = loggerMessages.find(m => m.includes('entry'));
-            expect(entryLine).toBeDefined();
-            // With previous data available, there should be a delta marker
-            expect(entryLine).toMatch(/<green>|<red>|<dim>/);
-        });
-
-        it('should show removed entries from previous stats', async () => {
-            const previousStats = {
-                entries: {
-                    umd: { raw: 200, minified: 100, gzip: 60 },
-                },
-            };
-            fsMock.readFile.mockResolvedValueOnce(JSON.stringify(previousStats));
-
-            const p = plugin({ minify: mockMinify });
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            const umdLine = loggerMessages.find(m => m.includes('umd'));
-            expect(umdLine).toBeDefined();
-            expect(umdLine).toContain('removed');
-        });
-
-        it('should show removed chunks from previous stats', async () => {
-            const previousStats = {
-                chunks: {
-                    cjs: { raw: 200, minified: 100, gzip: 60 },
-                },
-            };
-            fsMock.readFile.mockResolvedValueOnce(JSON.stringify(previousStats));
-
-            const p = plugin({ minify: mockMinify });
-            // Run with an empty bundle so the previous 'cjs' chunks appear as removed
-            await runOutput(p, 'es', {});
-
-            const cjsLine = loggerMessages.find(m => m.includes('cjs'));
-            expect(cjsLine).toBeDefined();
-            expect(cjsLine).toContain('removed');
-        });
-
-        it('should show removed assets from previous stats', async () => {
-            const previousStats = {
-                assets: {
-                    '.css': { raw: 2000, gzip: 1000 },
-                },
-            };
-            fsMock.readFile.mockResolvedValue(JSON.stringify(previousStats));
-
-            const p = plugin();
-            await runOutput(p, 'es', {});
-
-            const cssLine = loggerMessages.find(m => m.includes('.css'));
-            expect(cssLine).toBeDefined();
-            expect(cssLine).toContain('removed');
-        });
-
-        it('should handle invalid JSON in previous stats file gracefully', async () => {
-            fsMock.readFile.mockResolvedValue('not json{{{');
-
-            const p = plugin();
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-            expect(loggerMessages.length).toBeGreaterThanOrEqual(1);
-        });
-
-        it('should handle non-existent stats file gracefully', async () => {
-            const p = plugin();
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-        });
-
-        it('should write stats with correct structure for chunks and assets', async () => {
-            const p = plugin({ minify: mockMinify });
-            const bundle = createMockBundle([makeChunk('chunk.mjs', 'const y = 2;\n'), makeAsset('style.css', 'body {}\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
-            expect(parsed.chunks).toBeDefined();
-            expect(parsed.chunks.es).toBeDefined();
-            expect(parsed.chunks.es.raw).toBeGreaterThan(0);
-            expect(parsed.chunks.es.minified).toBeGreaterThan(0);
-            expect(parsed.assets).toBeDefined();
-            expect(parsed.assets['.css']).toBeDefined();
-            expect(parsed.assets['.css'].raw).toBeGreaterThan(0);
-            expect(parsed.assets['.css'].minified).toBeUndefined(); // assets are not minified
-        });
-    });
-
-    describe('delta display', () => {
-        it('should show green for size decrease', async () => {
-            const previousStats = {
-                entries: {
-                    es: { raw: 1000, minified: 500, gzip: 300 },
-                },
-            };
-            fsMock.readFile.mockResolvedValueOnce(JSON.stringify(previousStats));
-
-            const p = plugin({ minify: mockMinify });
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            const entryLine = loggerMessages.find(m => m.includes('entry'));
-            expect(entryLine).toBeDefined();
-            expect(entryLine).toContain('<green>');
-        });
-
-        it('should show red for size increase', async () => {
-            const previousStats = {
-                entries: {
-                    es: { raw: 1, minified: 1, gzip: 1 },
-                },
-            };
-            fsMock.readFile.mockResolvedValueOnce(JSON.stringify(previousStats));
-
-            const p = plugin({ minify: mockMinify });
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            const entryLine = loggerMessages.find(m => m.includes('entry'));
-            expect(entryLine).toBeDefined();
-            expect(entryLine).toContain('<red>');
-        });
-
-        it('should show no delta when there is no previous data', async () => {
-            const p = plugin({ minify: mockMinify });
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            const entryLine = loggerMessages.find(m => m.includes('entry'));
-            expect(entryLine).toBeDefined();
-            // No delta markers when there's no previous data
-            expect(entryLine).not.toContain('<green>');
-            expect(entryLine).not.toContain('<red>');
-        });
-
-        it('should show dim (=) when compressed size is unchanged', async () => {
-            // First build: write stats
-            const p1 = plugin({ minify: mockMinify });
-            const code = 'const x = 1;';
-            const bundle1 = createMockBundle([makeEntryChunk('index.mjs', code)]);
-
-            await runOutput(p1, 'es', bundle1);
-
-            const writtenStats = getWrittenStats();
-
-            // Phase 2: feed the exact same stats back as previous, run same input
-            fsMock.readFile.mockResolvedValue(JSON.stringify(writtenStats));
-            fsMock.writeFile.mockReset().mockResolvedValue(undefined);
-            loggerMessages = [];
-
-            const p2 = plugin({ minify: mockMinify });
-            const bundle2 = createMockBundle([makeEntryChunk('index.mjs', code)]);
-
-            await runOutput(p2, 'es', bundle2);
-
-            const entryLine = loggerMessages.find(m => m.includes('entry'));
-            expect(entryLine).toBeDefined();
-            expect(entryLine).toContain('<dim>');
-            expect(entryLine).toContain('(=)');
-        });
-    });
-
-    describe('compression flags', () => {
-        it('should enable gzip by default', async () => {
-            const p = plugin();
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            const parsed = getWrittenStats();
-            expect(parsed.entries.es.gzip).toBeGreaterThan(0);
-            expect(parsed.entries.es.brotli).toBeUndefined();
-
-            expect(loggerMessages[0]).toContain('gzip');
-            expect(loggerMessages[0]).not.toContain('brotli');
-        });
-
-        it('should not enable brotli by default', async () => {
-            const p = plugin({ minify: mockMinify });
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
-            expect(parsed.entries.es.brotli).toBeUndefined();
-        });
-
-        it('should support brotli when enabled', async () => {
-            const p = plugin({ brotli: true, gzip: false, minify: mockMinify });
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
-            expect(parsed.entries.es.brotli).toBeDefined();
-            expect(parsed.entries.es.brotli).toBeGreaterThan(0);
-            expect(parsed.entries.es.gzip).toBeUndefined();
-            expect(loggerMessages[0]).toContain('brotli');
-            expect(loggerMessages[0]).not.toContain('gzip');
-        });
-
-        it('should support both gzip and brotli simultaneously', async () => {
-            const p = plugin({ gzip: true, brotli: true, minify: mockMinify });
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
-            expect(parsed.entries.es.gzip).toBeGreaterThan(0);
-            expect(parsed.entries.es.brotli).toBeGreaterThan(0);
-            expect(loggerMessages[0]).toContain('gzip');
-            expect(loggerMessages[0]).toContain('brotli');
-        });
-
-        it('should show both deltas when both algorithms are enabled', async () => {
-            const previousStats = {
-                entries: {
-                    es: { raw: 1000, minified: 500, gzip: 300, brotli: 250 },
-                },
-            };
-            fsMock.readFile.mockResolvedValueOnce(JSON.stringify(previousStats));
-
-            const p = plugin({ gzip: true, brotli: true, minify: mockMinify });
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            const entryLine = loggerMessages.find(m => m.includes('entry'));
-            expect(entryLine).toBeDefined();
-            expect(entryLine).toContain('gzip');
-            expect(entryLine).toContain('brotli');
-            // Both should show delta (green for decrease in this case)
-            const greenCount = (entryLine.match(/<green>/g) || []).length;
-            expect(greenCount).toBe(2);
-        });
-
-        it('should show only raw and minified when both algorithms are disabled', async () => {
-            const p = plugin({ gzip: false, brotli: false, minify: mockMinify });
-            const bundle = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
-            expect(parsed.entries.es.raw).toBeGreaterThan(0);
-            expect(parsed.entries.es.minified).toBeGreaterThan(0);
-            expect(parsed.entries.es.gzip).toBeUndefined();
-            expect(parsed.entries.es.brotli).toBeUndefined();
-            // Log should not contain compression labels
-            expect(loggerMessages[0]).not.toContain('gzip');
-            expect(loggerMessages[0]).not.toContain('brotli');
-            // But should still show raw → minified
-            expect(loggerMessages[0]).toContain('→');
-        });
-
-        it('should compress assets with brotli when enabled', async () => {
-            const p = plugin({ brotli: true, minify: mockMinify });
-            const bundle = createMockBundle([makeAsset('styles.css', 'body { color: red; }\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
-            expect(parsed.assets['.css'].gzip).toBeGreaterThan(0);
-            expect(parsed.assets['.css'].brotli).toBeGreaterThan(0);
-            expect(loggerMessages[0]).toContain('gzip');
-            expect(loggerMessages[0]).toContain('brotli');
-        });
-
-        it('should compress non-entry chunks with brotli when enabled', async () => {
-            const p = plugin({ brotli: true, minify: mockMinify });
-            const bundle = createMockBundle([makeChunk('chunk.mjs', 'const y = 2;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
-            expect(parsed.chunks.es.brotli).toBeGreaterThan(0);
-        });
-
-        it('should accumulate brotli sizes across multiple chunks', async () => {
-            const p = plugin({ brotli: true, gzip: false, minify: mockMinify });
-            const bundle = createMockBundle([makeEntryChunk('a.mjs', 'const a = 1;\n'), makeEntryChunk('b.mjs', 'const b = 2;\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            const parsed = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
-            expect(parsed.entries.es.brotli).toBeGreaterThan(0);
-            expect(parsed.entries.es.gzip).toBeUndefined();
-        });
-
-        it('should accumulate brotli sizes across multiple assets of same extension', async () => {
-            const p = plugin({ brotli: true, gzip: false });
-            const bundle = createMockBundle([makeAsset('a.css', 'body { color: red; }\n'), makeAsset('b.css', 'h1 { font-size: 2em; }\n')]);
-
-            await runOutput(p, 'es', bundle);
-
-            const parsed = getWrittenStats();
-            expect(parsed.assets['.css'].brotli).toBeGreaterThan(0);
-            expect(parsed.assets['.css'].gzip).toBeUndefined();
-        });
-
-        it('should show dim (=) for brotli when size is unchanged', async () => {
-            // First build
-            const p1 = plugin({ brotli: true, gzip: false, minify: mockMinify });
-            const code = 'const x = 1;';
-            const bundle1 = createMockBundle([makeEntryChunk('index.mjs', code)]);
-
-            await runOutput(p1, 'es', bundle1);
-
-            const writtenStats = getWrittenStats();
-
-            // Phase 2: feed the exact same stats back as previous, run same input
-            fsMock.readFile.mockResolvedValue(JSON.stringify(writtenStats));
-            fsMock.writeFile.mockReset().mockResolvedValue(undefined);
-            loggerMessages = [];
-
-            const p2 = plugin({ brotli: true, gzip: false, minify: mockMinify });
-            const bundle2 = createMockBundle([makeEntryChunk('index.mjs', code)]);
-
-            await runOutput(p2, 'es', bundle2);
-
-            const entryLine = loggerMessages.find(m => m.includes('entry'));
-            expect(entryLine).toBeDefined();
-            expect(entryLine).toContain('<dim>');
-            expect(entryLine).toContain('(=)');
-            expect(entryLine).toContain('brotli');
-        });
-    });
-
-    describe('multiple output configs', () => {
-        it('should accumulate stats across multiple generateBundle calls', async () => {
-            const p = plugin({ minify: mockMinify });
-
-            const esEntryBundle = createMockBundle([makeEntryChunk('index.mjs', 'export const x = 1;\n')]);
-            const esChunkBundle = createMockBundle([makeChunk('chunk.mjs', 'const y = 2;\n')]);
-            const cjsBundle = createMockBundle([makeEntryChunk('index.cjs', 'module.exports = {};\n')]);
-
-            // Three outputs: renderStart all, then generateBundle all
-            await p.renderStart();
-            await p.renderStart();
-            await p.renderStart();
-            await p.generateBundle(makeOutputOptions('es'), esEntryBundle);
-            await p.generateBundle(makeOutputOptions('es'), esChunkBundle);
-            await p.generateBundle(makeOutputOptions('cjs'), cjsBundle);
-
-            const esEntryLines = loggerMessages.filter(m => m.includes('es') && m.includes('entry'));
-            const esChunkLines = loggerMessages.filter(m => m.includes('es') && m.includes('chunks'));
-            const cjsEntryLines = loggerMessages.filter(m => m.includes('cjs') && m.includes('entry'));
-
-            expect(esEntryLines).toHaveLength(1);
-            expect(esChunkLines).toHaveLength(1);
-            expect(cjsEntryLines).toHaveLength(1);
-        });
-
-        it('should only report once after all outputs have been processed', async () => {
-            const p = plugin({ minify: mockMinify });
-
-            const bundle1 = createMockBundle([makeEntryChunk('index.mjs', 'const x = 1;\n')]);
-            const bundle2 = createMockBundle([makeEntryChunk('index.cjs', 'const x = 1;\n')]);
-
-            await p.renderStart();
-            await p.renderStart();
-
-            // After first generateBundle the report should not fire yet
-            await p.generateBundle(makeOutputOptions('es'), bundle1);
-            expect(fsMock.writeFile).not.toHaveBeenCalled();
-            expect(loggerMessages).toHaveLength(0);
-
-            // After the last generateBundle the report fires
-            await p.generateBundle(makeOutputOptions('cjs'), bundle2);
-            expect(fsMock.writeFile).toHaveBeenCalledTimes(1);
-            expect(loggerMessages.length).toBeGreaterThan(0);
-        });
-    });
-
-    describe('api.addInstance', () => {
-        it('should return a new plugin instance', () => {
-            const p = plugin();
-            const instance = p.api.addInstance();
-            expect(instance).toBeDefined();
-            expect(instance.name).toContain('@rollup-extras/plugin-size');
-            expect(typeof instance.renderStart).toBe('function');
-            expect(typeof instance.generateBundle).toBe('function');
-        });
-
-        it('should share stats across main and added instances', async () => {
-            const p = plugin({ minify: mockMinify });
-            const p2 = p.api.addInstance();
-
-            const esBundle = createMockBundle([makeEntryChunk('index.mjs', 'export const x = 1;\n')]);
-            const cjsBundle = createMockBundle([makeEntryChunk('index.cjs', 'module.exports = {};\n')]);
-
-            await runMultiConfigOutputs([
-                { plugin: p, outputs: [{ format: 'es', bundle: esBundle }] },
-                { plugin: p2, outputs: [{ format: 'cjs', bundle: cjsBundle }] },
-            ]);
-
-            const entryLines = loggerMessages.filter(m => m.includes('entry'));
-            expect(entryLines).toHaveLength(2);
-            expect(entryLines.some(l => l.includes('es'))).toBe(true);
-            expect(entryLines.some(l => l.includes('cjs'))).toBe(true);
-
-            // Stats file should be written exactly once
-            expect(fsMock.writeFile).toHaveBeenCalledTimes(1);
-            const parsed = getWrittenStats();
-            expect(parsed.entries.es).toBeDefined();
-            expect(parsed.entries.cjs).toBeDefined();
-        });
-
-        it('should wait for all instances to finish before reporting', async () => {
-            const p = plugin({ minify: mockMinify });
-            const p2 = p.api.addInstance();
-
-            const bundle1 = createMockBundle([makeEntryChunk('a.mjs', 'const a = 1;\n')]);
-            const bundle2 = createMockBundle([makeEntryChunk('b.mjs', 'const b = 2;\n')]);
-
-            // renderStart on both configs
-            await p.renderStart();
-            await p2.renderStart();
-
-            // First config finishes — report should not fire yet
-            await p.generateBundle(makeOutputOptions('es'), bundle1);
-            expect(fsMock.writeFile).not.toHaveBeenCalled();
-            expect(loggerMessages).toHaveLength(0);
-
-            // Second config finishes — now the report fires
-            await p2.generateBundle(makeOutputOptions('cjs'), bundle2);
-            expect(fsMock.writeFile).toHaveBeenCalledTimes(1);
-            expect(loggerMessages.length).toBeGreaterThan(0);
-        });
-
-        it('should handle multiple outputs per instance', async () => {
-            const p = plugin({ minify: mockMinify });
-            const p2 = p.api.addInstance();
-
-            const esBundle = createMockBundle([makeEntryChunk('index.mjs', 'export const x = 1;\n')]);
-            const cjsBundle = createMockBundle([makeEntryChunk('index.cjs', 'module.exports = {};\n')]);
-            const umdBundle = createMockBundle([makeEntryChunk('index.umd.js', '(function(){})();\n')]);
-
-            // p has two outputs (es + cjs), p2 has one output (umd)
-            await runMultiConfigOutputs([
+    it('should correctly measure raw size of assets emitted as Uint8Array buffers', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 42' }),
                 {
-                    plugin: p,
-                    outputs: [
-                        { format: 'es', bundle: esBundle },
-                        { format: 'cjs', bundle: cjsBundle },
-                    ],
+                    name: 'emit-binary-asset',
+                    generateBundle() {
+                        this.emitFile({
+                            type: 'asset',
+                            fileName: 'data.bin',
+                            source: new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]),
+                        });
+                    },
                 },
-                { plugin: p2, outputs: [{ format: 'umd', bundle: umdBundle }] },
-            ]);
-
-            const entryLines = loggerMessages.filter(m => m.includes('entry'));
-            expect(entryLines).toHaveLength(3);
-            expect(entryLines.some(l => l.includes('es'))).toBe(true);
-            expect(entryLines.some(l => l.includes('cjs'))).toBe(true);
-            expect(entryLines.some(l => l.includes('umd'))).toBe(true);
-            expect(fsMock.writeFile).toHaveBeenCalledTimes(1);
+                size({ statsFile: statsPath }),
+            ],
         });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.assets['.bin']).toBeDefined();
+        expect(stats.assets['.bin'].raw).toBe(5);
+    });
+
+    it('should use the full filename as the assets key when the file has no extension', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 42' }),
+                {
+                    name: 'emit-extensionless-asset',
+                    generateBundle() {
+                        this.emitFile({
+                            type: 'asset',
+                            fileName: 'LICENSE',
+                            source: 'MIT License',
+                        });
+                    },
+                },
+                size({ statsFile: statsPath }),
+            ],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        // extname('LICENSE') returns '' so fallback uses full filename
+        expect(stats.assets.LICENSE).toBeDefined();
+        expect(stats.assets.LICENSE.raw).toBeGreaterThan(0);
+    });
+
+    it('should omit gzip and brotli from both entries and assets when both are disabled', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 42' }),
+                {
+                    name: 'emit-asset-for-no-compress',
+                    generateBundle() {
+                        this.emitFile({
+                            type: 'asset',
+                            fileName: 'styles.css',
+                            source: 'body { margin: 0; }',
+                        });
+                    },
+                },
+                size({ statsFile: statsPath, gzip: false, brotli: false }),
+            ],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es.gzip).toBeUndefined();
+        expect(stats.entries.es.brotli).toBeUndefined();
+        expect(stats.assets['.css'].gzip).toBeUndefined();
+        expect(stats.assets['.css'].brotli).toBeUndefined();
+    });
+
+    it('should record a minified size smaller than raw when the minify function removes whitespace and renames identifiers', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({
+                    entry: `
+                        export default function reallyLongFunctionName() {
+                            const variableWithVeryLongName = 42;
+                            return variableWithVeryLongName;
+                        }
+                    `,
+                }),
+                size({
+                    statsFile: statsPath,
+                    minify: async code => {
+                        return code
+                            .replace(/\s+/g, ' ')
+                            .replace(/reallyLongFunctionName/g, 'f')
+                            .replace(/variableWithVeryLongName/g, 'v')
+                            .trim();
+                    },
+                }),
+            ],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es.minified).toBeDefined();
+        expect(stats.entries.es.minified).toBeLessThan(stats.entries.es.raw);
+    });
+
+    it('should generate valid stats without errors when verbose mode is enabled', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath, verbose: true })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es).toBeDefined();
+        expect(stats.entries.es.raw).toBeGreaterThan(0);
+    });
+
+    it('should sum sizes of all non-entry dynamic chunks under a single chunks format key', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({
+                    entry: 'export default () => { const p1 = import("chunk1"); const p2 = import("chunk2"); return Promise.all([p1, p2]); }',
+                    chunk1: 'export const a = "first dynamic chunk with some substantial content to prevent inlining"; export function helper() { return a; }',
+                    chunk2: 'export const b = "second dynamic chunk with some substantial content to prevent inlining"; export function helper2() { return b; }',
+                }),
+                size({ statsFile: statsPath }),
+            ],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es).toBeDefined();
+        expect(stats.entries.es.raw).toBeGreaterThan(0);
+        expect(stats.chunks).toBeDefined();
+        expect(stats.chunks.es).toBeDefined();
+        expect(stats.chunks.es.raw).toBeGreaterThan(0);
+    });
+});
+
+// --- ADDITIONAL TESTS FOR REMAINING BRANCH COVERAGE ---
+
+describe('@rollup-extras/plugin-size (final branch coverage)', () => {
+    let tmpDir;
+
+    beforeEach(async () => {
+        tmpDir = await mkdtemp(join(tmpdir(), 'plugin-size-final-'));
+    });
+
+    afterEach(async () => {
+        await rm(tmpDir, { recursive: true, force: true });
+    });
+
+    it('should record a raw size greater than 1024 for bundles exceeding 1 kB', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        // Generate code large enough to exceed 1024 bytes raw
+        const longExport = `export const data = ${JSON.stringify('x'.repeat(1200))};`;
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: longExport }), size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es.raw).toBeGreaterThan(1024);
+    });
+
+    it('should drop previously-tracked chunk and asset keys that are absent in the current build', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+
+        // Pre-seed stats with entries, chunks, AND assets that won't be in current build
+        await writeFile(
+            statsPath,
+            JSON.stringify({
+                entries: { iife: { raw: 500, gzip: 250 } },
+                chunks: { iife: { raw: 600, gzip: 300 } },
+                assets: { '.woff': { raw: 700, gzip: 350 } },
+            })
+        );
+
+        // Build produces only es entries - iife entries/chunks and .woff assets are "removed"
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es).toBeDefined();
+        // The old iife entry/chunk and .woff asset are not in current stats
+        expect(stats.entries.iife).toBeUndefined();
+        expect(stats.chunks).toBeUndefined();
+        expect(stats.assets).toBeUndefined();
+    });
+
+    it('should produce identical raw and gzip values when building the same code twice', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const code = 'export default 42';
+
+        // First build
+        const bundle1 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: code }), size({ statsFile: statsPath })],
+        });
+        await bundle1.generate({ format: 'es', dir: 'dist' });
+        await bundle1.close();
+
+        const firstStats = JSON.parse(await readFile(statsPath, 'utf8'));
+
+        // Second build with identical code - delta should be 0
+        const bundle2 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: code }), size({ statsFile: statsPath })],
+        });
+        await bundle2.generate({ format: 'es', dir: 'dist' });
+        await bundle2.close();
+
+        const secondStats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(secondStats.entries.es.raw).toBe(firstStats.entries.es.raw);
+        expect(secondStats.entries.es.gzip).toBe(firstStats.entries.es.gzip);
+    });
+
+    it('should record increasing raw and brotli sizes across two kB-range builds', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const smallCode = `export const data = ${JSON.stringify('a'.repeat(1200))};`;
+        const largeCode = `export const data = ${JSON.stringify('b'.repeat(2400))}; export const extra = ${JSON.stringify('c'.repeat(1200))};`;
+
+        // First build: small kB-range code
+        const bundle1 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: smallCode }), size({ statsFile: statsPath, brotli: true })],
+        });
+        await bundle1.generate({ format: 'es', dir: 'dist' });
+        await bundle1.close();
+
+        const firstStats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(firstStats.entries.es.raw).toBeGreaterThan(1024);
+        expect(firstStats.entries.es.brotli).toBeGreaterThan(0);
+
+        // Second build: larger kB-range code - delta > 0 in kB range
+        const bundle2 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: largeCode }), size({ statsFile: statsPath, brotli: true })],
+        });
+        await bundle2.generate({ format: 'es', dir: 'dist' });
+        await bundle2.close();
+
+        const secondStats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(secondStats.entries.es.raw).toBeGreaterThan(firstStats.entries.es.raw);
+        expect(secondStats.entries.es.brotli).toBeGreaterThan(0);
+    });
+
+    it('should record decreasing raw size when the second kB-range build is smaller with brotli enabled', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const largeCode = `export const data = ${JSON.stringify('a'.repeat(2400))}; export const extra = ${JSON.stringify('b'.repeat(1200))};`;
+        const smallCode = `export const data = ${JSON.stringify('c'.repeat(1200))};`;
+
+        // First build: large kB-range code
+        const bundle1 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: largeCode }), size({ statsFile: statsPath, brotli: true })],
+        });
+        await bundle1.generate({ format: 'es', dir: 'dist' });
+        await bundle1.close();
+
+        const firstStats = JSON.parse(await readFile(statsPath, 'utf8'));
+
+        // Second build: smaller kB-range code - delta < 0 in kB range
+        const bundle2 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: smallCode }), size({ statsFile: statsPath, brotli: true })],
+        });
+        await bundle2.generate({ format: 'es', dir: 'dist' });
+        await bundle2.close();
+
+        const secondStats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(secondStats.entries.es.raw).toBeLessThan(firstStats.entries.es.raw);
+    });
+});
+
+// --- TESTS FOR UNCOVERED LINES 48 AND 109 ---
+
+describe('@rollup-extras/plugin-size (lines 48 & 109 coverage)', () => {
+    let tmpDir;
+
+    beforeEach(async () => {
+        tmpDir = await mkdtemp(join(tmpdir(), 'plugin-size-lines-'));
+    });
+
+    afterEach(async () => {
+        await rm(tmpDir, { recursive: true, force: true });
+    });
+
+    it('should record a raw size of at least 1 MB for megabyte-scale bundles', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        // Generate a string constant > 1 MB so the chunk raw size hits the MB branch
+        const hugeExport = `export default "${'X'.repeat(1_100_000)}";`;
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: hugeExport }), size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        // The raw size must be >= 1 MB to exercise the MB branch in formatSize
+        expect(stats.entries.es.raw).toBeGreaterThanOrEqual(1024 * 1024);
+    });
+
+    it('should write an empty stats object when all bundle items are removed before the size plugin runs', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+
+        // Plugin that removes every item from the bundle before the size plugin sees it
+        const emptyBundlePlugin = {
+            name: 'empty-bundle',
+            generateBundle(_options, bundle) {
+                for (const key of Object.keys(bundle)) {
+                    delete bundle[key];
+                }
+            },
+        };
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1;' }), emptyBundlePlugin, size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        // With an empty bundle the stats object should have no entries, chunks, or assets
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats).toEqual({});
+    });
+});
+
+// --- MISSING TESTS PLAN ---
+
+describe('@rollup-extras/plugin-size (missing tests plan)', () => {
+    let tmpDir;
+
+    beforeEach(async () => {
+        tmpDir = await mkdtemp(join(tmpdir(), 'size-plan-'));
+    });
+
+    afterEach(async () => {
+        await rm(tmpDir, { recursive: true, force: true });
+    });
+
+    it('should handle corrupted JSON in a previous stats file gracefully', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        // Write corrupted JSON
+        await writeFile(statsPath, '{ invalid json !!!');
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es).toBeDefined();
+        expect(stats.entries.es.raw).toBeGreaterThan(0);
+    });
+
+    it('should handle a non-existent stats file on the first build without error', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        // No pre-existing stats file — first build creates it from scratch
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' }), size({ statsFile: statsPath })],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es).toBeDefined();
+        expect(stats.entries.es.raw).toBeGreaterThan(0);
+    });
+
+    it('should not apply minify function to assets (only to chunks)', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const minifyCalls = [];
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 42' }),
+                {
+                    name: 'emit-asset',
+                    generateBundle() {
+                        this.emitFile({
+                            type: 'asset',
+                            fileName: 'data.json',
+                            source: '{"key": "value", "extra": "spacing"}',
+                        });
+                    },
+                },
+                size({
+                    statsFile: statsPath,
+                    minify: async code => {
+                        minifyCalls.push(code);
+                        return code.replace(/\s+/g, ' ').trim();
+                    },
+                }),
+            ],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        // The entry chunk should have a minified size
+        expect(stats.entries.es.minified).toBeDefined();
+        // The asset should NOT have a minified size
+        expect(stats.assets['.json']).toBeDefined();
+        expect(stats.assets['.json'].minified).toBeUndefined();
+    });
+
+    it('should not carry over stats from a previous build (watch mode)', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const plugin = size({ statsFile: statsPath });
+
+        // First build: entry with one chunk
+        const bundle1 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default "first build";' }), plugin],
+        });
+        await bundle1.generate({ format: 'es', dir: 'dist' });
+        await bundle1.close();
+
+        const stats1 = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats1.entries.es).toBeDefined();
+
+        // Second build: entry with different code
+        const bundle2 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default "second build with more content for different size";' }), plugin],
+        });
+        await bundle2.generate({ format: 'es', dir: 'dist' });
+        await bundle2.close();
+
+        const stats2 = JSON.parse(await readFile(statsPath, 'utf8'));
+        // Stats should reflect only the second build, not accumulate
+        expect(stats2.entries.es.raw).not.toBe(stats1.entries.es.raw + stats2.entries.es.raw);
+        expect(stats2.entries.es.raw).toBeGreaterThan(stats1.entries.es.raw);
+    });
+
+    it('should display minified size in report when minify option is provided', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const plugin = size({
+            statsFile: statsPath,
+            minify: async code => code.replace(/\s+/g, ' '),
+        });
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default    "lots    of    whitespace"   ;' }), plugin],
+        });
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es).toBeDefined();
+        expect(stats.entries.es.minified).toBeDefined();
+        expect(stats.entries.es.minified).toBeLessThanOrEqual(stats.entries.es.raw);
+    });
+
+    it('should report removed asset extensions from previous stats', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        // Pre-seed stats with a .css asset that will not be in the current build
+        await writeFile(statsPath, JSON.stringify({ assets: { '.css': { raw: 500 } } }));
+
+        const plugin = size({ statsFile: statsPath });
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), plugin],
+        });
+        // Build produces only JS (no CSS asset), so .css should show as "removed"
+        await bundle.generate({ format: 'es', dir: 'dist' });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        // Current stats should NOT have .css (it was only in previous)
+        expect(stats.assets?.['.css']).toBeUndefined();
     });
 });

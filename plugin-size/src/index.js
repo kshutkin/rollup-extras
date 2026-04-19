@@ -294,6 +294,13 @@ export default function (options) {
 
     const instance = multiConfigPluginBase(false, pluginName, reportAndSave, onEachOutput);
 
+    // Clear accumulated stats at the start of each new build cycle (watch mode support)
+    instance.buildStart = () => {
+        currentStats.entries = undefined;
+        currentStats.chunks = undefined;
+        currentStats.assets = undefined;
+    };
+
     return instance;
 
     /**

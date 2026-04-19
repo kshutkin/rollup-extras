@@ -1,10 +1,11 @@
 import { readFile } from 'node:fs/promises';
-import { basename } from 'node:path';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 
+import remapping from '@ampproject/remapping';
 import MagicString, { Bundle } from 'magic-string';
 
 /**
- * @import { PluginContext, Plugin, OutputBundle, SourceMap } from 'rollup'
+ * @import { PluginContext, Plugin, OutputBundle, OutputAsset, SourceMap } from 'rollup'
  */
 
 /**
@@ -103,7 +104,7 @@ export default function (options = {}) {
         const externalMatch = code.match(/\/\/[#@]\s*sourceMappingURL=(.+?)\s*$/);
         if (externalMatch && !externalMatch[1].startsWith('data:')) {
             try {
-                const mapPath = `${filePath}.map`;
+                const mapPath = join(dirname(filePath), externalMatch[1]);
                 const mapContent = await readFile(mapPath, 'utf8');
                 return JSON.parse(mapContent);
             } catch {
@@ -260,6 +261,9 @@ export default function (options = {}) {
                 })
                 .map(([, entry]) => entry);
 
+            // Compute the output base directory for relative sourcemap paths
+            const outputDir = _outputOptions.dir ?? (_outputOptions.file ? dirname(_outputOptions.file) : process.cwd());
+
             // Build concatenated code and sourcemap using MagicString Bundle
             const magicBundle = new Bundle({ separator: '\n' });
 
@@ -268,9 +272,6 @@ export default function (options = {}) {
                     filename: entry.filePath,
                 });
 
-                // If entry has an original sourcemap, we need to handle it
-                // For now, we'll let MagicString generate fresh mappings
-                // and the original file content will be used as the source
                 magicBundle.addSource({
                     filename: entry.filePath,
                     content: ms,
@@ -282,7 +283,7 @@ export default function (options = {}) {
             let generatedMap;
 
             if (sourcemap) {
-                generatedMap = /** @type {SourceMap} */ (
+                const magicMap = /** @type {SourceMap} */ (
                     magicBundle.generateMap({
                         file: name,
                         source: name,
@@ -290,6 +291,28 @@ export default function (options = {}) {
                         hires: true,
                     })
                 );
+
+                // Build a lookup of original sourcemaps by filePath
+                const originalMaps = new Map(sortedEntries.filter(e => e.originalMap).map(e => [e.filePath, e.originalMap]));
+
+                if (originalMaps.size > 0) {
+                    // Compose the MagicString map with the per-source original maps.
+                    // Track returned maps to avoid infinite recursion from self-referencing maps.
+                    const returned = new Set();
+                    generatedMap = /** @type {SourceMap} */ (
+                        remapping(magicMap, file => {
+                            if (returned.has(file)) return null;
+                            const orig = originalMaps.get(file);
+                            if (orig) {
+                                returned.add(file);
+                                return orig;
+                            }
+                            return null;
+                        })
+                    );
+                } else {
+                    generatedMap = magicMap;
+                }
             }
 
             // Apply minification if configured
@@ -305,35 +328,59 @@ export default function (options = {}) {
                 }
             }
 
-            // Emit main asset WITHOUT sourceMappingURL first
-            const assetRefId = this.emitFile({
-                type: 'asset',
-                [exactFileName ? 'fileName' : 'name']: name,
-                source: concatenatedCode,
-            });
+            if (exactFileName) {
+                // We know the final filename upfront
+                if (sourcemap && generatedMap) {
+                    const assetDir = resolve(outputDir, dirname(name));
+                    generatedMap.sources = generatedMap.sources.map((/** @type {string} */ s) => relative(assetDir, s));
 
-            // Get the final filename (may include hash if exactFileName: false)
-            const finalFileName = this.getFileName(assetRefId);
+                    const mapFileName = `${name}.map`;
+                    generatedMap.file = basename(name);
+                    concatenatedCode += `\n//# sourceMappingURL=${basename(mapFileName)}`;
 
-            // Emit sourcemap and update main asset (if enabled)
-            if (sourcemap && generatedMap) {
-                // Compute sourcemap filename based on the (possibly hashed) main filename
-                const mapFileName = `${finalFileName}.map`;
+                    this.emitFile({
+                        type: 'asset',
+                        fileName: name,
+                        source: concatenatedCode,
+                    });
 
-                // Update the sourcemap's file property to match the actual filename
-                generatedMap.file = basename(finalFileName);
-
-                // Emit sourcemap with EXACT fileName (no additional hashing)
-                this.emitFile({
+                    this.emitFile({
+                        type: 'asset',
+                        fileName: mapFileName,
+                        source: JSON.stringify(generatedMap),
+                    });
+                } else {
+                    this.emitFile({
+                        type: 'asset',
+                        fileName: name,
+                        source: concatenatedCode,
+                    });
+                }
+            } else {
+                // Emit with 'name' so Rollup applies assetFileNames pattern
+                const assetRefId = this.emitFile({
                     type: 'asset',
-                    fileName: mapFileName,
-                    source: JSON.stringify(generatedMap),
+                    name,
+                    source: concatenatedCode,
                 });
 
-                // Modify main asset in bundle to add sourceMappingURL
-                const bundleEntry = bundle[finalFileName];
-                if (bundleEntry && bundleEntry.type === 'asset' && typeof bundleEntry.source === 'string') {
-                    bundleEntry.source += `\n//# sourceMappingURL=${basename(mapFileName)}`;
+                const finalFileName = this.getFileName(assetRefId);
+
+                if (sourcemap && generatedMap) {
+                    const assetDir = resolve(outputDir, dirname(finalFileName));
+                    generatedMap.sources = generatedMap.sources.map((/** @type {string} */ s) => relative(assetDir, s));
+
+                    const mapFileName = `${finalFileName}.map`;
+                    generatedMap.file = basename(finalFileName);
+
+                    this.emitFile({
+                        type: 'asset',
+                        fileName: mapFileName,
+                        source: JSON.stringify(generatedMap),
+                    });
+
+                    // Mutate the bundle entry to add sourceMappingURL
+                    /** @type {OutputAsset} */ (bundle[finalFileName]).source += `\n//# sourceMappingURL=${basename(mapFileName)}`;
                 }
             }
 

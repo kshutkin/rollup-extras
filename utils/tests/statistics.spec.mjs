@@ -3,10 +3,6 @@ import { describe, expect, it } from 'vitest';
 import statistics from '../src/statistics.js';
 
 describe('@rollup-extras/util/statistics', () => {
-    it('should be defined', () => {
-        expect(statistics).toBeDefined();
-    });
-
     describe('statistics non verbose', () => {
         it('should return items when less than cap', () => {
             const collector = statistics(false, result => JSON.stringify(result));

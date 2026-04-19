@@ -29,6 +29,9 @@ importers:
       pkgprn-internal:
         specifier: ^0.8.0
         version: 0.8.0
+      rollup:
+        specifier: ^4.0.0
+        version: 4.37.0
       vitest:
         specifier: ^4.0.18
         version: 4.1.4(@types/node@24.12.2)(@vitest/coverage-v8@4.1.4)(vite@8.0.0(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@24.12.2)(terser@5.39.0))
@@ -161,6 +164,9 @@ importers:
 
   plugin-script-loader:
     dependencies:
+      '@ampproject/remapping':
+        specifier: ^2.3.0
+        version: 2.3.0
       '@niceties/logger':
         specifier: ^2.1.0
         version: 2.1.1
@@ -326,6 +332,10 @@ importers:
         version: 4.37.0
 
 packages:
+
+  '@ampproject/remapping@2.3.0':
+    resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
+    engines: {node: '>=6.0.0'}
 
   '@babel/code-frame@7.29.0':
     resolution: {integrity: sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw==}
@@ -2353,6 +2363,11 @@ packages:
     engines: {node: '>= 6'}
 
 snapshots:
+
+  '@ampproject/remapping@2.3.0':
+    dependencies:
+      '@jridgewell/gen-mapping': 0.3.8
+      '@jridgewell/trace-mapping': 0.3.31
 
   '@babel/code-frame@7.29.0':
     dependencies:

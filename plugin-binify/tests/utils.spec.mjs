@@ -3,10 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { count } from '../src/utils';
 
 describe('@rollup-extras/plugin-binify/utils', () => {
-    it('should be defined', () => {
-        expect(count).toBeDefined();
-    });
-
     it('should return 0 for empty line', () => {
         expect(count('', '1')).toBe(0);
     });

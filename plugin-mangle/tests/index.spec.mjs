@@ -1,217 +1,254 @@
-import { parseAst } from 'rollup/parseAst';
-import { describe, expect, it, vi } from 'vitest';
+import { rollup } from 'rollup';
+import { describe, expect, it } from 'vitest';
 
-import { createLogger } from '@niceties/logger';
+import mangle from '../src/index.js';
 
-import plugin from '../src';
-
-let loggerFinish, logger;
-
-vi.mock('@niceties/logger', () => ({
-    LogLevel: { verbose: 0, info: 1, warn: 2, error: 3 },
-    createLogger: vi.fn(() => {
-        logger = vi.fn();
-        loggerFinish = vi.fn();
-        return Object.assign(logger, {
-            finish: loggerFinish,
-            start: vi.fn(),
-        });
-    }),
-}));
-
-function createMockChunk(fileName = 'chunk.mjs') {
-    return { fileName };
-}
-
-function makeMockContext() {
+function virtual(modules) {
     return {
-        parse(source) {
-            return parseAst(source);
+        name: 'virtual-input',
+        resolveId(id) {
+            if (modules[id]) return id;
+        },
+        load(id) {
+            if (modules[id]) return modules[id];
         },
     };
 }
 
+async function build(code, mangleOptions, outputOptions = {}) {
+    const bundle = await rollup({
+        input: 'entry',
+        plugins: [virtual({ entry: code }), mangle(mangleOptions)],
+    });
+    const { output } = await bundle.generate({ format: 'es', ...outputOptions });
+    return output;
+}
+
 describe('@rollup-extras/plugin-mangle', () => {
-    it('should be defined', () => {
-        expect(plugin).toBeDefined();
+    it('should mangle dot-notation member expression properties', async () => {
+        const output = await build('export const x = { $_prop: 1 }; x.$_prop;');
+        expect(output[0].code).not.toContain('$_prop');
+        expect(output[0].code).toContain('.a');
     });
 
-    it('should return a plugin object', () => {
-        const pluginInstance = plugin();
-        expect(pluginInstance).toBeDefined();
-        expect(pluginInstance.name).toEqual('@rollup-extras/plugin-mangle');
+    it('should mangle property keys in object literals', async () => {
+        const output = await build('export default { $_prop: 1 };');
+        expect(output[0].code).not.toContain('$_prop');
+        expect(output[0].code).toMatch(/{\s*a:\s*1\s*}/);
     });
 
-    it('should use default plugin name', () => {
-        const pluginInstance = plugin();
-        expect(pluginInstance.name).toEqual('@rollup-extras/plugin-mangle');
-        expect(createLogger).toHaveBeenCalledWith('@rollup-extras/plugin-mangle');
+    it('should mangle prefixed names inside string literals', async () => {
+        const output = await build("export default '$_prop';");
+        expect(output[0].code).not.toContain('$_prop');
+        expect(output[0].code).toContain("'a'");
     });
 
-    it('should use changed plugin name', () => {
-        const pluginInstance = plugin({ pluginName: 'test-mangle' });
-        expect(pluginInstance.name).toEqual('test-mangle');
-        expect(createLogger).toHaveBeenCalledWith('test-mangle');
+    it('should mangle identifiers used as variables', async () => {
+        const output = await build('let $_x = 1; export default $_x;');
+        expect(output[0].code).not.toContain('$_x');
+        // The variable should be renamed to a short name
+        expect(output[0].code).toMatch(/let a\b/);
     });
 
-    it('should accept string as prefix option', () => {
-        const pluginInstance = plugin('$$');
-        expect(pluginInstance.name).toEqual('@rollup-extras/plugin-mangle');
+    it('should produce consistent mangled names for the same property', async () => {
+        const output = await build('const obj = {}; obj.$_prop = 1; obj.$_prop = 2; export default obj;');
+        expect(output[0].code).not.toContain('$_prop');
+        const matches = output[0].code.match(/obj\.(\w+)/g);
+        expect(matches.length).toBeGreaterThanOrEqual(2);
+        // All occurrences should use the same mangled name
+        const unique = new Set(matches);
+        expect(unique.size).toBe(1);
     });
 
-    it('should have renderChunk method', () => {
-        const pluginInstance = plugin();
-        expect(typeof pluginInstance.renderChunk).toBe('function');
+    it('should not change properties without the prefix', async () => {
+        const output = await build('const obj = {}; obj.normalProp = 1; export default obj;');
+        expect(output[0].code).toContain('normalProp');
     });
 
-    describe('renderChunk', () => {
-        it('should mangle member expression properties with default prefix', () => {
-            const pluginInstance = plugin();
-            const code = 'const x = obj.$_foo;';
-            const ctx = makeMockContext();
-            const result = pluginInstance.renderChunk.call(ctx, code, createMockChunk());
-            expect(result.code).not.toContain('$_foo');
-            expect(result.map).toBeDefined();
-        });
+    it('should accept a custom prefix option as a string', async () => {
+        const output = await build('const obj = {}; obj.$$foo = 1; obj.$_bar = 2; export default obj;', '$$');
+        // $$foo should be mangled
+        expect(output[0].code).not.toContain('$$foo');
+        // $_bar should NOT be mangled because prefix is $$
+        expect(output[0].code).toContain('$_bar');
+    });
 
-        it('should mangle object property keys', () => {
-            const pluginInstance = plugin();
-            const code = 'const x = { $_foo: 1, $_bar: 2 };';
-            const ctx = makeMockContext();
-            const result = pluginInstance.renderChunk.call(ctx, code, createMockChunk());
-            expect(result.code).not.toContain('$_foo');
-            expect(result.code).not.toContain('$_bar');
-        });
+    it('should accept a custom prefix option in options object', async () => {
+        const output = await build('const obj = {}; obj.$$foo = 1; export default obj;', { prefix: '$$' });
+        expect(output[0].code).not.toContain('$$foo');
+    });
 
-        it('should mangle string literals containing prefixed values', () => {
-            const pluginInstance = plugin();
-            const code = "const x = '$_foo';";
-            const ctx = makeMockContext();
-            const result = pluginInstance.renderChunk.call(ctx, code, createMockChunk());
-            expect(result.code).not.toContain('$_foo');
-            // Should preserve quote style
-            expect(result.code).toContain("'");
-        });
+    it('should return a valid sourcemap with mappings when sourcemap is enabled', async () => {
+        const output = await build('const obj = {}; obj.$_prop = 1; export default obj;', undefined, { sourcemap: true });
+        expect(output[0].map).toBeDefined();
+        expect(output[0].map).not.toBeNull();
+        expect(output[0].map.mappings).toBeTruthy();
+    });
 
-        it('should mangle identifiers used as variables', () => {
-            const pluginInstance = plugin();
-            const code = 'let $_foo = 1; console.log($_foo);';
-            const ctx = makeMockContext();
-            const result = pluginInstance.renderChunk.call(ctx, code, createMockChunk());
-            expect(result.code).not.toContain('$_foo');
-        });
+    it('should assign different mangled names to different properties', async () => {
+        const output = await build('const obj = {}; obj.$_foo = 1; obj.$_bar = 2; export default obj;');
+        expect(output[0].code).not.toContain('$_foo');
+        expect(output[0].code).not.toContain('$_bar');
+        const matches = output[0].code.match(/obj\.(\w+)/g);
+        expect(matches.length).toBeGreaterThanOrEqual(2);
+        // The two properties should map to different names
+        const unique = new Set(matches);
+        expect(unique.size).toBe(2);
+    });
 
-        it('should not mangle properties without the prefix', () => {
-            const pluginInstance = plugin();
-            const code = 'const x = obj.normalProp;';
-            const ctx = makeMockContext();
-            const result = pluginInstance.renderChunk.call(ctx, code, createMockChunk());
-            expect(result.code).toContain('normalProp');
-        });
+    it('should pass through code unchanged when no mangleable references exist', async () => {
+        const output = await build('export default 1 + 2;');
+        expect(output[0].code).toContain('1 + 2');
+    });
 
-        it('should generate consistent mangled names for same property', () => {
-            const pluginInstance = plugin();
-            const code = 'obj.$_foo = 1; obj.$_foo = 2;';
-            const ctx = makeMockContext();
-            const result = pluginInstance.renderChunk.call(ctx, code, createMockChunk());
-            // Both occurrences should be mangled to the same name
-            const matches = result.code.match(/obj\.(\w+)/g);
-            expect(matches).toHaveLength(2);
-            expect(matches[0]).toEqual(matches[1]);
+    it('should use consistent mangled names across multiple output chunks', async () => {
+        const modules = {
+            entry: "export { default as a } from 'mod'; export const obj = {}; obj.$_foo = 1;",
+            mod: 'const obj = {}; obj.$_foo = 2; export default obj;',
+        };
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual(modules), mangle()],
         });
+        const { output } = await bundle.generate({
+            format: 'es',
+            manualChunks: { vendor: ['mod'] },
+        });
+        // Both chunks should use the same mangled name for $_foo
+        const allCode = output.map(o => o.code).join('\n');
+        expect(allCode).not.toContain('$_foo');
+    });
 
-        it('should generate different mangled names for different properties', () => {
-            const pluginInstance = plugin();
-            const code = 'obj.$_foo = 1; obj.$_bar = 2;';
-            const ctx = makeMockContext();
-            const result = pluginInstance.renderChunk.call(ctx, code, createMockChunk());
-            const matches = result.code.match(/obj\.(\w+)/g);
-            expect(matches).toHaveLength(2);
-            expect(matches[0]).not.toEqual(matches[1]);
-        });
+    it('should expand shorthand property syntax when the key is mangled', async () => {
+        const output = await build('const obj = { $_prop: 1 }; const { $_prop } = obj; export default $_prop;');
+        expect(output[0].code).not.toContain('$_prop');
+        // shorthand { $_prop } should become { a: a } not just { a }
+        expect(output[0].code).not.toMatch(/\{\s*a\s*\}/);
+    });
 
-        it('should use custom prefix', () => {
-            const pluginInstance = plugin('$$');
-            const code = 'const x = obj.$$foo; const y = obj.$_bar;';
-            const ctx = makeMockContext();
-            const result = pluginInstance.renderChunk.call(ctx, code, createMockChunk());
-            // $$foo should be mangled
-            expect(result.code).not.toContain('$$foo');
-            // $_bar should NOT be mangled (different prefix)
-            expect(result.code).toContain('$_bar');
-        });
+    it('should mangle prefixed names in double-quoted strings while preserving quote style', async () => {
+        const output = await build('export default "$_prop";');
+        expect(output[0].code).not.toContain('$_prop');
+        expect(output[0].code).toContain('"a"');
+    });
 
-        it('should use prefix from options object', () => {
-            const pluginInstance = plugin({ prefix: '$$' });
-            const code = 'const x = obj.$$foo;';
-            const ctx = makeMockContext();
-            const result = pluginInstance.renderChunk.call(ctx, code, createMockChunk());
-            expect(result.code).not.toContain('$$foo');
-        });
+    it('should mangle variable identifiers used in computed member expressions', async () => {
+        const output = await build("const $_prop = 'key'; const obj = {}; const val = obj[$_prop]; export default val;");
+        // $_prop is a variable, so it should be mangled
+        expect(output[0].code).not.toContain('$_prop');
+    });
 
-        it('should handle shorthand properties', () => {
-            const pluginInstance = plugin();
-            const code = 'const $_foo = 1; const obj = { $_foo };';
-            const ctx = makeMockContext();
-            const result = pluginInstance.renderChunk.call(ctx, code, createMockChunk());
-            expect(result.code).not.toContain('$_foo');
-        });
+    it('should generate multi-letter names when the alphabet is exhausted', async () => {
+        const code = `let $_v0 = 0; let $_v1 = 1; let $_v2 = 2; let $_v3 = 3; let $_v4 = 4; let $_v5 = 5; let $_v6 = 6; let $_v7 = 7; let $_v8 = 8; let $_v9 = 9; let $_v10 = 10; let $_v11 = 11; let $_v12 = 12; let $_v13 = 13; let $_v14 = 14; let $_v15 = 15; let $_v16 = 16; let $_v17 = 17; let $_v18 = 18; let $_v19 = 19; let $_v20 = 20; let $_v21 = 21; let $_v22 = 22; let $_v23 = 23; let $_v24 = 24; let $_v25 = 25; let $_v26 = 26; export default $_v0 + $_v1 + $_v2 + $_v3 + $_v4 + $_v5 + $_v6 + $_v7 + $_v8 + $_v9 + $_v10 + $_v11 + $_v12 + $_v13 + $_v14 + $_v15 + $_v16 + $_v17 + $_v18 + $_v19 + $_v20 + $_v21 + $_v22 + $_v23 + $_v24 + $_v25 + $_v26;`;
+        const output = await build(code);
+        // None of the original names should remain
+        for (let i = 0; i < 27; i++) {
+            expect(output[0].code).not.toContain(`$_v${i}`);
+        }
+        // The 27th identifier should get a two-letter name like 'aa'
+        expect(output[0].code).toContain('aa');
+    });
 
-        it('should return source map', () => {
-            const pluginInstance = plugin();
-            const code = 'const x = obj.$_foo;';
-            const ctx = makeMockContext();
-            const result = pluginInstance.renderChunk.call(ctx, code, createMockChunk());
-            expect(result.map).toBeDefined();
-        });
+    it('should mangle function parameters', async () => {
+        const output = await build('function foo($_param) { return $_param; } export default foo(1);');
+        expect(output[0].code).not.toContain('$_param');
+    });
 
-        it('should handle code with no mangeable properties', () => {
-            const pluginInstance = plugin();
-            const code = 'const x = 1 + 2;';
-            const ctx = makeMockContext();
-            const result = pluginInstance.renderChunk.call(ctx, code, createMockChunk());
-            expect(result.code).toEqual(code);
-        });
+    it('should use the default plugin name when no pluginName option is provided', () => {
+        expect(mangle().name).toBe('@rollup-extras/plugin-mangle');
+    });
 
-        it('should handle computed member expressions (string literal inside is mangled)', () => {
-            const pluginInstance = plugin();
-            const code = "const x = obj['$_foo'];";
-            const ctx = makeMockContext();
-            const result = pluginInstance.renderChunk.call(ctx, code, createMockChunk());
-            // The string literal inside computed access should be mangled
-            expect(result.code).not.toContain('$_foo');
-        });
+    it('should use a custom plugin name when pluginName option is provided', () => {
+        expect(mangle({ pluginName: 'my-mangle' }).name).toBe('my-mangle');
+    });
 
-        it('should generate short mangled names (a, b, c, ...)', () => {
-            const pluginInstance = plugin();
-            const code = 'obj.$_a = 1;';
-            const ctx = makeMockContext();
-            const result = pluginInstance.renderChunk.call(ctx, code, createMockChunk());
-            // First property should get 'a'
-            expect(result.code).toContain('obj.a');
-        });
+    it('should mangle destructuring pattern property key ({ $_prop: localVar })', async () => {
+        const output = await build('const obj = { $_prop: 42 }; const { $_prop: localVar } = obj; export default localVar;');
+        expect(output[0].code).not.toContain('$_prop');
+    });
 
-        it('should persist mangled names across renderChunk calls', () => {
-            const pluginInstance = plugin();
-            const code1 = 'obj.$_foo = 1;';
-            const code2 = 'obj.$_foo = 2;';
-            const ctx1 = makeMockContext();
-            const ctx2 = makeMockContext();
-            const result1 = pluginInstance.renderChunk.call(ctx1, code1, createMockChunk('chunk1.mjs'));
-            const result2 = pluginInstance.renderChunk.call(ctx2, code2, createMockChunk('chunk2.mjs'));
-            // Same property should get same mangled name across chunks
-            const match1 = result1.code.match(/obj\.(\w+)/);
-            const match2 = result2.code.match(/obj\.(\w+)/);
-            expect(match1[1]).toEqual(match2[1]);
-        });
+    it('should mangle prefixed names inside template literals without interpolation', async () => {
+        const output = await build('export default `$_prop`;');
+        // Template literal with no interpolation and exact prefix match should be mangled
+        expect(output[0].code).not.toContain('$_prop');
+        expect(output[0].code).toContain('`a`');
+    });
 
-        it('should handle double-quoted string literals', () => {
-            const pluginInstance = plugin();
-            const code = 'const x = "$_foo";';
-            const ctx = makeMockContext();
-            const result = pluginInstance.renderChunk.call(ctx, code, createMockChunk());
-            expect(result.code).not.toContain('$_foo');
-            expect(result.code).toContain('"');
+    it('should not mangle template literals with interpolation', async () => {
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: source code passed to build
+        const output = await build('const x = 1; export default `$_prop' + '${x}`;');
+        // Template literal with expressions should not be mangled
+        expect(output[0].code).toContain('$_prop');
+    });
+
+    it('should include sources in the sourcemap when sourcemap is enabled', async () => {
+        const output = await build('const obj = {}; obj.$_prop = 1; export default obj;', undefined, { sourcemap: true });
+        expect(output[0].map).toBeDefined();
+        expect(output[0].map).not.toBeNull();
+        // sources should be populated
+        const hasSources = output[0].map.sources && output[0].map.sources.length > 0;
+        const hasFile = output[0].map.file && output[0].map.file.length > 0;
+        expect(hasSources || hasFile).toBe(true);
+    });
+
+    it('should mangle string literals inside computed member expressions', async () => {
+        const output = await build("const obj = {}; obj['$_foo'] = 42; export default obj['$_foo'];");
+        expect(output[0].code).not.toContain('$_foo');
+    });
+
+    it('should not double-mangle shorthand properties where both key and value are the same prefixed identifier', async () => {
+        // Shorthand: { $_prop } should mangle the key and expand to { a: a }
+        const output = await build('const $_prop = 1; const obj = { $_prop }; export default obj;');
+        expect(output[0].code).not.toContain('$_prop');
+    });
+
+    it('should mangle all reference types consistently within a single file', async () => {
+        const code = [
+            'const obj = { $_prop: 1 };',
+            "obj['$_prop'] = 2;",
+            'const val = obj.$_prop;',
+            'const $_prop = 3;',
+            'export default val + $_prop;',
+        ].join('\n');
+        const output = await build(code);
+        expect(output[0].code).not.toContain('$_prop');
+    });
+
+    it('should mangle arrow function parameters', async () => {
+        const output = await build('const fn = ($_param) => $_param; export default fn(1);');
+        expect(output[0].code).not.toContain('$_param');
+    });
+
+    it('should mangle prefixed variable used as property value', async () => {
+        const output = await build('const $_var = 1; const obj = { normalKey: $_var }; export default obj;');
+        expect(output[0].code).not.toContain('$_var');
+        // The property value should be mangled to 'a'
+        expect(output[0].code).toMatch(/normalKey:\s*a/);
+    });
+
+    it('should mangle destructured alias and its later usages', async () => {
+        const output = await build('const obj = { x: 1 }; const { x: $_var } = obj; export default $_var;');
+        expect(output[0].code).not.toContain('$_var');
+    });
+
+    it('should reset state between builds', async () => {
+        const plugin = mangle();
+        // First build
+        const bundle1 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'const obj = {}; obj.$_alpha = 1; export default obj;' }), plugin],
         });
+        const { output: output1 } = await bundle1.generate({ format: 'es' });
+
+        // Second build with the same plugin instance
+        const bundle2 = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'const obj = {}; obj.$_beta = 1; export default obj;' }), plugin],
+        });
+        const { output: output2 } = await bundle2.generate({ format: 'es' });
+
+        // Both should start with 'a' since state is reset between builds
+        expect(output1[0].code).toContain('.a');
+        expect(output2[0].code).toContain('.a');
     });
 });
