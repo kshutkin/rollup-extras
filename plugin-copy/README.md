@@ -151,6 +151,12 @@ copy({ src: "assets/*", dest: "fonts", exclude: "*.json" });
 copy({ targets: [{ src: "assets/*", dest: "fonts", exclude: "*.json" }] });
 ```
 
+To preserve symlinks as symlinks at the destination (instead of copying the file they point to) use `preserveSymlinks` = `true`. This option only works with `emitFiles` = `false`:
+
+```javascript
+copy({ src: "assets/*", dest: "public", emitFiles: false, preserveSymlinks: true });
+```
+
 ## Configuration
 
 ```typescript
@@ -181,6 +187,7 @@ type CopyPluginOptions =
         | "absolute"
         | "relative"
         | ((fileName: string) => string); // 'absolute' by default
+      preserveSymlinks?: boolean; // false by default
     }
   | MultipleTargetsDesc;
 ```

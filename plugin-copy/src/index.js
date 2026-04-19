@@ -1,5 +1,5 @@
 import { constants } from 'node:fs';
-import { copyFile, mkdir, readFile, stat } from 'node:fs/promises';
+import { copyFile, lstat, mkdir, readFile, readlink, stat, symlink } from 'node:fs/promises';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 
 import globParent from 'glob-parent';
@@ -19,7 +19,7 @@ import { globFiles } from './glob.js';
  */
 
 /**
- * @typedef {{ targets?: MultipleTargetsDesc, pluginName?: string, copyOnce?: boolean, watch?: boolean, verbose?: boolean | 'list-filenames', flatten?: boolean, exactFileNames?: boolean, outputPlugin?: boolean, emitFiles?: boolean, emitOriginalFileName?: 'absolute' | 'relative' | ((fileName: string) => string) }} NonTargetOptions
+ * @typedef {{ targets?: MultipleTargetsDesc, pluginName?: string, copyOnce?: boolean, watch?: boolean, verbose?: boolean | 'list-filenames', flatten?: boolean, exactFileNames?: boolean, outputPlugin?: boolean, emitFiles?: boolean, emitOriginalFileName?: 'absolute' | 'relative' | ((fileName: string) => string), preserveSymlinks?: boolean }} NonTargetOptions
  */
 
 /**
@@ -66,13 +66,25 @@ export default function (options) {
             emitFiles: true,
             outputPlugin: false,
             emitOriginalFileName: /** @type {const} */ ('absolute'),
+            preserveSymlinks: false,
         },
         'targets',
         factories
     );
 
-    const { pluginName, copyOnce, verbose, exactFileNames, targets, outputPlugin, flatten, emitFiles, logger, emitOriginalFileName } =
-        normalizedOptions;
+    const {
+        pluginName,
+        copyOnce,
+        verbose,
+        exactFileNames,
+        targets,
+        outputPlugin,
+        flatten,
+        emitFiles,
+        logger,
+        emitOriginalFileName,
+        preserveSymlinks,
+    } = normalizedOptions;
     let { watch } = normalizedOptions;
 
     const hookName = outputPlugin ? 'generateBundle' : emitFiles ? 'buildStart' : 'buildEnd';
@@ -85,6 +97,10 @@ export default function (options) {
     if (outputPlugin && watch) {
         watch = false;
         logger("can't use watch with outputPlugin = true", LogLevel.verbose);
+    }
+
+    if (preserveSymlinks && emitFiles) {
+        logger('preserveSymlinks has no effect with emitFiles = true, symlinks will be dereferenced', LogLevel.verbose);
     }
 
     return /** @type {Plugin} */ ({
@@ -144,9 +160,13 @@ export default function (options) {
                 [...files].map(async ([fileName, fileDesc]) => {
                     /** @type {Buffer | undefined} */
                     let source;
+                    /** @type {string | undefined} */
+                    let linkTarget;
                     try {
-                        const fileStat = await stat(fileName);
-                        if (!fileStat.isFile()) {
+                        const fileStat = preserveSymlinks && !emitFiles ? await lstat(fileName) : await stat(fileName);
+                        if (preserveSymlinks && fileStat.isSymbolicLink()) {
+                            linkTarget = await readlink(fileName);
+                        } else if (!fileStat.isFile()) {
                             return;
                         }
                         const timestamp = fileStat.mtime.getTime();
@@ -154,7 +174,7 @@ export default function (options) {
                             fileDesc.timestamp = timestamp;
                             fileDesc.copied = [];
                         }
-                        if (emitFiles) {
+                        if (!linkTarget && emitFiles) {
                             source = await readFile(fileName);
                         }
                     } catch (/** @type {unknown} */ e) {
@@ -170,7 +190,10 @@ export default function (options) {
                         // join removes ./ from the beginning, that's needed for rollup name/fileName fields
                         const destFileName = join(dest, baseName);
                         try {
-                            if (emitFiles) {
+                            if (linkTarget) {
+                                await mkdir(dirname(destFileName), { recursive: true });
+                                await symlink(linkTarget, destFileName);
+                            } else if (emitFiles) {
                                 /** @type {PluginContext} */ (/** @type {unknown} */ (this)).emitFile(
                                     /** @type {EmittedFile} */ ({
                                         type: 'asset',

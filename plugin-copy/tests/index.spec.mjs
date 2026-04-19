@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readdir, readFile, readlink, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -891,5 +891,170 @@ describe('@rollup-extras/plugin-copy (missing tests plan)', () => {
         // Should not throw — non-ENOENT errors are logged as warnings
         await bundle.write({ format: 'es', dir: outDir });
         await bundle.close();
+    });
+});
+
+describe('@rollup-extras/plugin-copy preserveSymlinks', () => {
+    let tmpDir;
+
+    function virtual(modules) {
+        return {
+            name: 'virtual-input',
+            resolveId(id) {
+                if (modules[id]) return id;
+            },
+            load(id) {
+                if (modules[id]) return modules[id];
+            },
+        };
+    }
+
+    beforeEach(async () => {
+        tmpDir = await mkdtemp(join(tmpdir(), 'copy-symlink-'));
+    });
+
+    afterEach(async () => {
+        await rm(tmpDir, { recursive: true, force: true });
+    });
+
+    it('should preserve a file symlink at the destination', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const destDir = join(tmpDir, 'dest');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'target.txt'), 'real-content');
+        await symlink('target.txt', join(srcDir, 'link.txt'));
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 1' }),
+                copy({ src: join(srcDir, 'link.txt'), dest: destDir, emitFiles: false, preserveSymlinks: true }),
+            ],
+        });
+        await bundle.write({ format: 'es', dir: join(tmpDir, 'out') });
+        await bundle.close();
+
+        const destLink = join(destDir, 'link.txt');
+        const destStat = await lstat(destLink);
+        expect(destStat.isSymbolicLink()).toBe(true);
+        const linkTarget = await readlink(destLink);
+        expect(linkTarget).toBe('target.txt');
+    });
+
+    it('should preserve a directory symlink at the destination', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const destDir = join(tmpDir, 'dest');
+        await mkdir(join(srcDir, 'realdir'), { recursive: true });
+        await writeFile(join(srcDir, 'realdir', 'inner.txt'), 'inner');
+        await symlink('realdir', join(srcDir, 'dirlink'));
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 1' }),
+                copy({ src: join(srcDir, 'dirlink'), dest: destDir, emitFiles: false, preserveSymlinks: true }),
+            ],
+        });
+        await bundle.write({ format: 'es', dir: join(tmpDir, 'out') });
+        await bundle.close();
+
+        const destLink = join(destDir, 'dirlink');
+        const destStat = await lstat(destLink);
+        expect(destStat.isSymbolicLink()).toBe(true);
+        const linkTarget = await readlink(destLink);
+        expect(linkTarget).toBe('realdir');
+    });
+
+    it('should preserve a broken symlink at the destination', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const destDir = join(tmpDir, 'dest');
+        await mkdir(srcDir, { recursive: true });
+        await symlink('nonexistent-target', join(srcDir, 'broken.txt'));
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 1' }),
+                copy({ src: join(srcDir, 'broken.txt'), dest: destDir, emitFiles: false, preserveSymlinks: true }),
+            ],
+        });
+        await bundle.write({ format: 'es', dir: join(tmpDir, 'out') });
+        await bundle.close();
+
+        const destLink = join(destDir, 'broken.txt');
+        const destStat = await lstat(destLink);
+        expect(destStat.isSymbolicLink()).toBe(true);
+        const linkTarget = await readlink(destLink);
+        expect(linkTarget).toBe('nonexistent-target');
+    });
+
+    it('should dereference symlinks by default (preserveSymlinks false)', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const destDir = join(tmpDir, 'dest');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'target.txt'), 'real-content');
+        await symlink('target.txt', join(srcDir, 'link.txt'));
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, 'link.txt'), dest: destDir, emitFiles: false })],
+        });
+        await bundle.write({ format: 'es', dir: join(tmpDir, 'out') });
+        await bundle.close();
+
+        const destFile = join(destDir, 'link.txt');
+        const destStat = await lstat(destFile);
+        expect(destStat.isSymbolicLink()).toBe(false);
+        expect(destStat.isFile()).toBe(true);
+        expect(await readFile(destFile, 'utf8')).toBe('real-content');
+    });
+
+    it('should dereference symlinks with emitFiles true even when preserveSymlinks is true', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const outDir = join(tmpDir, 'out');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'target.txt'), 'emitted-content');
+        await symlink('target.txt', join(srcDir, 'link.txt'));
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, 'link.txt'), preserveSymlinks: true })],
+        });
+        await bundle.write({ format: 'es', dir: outDir });
+        await bundle.close();
+
+        // With emitFiles=true, symlinks are dereferenced (emitFile API doesn't support symlinks)
+        const files = await readdir(outDir);
+        expect(files).toContain('link.txt');
+        expect(await readFile(join(outDir, 'link.txt'), 'utf8')).toBe('emitted-content');
+    });
+
+    it('should copy both regular files and symlinks when preserveSymlinks is true', async () => {
+        const srcDir = join(tmpDir, 'src');
+        const destDir = join(tmpDir, 'dest');
+        await mkdir(srcDir, { recursive: true });
+        await writeFile(join(srcDir, 'real.txt'), 'real');
+        await symlink('real.txt', join(srcDir, 'link.txt'));
+
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'export default 1' }),
+                copy({ src: join(srcDir, '*.txt'), dest: destDir, emitFiles: false, preserveSymlinks: true }),
+            ],
+        });
+        await bundle.write({ format: 'es', dir: join(tmpDir, 'out') });
+        await bundle.close();
+
+        const files = await readdir(destDir);
+        expect(files).toContain('real.txt');
+        expect(files).toContain('link.txt');
+
+        const realStat = await lstat(join(destDir, 'real.txt'));
+        expect(realStat.isFile()).toBe(true);
+        expect(realStat.isSymbolicLink()).toBe(false);
+
+        const linkStat = await lstat(join(destDir, 'link.txt'));
+        expect(linkStat.isSymbolicLink()).toBe(true);
     });
 });
