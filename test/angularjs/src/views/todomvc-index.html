@@ -1,3 +1,7 @@
+<div class="app-layout">
+<aside class="chart-panel" ng-show="todos.length" ng-cloak>
+  <todo-chart todos="todos"></todo-chart>
+</aside>
 <section class="todoapp">
   <header class="header">
     <h1>todos</h1>
@@ -38,6 +42,13 @@
             class="destroy"
             ng-click="removeTodo(todo)"
           ></button>
+          <nd-rating
+            class="todo-rating"
+            max="5"
+            step="1"
+            ng-model="todo.rating"
+            on-change="saveTodo(todo)"
+          ></nd-rating>
         </div>
         <form ng-submit="saveEdits(todo, 'submit')">
           <input
@@ -81,6 +92,7 @@
     </button>
   </footer>
 </section>
+</div>
 <footer class="info">
   <p>Double-click to edit a todo</p>
   <p>

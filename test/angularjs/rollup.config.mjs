@@ -8,8 +8,10 @@ import styles from 'rollup-plugin-styles';
 
 import templateCache from '@rollup-extras/plugin-angularjs-template-cache';
 import clean from '@rollup-extras/plugin-clean';
+import copy from '@rollup-extras/plugin-copy';
 import html from '@rollup-extras/plugin-html';
 import { combineAssetFactories, simpleES5Script } from '@rollup-extras/plugin-html/asset-factories';
+import prebundle from '@rollup-extras/plugin-prebundle';
 import scriptLoader from '@rollup-extras/plugin-script-loader';
 import serve from '@rollup-extras/plugin-serve';
 import size from '@rollup-extras/plugin-size';
@@ -28,6 +30,15 @@ export default {
     },
     plugins: [
         clean(),
+
+        // Prebundle nudeui web components into a single chunk
+        prebundle({
+            packages: ['nudeui'],
+            enableInBuildMode: true,
+        }),
+
+        // Copy nudeui's shadow DOM CSS so import.meta.url resolves correctly
+        copy('node_modules/nudeui/meter-discrete/style.css'),
 
         scriptLoader({
             emit: 'asset',
