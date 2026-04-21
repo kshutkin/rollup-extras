@@ -1,0 +1,63 @@
+{
+    "version": "0.0.1",
+    "license": "MIT",
+    "name": "@rollup-extras/plugin-prebundle",
+    "author": "Konstantin Shutkin",
+    "type": "module",
+    "types": "./types/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./types/index.d.ts",
+            "default": "./src/index.js"
+        },
+        "./package.json": "./package.json"
+    },
+    "main": "./src/index.js",
+    "module": "./src/index.js",
+    "files": [
+        "src",
+        "types"
+    ],
+    "engines": {
+        "node": ">=18"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/kshutkin/rollup-extras.git",
+        "directory": "plugin-prebundle"
+    },
+    "bugs": "https://github.com/kshutkin/rollup-extras/issues",
+    "homepage": "https://github.com/kshutkin/rollup-extras/blob/main/plugin-prebundle/README.md",
+    "readme": "README.md",
+    "description": "Rollup plugin to prebundle external dependencies into a single chunk for faster dev/serve mode.",
+    "keywords": [
+        "rollup-plugin",
+        "prebundle",
+        "external",
+        "optimize",
+        "dev"
+    ],
+    "scripts": {
+        "build": "dts-buddy",
+        "prepack": "pkgprn-internal --flatten types,src --strip-comments",
+        "test": "vitest run --coverage --config ../vitest.config.js",
+        "test:types": "tsc -p tsconfig.types.json"
+    },
+    "dependencies": {
+        "@niceties/logger": "^2.1.0",
+        "@rollup/plugin-commonjs": "^28.0.0",
+        "@rollup/plugin-json": "^6.1.0",
+        "@rollup/plugin-node-resolve": "^16.0.0",
+        "@rollup-extras/utils": "workspace:^",
+        "is-builtin-module": "^5.0.0",
+        "pkg-dir": "^9.0.0"
+    },
+    "peerDependencies": {
+        "rollup": "^4.0.0"
+    },
+    "peerDependenciesMeta": {
+        "rollup": {
+            "optional": true
+        }
+    }
+}

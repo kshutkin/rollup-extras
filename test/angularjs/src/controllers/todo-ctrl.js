@@ -35,6 +35,7 @@ angular.module('todomvc').controller('TodoCtrl', function ($scope, $routeParams,
         var newTodo = {
             title: $scope.newTodo.trim(),
             completed: false,
+            rating: 0,
         };
 
         if (!newTodo.title) {

@@ -162,6 +162,33 @@ importers:
         specifier: ^1.0.8
         version: 1.0.8
 
+  plugin-prebundle:
+    dependencies:
+      '@niceties/logger':
+        specifier: ^2.1.0
+        version: 2.1.1
+      '@rollup-extras/utils':
+        specifier: workspace:^
+        version: link:../utils
+      '@rollup/plugin-commonjs':
+        specifier: ^28.0.0
+        version: 28.0.9(rollup@4.60.2)
+      '@rollup/plugin-json':
+        specifier: ^6.1.0
+        version: 6.1.0(rollup@4.60.2)
+      '@rollup/plugin-node-resolve':
+        specifier: ^16.0.0
+        version: 16.0.3(rollup@4.60.2)
+      is-builtin-module:
+        specifier: ^5.0.0
+        version: 5.0.0
+      pkg-dir:
+        specifier: ^9.0.0
+        version: 9.0.0
+      rollup:
+        specifier: ^4.0.0
+        version: 4.60.2
+
   plugin-script-loader:
     dependencies:
       '@ampproject/remapping':
@@ -227,6 +254,9 @@ importers:
       d3:
         specifier: ^5
         version: 5.16.0
+      nudeui:
+        specifier: ^0.0.1
+        version: 0.0.1
       todomvc-app-css:
         specifier: ^2.4.3
         version: 2.4.3
@@ -243,6 +273,9 @@ importers:
       '@rollup-extras/plugin-html':
         specifier: workspace:^
         version: link:../../plugin-html
+      '@rollup-extras/plugin-prebundle':
+        specifier: workspace:^
+        version: link:../../plugin-prebundle
       '@rollup-extras/plugin-script-loader':
         specifier: workspace:^
         version: link:../../plugin-script-loader
@@ -670,11 +703,29 @@ packages:
   '@rolldown/pluginutils@1.0.0-rc.9':
     resolution: {integrity: sha512-w6oiRWgEBl04QkFZgmW+jnU1EC9b57Oihi2ot3HNWIQRqgHp5PnYDia5iZ5FF7rpa4EQdiqMDXjlqKGXBhsoXw==}
 
+  '@rollup/plugin-commonjs@28.0.9':
+    resolution: {integrity: sha512-PIR4/OHZ79romx0BVVll/PkwWpJ7e5lsqFa3gFfcrFPWwLXLV39JVUzQV9RKjWerE7B845Hqjj9VYlQeieZ2dA==}
+    engines: {node: '>=16.0.0 || 14 >= 14.17'}
+    peerDependencies:
+      rollup: ^2.68.0||^3.0.0||^4.0.0
+    peerDependenciesMeta:
+      rollup:
+        optional: true
+
   '@rollup/plugin-commonjs@29.0.2':
     resolution: {integrity: sha512-S/ggWH1LU7jTyi9DxZOKyxpVd4hF/OZ0JrEbeLjXk/DFXwRny0tjD2c992zOUYQobLrVkRVMDdmHP16HKP7GRg==}
     engines: {node: '>=16.0.0 || 14 >= 14.17'}
     peerDependencies:
       rollup: ^2.68.0||^3.0.0||^4.0.0
+    peerDependenciesMeta:
+      rollup:
+        optional: true
+
+  '@rollup/plugin-json@6.1.0':
+    resolution: {integrity: sha512-EGI2te5ENk1coGeADSIwZ7G2Q8CJS2sF120T7jLw4xFw9n7wIOXHo+kIYRAoVpJAN+kmqZSoO3Fp4JtoNF4ReA==}
+    engines: {node: '>=14.0.0'}
+    peerDependencies:
+      rollup: ^1.20.0||^2.0.0||^3.0.0||^4.0.0
     peerDependenciesMeta:
       rollup:
         optional: true
@@ -1789,6 +1840,9 @@ packages:
   nth-check@2.1.1:
     resolution: {integrity: sha512-lqjrjmaOoAnWfMmBPL+XNnynZh2+swxiX3WUE0s4yEHI6m+AwrK2UZOimIRl3X/4QctVqS8AiZjFqyOGrMXb/w==}
 
+  nudeui@0.0.1:
+    resolution: {integrity: sha512-T+maA1M2MhNtKiYD7rwyOrYsQahgQgXKyCWov5qp9fZ2OAuoxqzEGBeNWFU97W7EejxPGIvgS+m19ANPMfE8UA==}
+
   obug@2.1.1:
     resolution: {integrity: sha512-uTqF9MuPraAQ+IsnPf366RG4cP9RtUi7MLO1N3KEc+wb0a6yKpeL0lmk2IB1jY5KHPAlTc6T/JRdC/YqxHNwkQ==}
 
@@ -2859,6 +2913,18 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.0-rc.9': {}
 
+  '@rollup/plugin-commonjs@28.0.9(rollup@4.60.2)':
+    dependencies:
+      '@rollup/pluginutils': 5.3.0(rollup@4.60.2)
+      commondir: 1.0.1
+      estree-walker: 2.0.2
+      fdir: 6.5.0(picomatch@4.0.4)
+      is-reference: 1.2.1
+      magic-string: 0.30.21
+      picomatch: 4.0.4
+    optionalDependencies:
+      rollup: 4.60.2
+
   '@rollup/plugin-commonjs@29.0.2(rollup@4.60.2)':
     dependencies:
       '@rollup/pluginutils': 5.3.0(rollup@4.60.2)
@@ -2868,6 +2934,12 @@ snapshots:
       is-reference: 1.2.1
       magic-string: 0.30.21
       picomatch: 4.0.3
+    optionalDependencies:
+      rollup: 4.60.2
+
+  '@rollup/plugin-json@6.1.0(rollup@4.60.2)':
+    dependencies:
+      '@rollup/pluginutils': 5.3.0(rollup@4.60.2)
     optionalDependencies:
       rollup: 4.60.2
 
@@ -3893,6 +3965,8 @@ snapshots:
   nth-check@2.1.1:
     dependencies:
       boolbase: 1.0.0
+
+  nudeui@0.0.1: {}
 
   obug@2.1.1: {}
 

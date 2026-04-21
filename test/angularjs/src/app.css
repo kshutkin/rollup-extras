@@ -1,0 +1,51 @@
+/* Side-by-side layout: chart panel + todo app */
+.app-layout {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 24px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.chart-panel {
+    position: sticky;
+    top: 120px;
+    width: 180px;
+    flex-shrink: 0;
+    padding: 16px 0;
+    text-align: center;
+}
+
+.chart-panel h3 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 300;
+    color: #4d4d4d;
+}
+
+/* Keep the todo app at its standard width */
+.app-layout .todoapp {
+    flex: 0 1 550px;
+    min-width: 230px;
+}
+
+/* Star rating at the end of each todo item */
+.todo-rating {
+    position: absolute;
+    right: 50px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 75%;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.todo-list li:hover .todo-rating,
+.todo-list li .todo-rating:focus-within {
+    opacity: 1;
+}
+
+.todo-list li.completed .todo-rating {
+    opacity: 0.35;
+}
