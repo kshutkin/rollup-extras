@@ -344,7 +344,7 @@ describe('@rollup-extras/plugin-prebundle integration', () => {
         const resolveInsideProject = {
             name: 'resolve-inside-project',
             resolveId(source) {
-                if (source === 'my-local-alias') return process.cwd() + '/fake-local-lib.js';
+                if (source === 'my-local-alias') return `${process.cwd()}/fake-local-lib.js`;
             },
             load(id) {
                 if (id.endsWith('/fake-local-lib.js')) return 'export default 42;';

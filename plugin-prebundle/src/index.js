@@ -148,10 +148,13 @@ export default function (options = {}) {
             if (!enabled || !code.includes(`./${PREBUNDLE_CHUNK}`)) return null;
             // Fix the import path to the hashed prebundled chunk relative to the chunk's output location
             const chunkDir = dirname(chunk.fileName);
-            const target = chunkDir === '.' ? './' + prebundleFileName : (() => {
-                const rel = posix.relative(chunkDir, prebundleFileName);
-                return rel.startsWith('.') ? rel : './' + rel;
-            })();
+            const target =
+                chunkDir === '.'
+                    ? `./${prebundleFileName}`
+                    : (() => {
+                          const rel = posix.relative(chunkDir, prebundleFileName);
+                          return rel.startsWith('.') ? rel : `./${rel}`;
+                      })();
             return { code: code.replaceAll(`./${PREBUNDLE_CHUNK}`, target), map: null };
         },
 
