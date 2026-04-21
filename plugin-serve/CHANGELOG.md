@@ -1,5 +1,11 @@
 Changelog
 
+## 2.2.0
+
+### Minor Changes
+
+- cf09d4f: Update dependency @hono/node-server to v2
+
 ## 2.1.0
 
 ### Minor Changes
