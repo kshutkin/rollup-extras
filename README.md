@@ -10,6 +10,7 @@ Collection of rollup plugins
 - [plugin-clean](./plugin-clean) - lightweight, reliable cleaning of the build directory.
 - [plugin-copy](./plugin-copy) - files copying with minimalistic config, watch mode and glob support.
 - [plugin-html](./plugin-html) - asset injection into HTML files with optional minification, beautification, and more.
+- [plugin-html-input](./plugin-html-input) - infers Rollup JS inputs from `<script src>` tags in an HTML template and emits the cleaned HTML.
 - [plugin-serve](./plugin-serve) - [Hono-based](https://hono.dev/) dev-server with an extensible API.
 - [plugin-binify](./plugin-binify) - makes an output file executable with shebang and file attributes.
 - [plugin-externals](./plugin-externals) - declares external dependencies with reasonable defaults and customizable logic.
