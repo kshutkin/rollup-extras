@@ -729,6 +729,7 @@ describe('@rollup-extras/plugin-serve – inMemory mode', () => {
                     port: 0,
                     dirs: [],
                     inMemory: true,
+                    liveReload: false,
                 },
                 overrides,
                 {
@@ -869,5 +870,186 @@ describe('@rollup-extras/plugin-serve – inMemory mode', () => {
     it('should have renderStart hook when inMemory is true even with explicit dirs', () => {
         const plugin = serve({ inMemory: true, port: 0, dirs: ['dist'] });
         expect(typeof plugin.renderStart).toBe('function');
+    });
+});
+
+describe('@rollup-extras/plugin-serve – livereload', () => {
+    let serversToClose = [];
+
+    beforeEach(() => {
+        serversToClose = [];
+    });
+
+    afterEach(async () => {
+        for (const server of serversToClose) {
+            if (server?.listening) {
+                await new Promise(resolve => {
+                    server.close(resolve);
+                });
+            }
+        }
+        serversToClose = [];
+    });
+
+    function createLivereloadPlugin(overrides) {
+        let resolveServer;
+        const serverPromise = new Promise(resolve => {
+            resolveServer = resolve;
+        });
+        const plugin = serve(
+            Object.assign(
+                {
+                    port: 0,
+                    dirs: [],
+                    inMemory: true,
+                    liveReload: true,
+                },
+                overrides,
+                {
+                    onListen: server => {
+                        resolveServer(server);
+                        return true;
+                    },
+                }
+            )
+        );
+        return { plugin, serverPromise };
+    }
+
+    function triggerInMemoryWatchMode(plugin, bundle) {
+        plugin.outputOptions.call({ meta: { watchMode: true } });
+        if (plugin.renderStart) {
+            plugin.renderStart.call({ meta: { watchMode: true } }, {}, {});
+        }
+        return plugin.generateBundle.call({ meta: { watchMode: true } }, {}, bundle || {});
+    }
+
+    async function readOneSSEEvent(url, eventName, timeoutMs) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const response = await fetch(url, {
+                signal: controller.signal,
+                headers: { accept: 'text/event-stream' },
+            });
+            if (!response.body) throw new Error('no body');
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) return null;
+                buffer += decoder.decode(value, { stream: true });
+                let idx = buffer.indexOf('\n\n');
+                while (idx !== -1) {
+                    const chunk = buffer.slice(0, idx);
+                    buffer = buffer.slice(idx + 2);
+                    const lines = chunk.split('\n');
+                    let event = 'message';
+                    let data = '';
+                    for (const line of lines) {
+                        if (line.startsWith('event:')) event = line.slice(6).trim();
+                        else if (line.startsWith('data:')) data += line.slice(5).trim();
+                    }
+                    if (event === eventName) {
+                        controller.abort();
+                        return { event, data };
+                    }
+                    idx = buffer.indexOf('\n\n');
+                }
+            }
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
+
+    it('should expose SSE endpoint at /__livereload with text/event-stream', async () => {
+        const res = createLivereloadPlugin();
+        await triggerInMemoryWatchMode(res.plugin, {});
+        const server = await res.serverPromise;
+        serversToClose.push(server);
+        const addr = server.address();
+        const response = await fetch(`http://127.0.0.1:${addr.port}/__livereload`, {
+            headers: { accept: 'text/event-stream' },
+        });
+        expect(response.status).toBe(200);
+        expect(response.headers.get('content-type')).toContain('text/event-stream');
+        await response.body.cancel();
+    });
+
+    it('should inject client script into served text/html before </body>', async () => {
+        const res = createLivereloadPlugin();
+        const bundle = {
+            'index.html': {
+                type: 'asset',
+                fileName: 'index.html',
+                source: '<html><body>hello</body></html>',
+            },
+        };
+        await triggerInMemoryWatchMode(res.plugin, bundle);
+        const server = await res.serverPromise;
+        serversToClose.push(server);
+        const addr = server.address();
+        const response = await fetch(`http://127.0.0.1:${addr.port}/index.html`);
+        const text = await response.text();
+        expect(text).toContain('EventSource');
+        expect(text).toContain('/__livereload');
+        expect(text.indexOf('/__livereload')).toBeLessThan(text.indexOf('</body>'));
+    });
+
+    it('should broadcast reload event on subsequent builds', async () => {
+        const res = createLivereloadPlugin();
+        await triggerInMemoryWatchMode(res.plugin, {});
+        const server = await res.serverPromise;
+        serversToClose.push(server);
+        const addr = server.address();
+        const url = `http://127.0.0.1:${addr.port}/__livereload`;
+
+        const eventPromise = readOneSSEEvent(url, 'reload', 5000);
+
+        // give client a moment to connect
+        await new Promise(r => setTimeout(r, 150));
+
+        // second build
+        await triggerInMemoryWatchMode(res.plugin, {});
+
+        const received = await eventPromise;
+        expect(received).not.toBeNull();
+        expect(received.event).toBe('reload');
+    });
+
+    it('should not expose endpoint or inject script when liveReload is false', async () => {
+        const res = createLivereloadPlugin({ liveReload: false });
+        const bundle = {
+            'index.html': {
+                type: 'asset',
+                fileName: 'index.html',
+                source: '<html><body>hello</body></html>',
+            },
+        };
+        await triggerInMemoryWatchMode(res.plugin, bundle);
+        const server = await res.serverPromise;
+        serversToClose.push(server);
+        const addr = server.address();
+
+        const sseResponse = await fetch(`http://127.0.0.1:${addr.port}/__livereload`);
+        expect(sseResponse.status).toBe(404);
+
+        const htmlResponse = await fetch(`http://127.0.0.1:${addr.port}/index.html`);
+        const text = await htmlResponse.text();
+        expect(text).toBe('<html><body>hello</body></html>');
+    });
+
+    it('should not modify non-HTML responses', async () => {
+        const res = createLivereloadPlugin();
+        const bundle = {
+            'entry.js': { type: 'chunk', fileName: 'entry.js', code: 'console.log(1);\n' },
+        };
+        await triggerInMemoryWatchMode(res.plugin, bundle);
+        const server = await res.serverPromise;
+        serversToClose.push(server);
+        const addr = server.address();
+        const response = await fetch(`http://127.0.0.1:${addr.port}/entry.js`);
+        expect(await response.text()).toBe('console.log(1);\n');
     });
 });
