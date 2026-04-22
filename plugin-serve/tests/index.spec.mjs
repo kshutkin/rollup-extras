@@ -902,6 +902,7 @@ describe('@rollup-extras/plugin-serve – livereload', () => {
                     port: 0,
                     dirs: [],
                     inMemory: true,
+                    liveReload: true,
                 },
                 overrides,
                 {

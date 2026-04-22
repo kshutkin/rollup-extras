@@ -48,7 +48,7 @@ export default function (options = {}) {
             useWriteBundle: true,
             port: 8080,
             useLogger: true,
-            liveReload: true,
+            liveReload: false,
         },
         'dirs',
         factories
