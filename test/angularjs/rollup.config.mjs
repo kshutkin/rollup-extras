@@ -3,7 +3,6 @@ import resolve from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
 import lightningcss from 'postcss-lightningcss';
 import globImport from 'rollup-plugin-glob-import';
-import livereload from 'rollup-plugin-livereload';
 import styles from 'rollup-plugin-styles';
 
 import templateCache from '@rollup-extras/plugin-angularjs-template-cache';
@@ -72,8 +71,6 @@ export default {
         serve({
             port: 8087,
         }),
-
-        !production && livereload({ watch: 'dist', delay: 500 }),
 
         production && terser(),
 

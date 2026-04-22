@@ -24,7 +24,6 @@
         "@rollup-extras/plugin-script-loader": "workspace:^",
         "@rollup-extras/plugin-serve": "workspace:^",
         "@rollup-extras/plugin-size": "workspace:^",
-        "rollup-plugin-livereload": "^2.0.5",
         "rollup-plugin-styles": "^4.0.0",
         "rollup-plugin-html": "^0.2.1",
         "rollup-plugin-glob-import": "^0.5.0",

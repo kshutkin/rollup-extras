@@ -8,6 +8,18 @@ export type ServePluginOptionsObject = {
     pluginName?: string;
     useWriteBundle?: boolean;
     inMemory?: boolean;
+    /**
+     * Enable live reload over Server-Sent Events. Defaults to `true`.
+     *
+     * When enabled and Rollup is running in watch mode, a small client script
+     * is injected into every served `text/html` response and subscribes to an
+     * SSE endpoint at `/__livereload`. After every rebuild the server
+     * broadcasts a `reload` event that triggers `location.reload()` in the
+     * browser.
+     *
+     * Set to `false` to disable injection and the SSE endpoint.
+     */
+    liveReload?: boolean;
     dirs?: string | string[];
     port?: number;
     useLogger?: boolean;

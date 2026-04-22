@@ -122,6 +122,16 @@ Optional, `(server: Server) => void | true`
 
 Extension point after the server is live. Please return true to suppress the default banner.
 
+### liveReload
+
+Optional, `boolean`, default: `true`.
+
+When enabled and Rollup is running in watch mode, the plugin exposes a Server-Sent Events endpoint at `/__livereload` and injects a tiny client script into every served `text/html` response. After each rebuild the server broadcasts a `reload` event that triggers `location.reload()` in the browser.
+
+Injection happens uniformly for in-memory HTML, disk-served HTML (via `dirs`), and any HTML returned by routes registered in `customize`. Non-HTML responses are left unchanged.
+
+Set to `false` to disable both the endpoint and the script injection.
+
 ## In-Memory Serving
 
 ```javascript
@@ -153,6 +163,7 @@ type ServePluginOptions = {
     pluginName?: string;
     useWriteBundle?: boolean;
     inMemory?: boolean;
+    liveReload?: boolean;
     dirs?: string | string[];
     port?: number;
     useLogger?: boolean;

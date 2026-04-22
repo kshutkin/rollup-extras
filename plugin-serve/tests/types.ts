@@ -20,6 +20,8 @@ const plugin3: Plugin = serve(['dist', 'public']);
 const plugin4: Plugin = serve({
     pluginName: 'my-serve',
     useWriteBundle: true,
+    inMemory: false,
+    liveReload: false,
     dirs: ['dist'],
     port: 3000,
     host: 'localhost',
