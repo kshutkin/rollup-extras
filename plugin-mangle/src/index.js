@@ -70,7 +70,7 @@ export default function (options) {
     return /** @type {Plugin} */ ({
         name: pluginName,
 
-        buildStart() {
+        renderStart() {
             propertyMap.clear();
             counter = 0;
         },
