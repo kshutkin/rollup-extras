@@ -240,6 +240,21 @@ importers:
         specifier: ^4.0.0
         version: 4.37.0
 
+  plugin-strip-comments:
+    dependencies:
+      '@niceties/logger':
+        specifier: ^2.1.0
+        version: 2.1.1
+      '@rollup-extras/utils':
+        specifier: workspace:^
+        version: link:../utils
+      magic-string:
+        specifier: ^0.30.21
+        version: 0.30.21
+      rollup:
+        specifier: ^4.0.0
+        version: 4.60.2
+
   test/angularjs:
     dependencies:
       angular:
