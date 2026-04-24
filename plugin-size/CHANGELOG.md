@@ -1,5 +1,11 @@
 # @rollup-extras/plugin-size
 
+## 0.3.0
+
+### Minor Changes
+
+- a9dc199: add `outputPlugin` option to allow using the plugin inside `output.plugins` (skips the input-only `buildStart` hook)
+
 ## 0.2.1
 
 ### Patch Changes
