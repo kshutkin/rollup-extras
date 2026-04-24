@@ -1,5 +1,11 @@
 # @rollup-extras/plugin-mangle
 
+## 0.1.2
+
+### Patch Changes
+
+- 7b824e3: make plugin proper output plugin
+
 ## 0.1.1
 
 ### Patch Changes
