@@ -108,6 +108,7 @@ size({
   gzip: true,
   brotli: true,
   pluginName: "my-size",
+  outputPlugin: false,
   minify: async (fileName, code) => {
     // your minification logic
     return minifiedCode;
@@ -115,16 +116,34 @@ size({
 });
 ```
 
+### Output plugin usage
+
+The plugin can also be used as an output plugin (inside `output.plugins`). Because
+Rollup rejects input-only hooks like `buildStart` in that position, pass
+`outputPlugin: true` to skip attaching them:
+
+```js
+export default {
+  input: "src/index.js",
+  output: {
+    dir: "dist",
+    format: "es",
+    plugins: [size({ outputPlugin: true })],
+  },
+};
+```
+
 ## Options
 
-| Option        | Type       | Default                        | Description                                                                                     |
-| ------------- | ---------- | ------------------------------ | ----------------------------------------------------------------------------------------------- |
-| `statsFile`   | `string`   | `'.stats.json'`                | Path to the JSON stats file (relative to project root or absolute).                             |
-| `updateStats` | `boolean`  | `true`                         | Whether to overwrite the stats file with the current build data.                                |
-| `gzip`        | `boolean`  | `true`                         | Report gzip-compressed sizes.                                                                   |
-| `brotli`      | `boolean`  | `false`                        | Report brotli-compressed sizes.                                                                 |
-| `pluginName`  | `string`   | `'@rollup-extras/plugin-size'` | Override the plugin name reported to Rollup.                                                    |
-| `minify`      | `function` | `undefined`                    | Optional async function `(fileName, code) => minifiedCode` to minify chunks before compression. |
+| Option         | Type       | Default                        | Description                                                                                     |
+| -------------- | ---------- | ------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `statsFile`    | `string`   | `'.stats.json'`                | Path to the JSON stats file (relative to project root or absolute).                             |
+| `updateStats`  | `boolean`  | `true`                         | Whether to overwrite the stats file with the current build data.                                |
+| `gzip`         | `boolean`  | `true`                         | Report gzip-compressed sizes.                                                                   |
+| `brotli`       | `boolean`  | `false`                        | Report brotli-compressed sizes.                                                                 |
+| `pluginName`   | `string`   | `'@rollup-extras/plugin-size'` | Override the plugin name reported to Rollup.                                                    |
+| `outputPlugin` | `boolean`  | `false`                        | Set to `true` when using the plugin in `output.plugins` (see [Output plugin usage](#output-plugin-usage)). |
+| `minify`       | `function` | `undefined`                    | Optional async function `(fileName, code) => minifiedCode` to minify chunks before compression. |
 
 ## How it works
 

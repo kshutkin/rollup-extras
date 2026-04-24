@@ -16,7 +16,7 @@ const gzip = promisify(gzipCb);
 const brotli = promisify(brotliCb);
 
 /**
- * @typedef {{ pluginName?: string, statsFile?: string, updateStats?: boolean, gzip?: boolean, brotli?: boolean, minify?: (code: string, fileName: string) => Promise<string> }} SizePluginOptions
+ * @typedef {{ pluginName?: string, statsFile?: string, updateStats?: boolean, gzip?: boolean, brotli?: boolean, outputPlugin?: boolean, minify?: (code: string, fileName: string) => Promise<string> }} SizePluginOptions
  */
 
 /**
@@ -280,11 +280,12 @@ export default function (options) {
             updateStats: true,
             gzip: true,
             brotli: false,
+            outputPlugin: false,
         },
         factories
     );
 
-    const { pluginName, statsFile, updateStats, logger, minify: minifyFn } = normalizedOptions;
+    const { pluginName, statsFile, updateStats, outputPlugin, logger, minify: minifyFn } = normalizedOptions;
 
     /** @type {CompressionFlags} */
     const flags = { gzip: normalizedOptions.gzip, brotli: normalizedOptions.brotli };
@@ -294,12 +295,16 @@ export default function (options) {
 
     const instance = multiConfigPluginBase(false, pluginName, reportAndSave, onEachOutput);
 
-    // Clear accumulated stats at the start of each new build cycle (watch mode support)
-    instance.buildStart = () => {
-        currentStats.entries = undefined;
-        currentStats.chunks = undefined;
-        currentStats.assets = undefined;
-    };
+    // Clear accumulated stats at the start of each new build cycle (watch mode support).
+    // Only attached when used as an input plugin — `buildStart` is an input-only hook
+    // and Rollup rejects it in output-plugin position.
+    if (!outputPlugin) {
+        instance.buildStart = () => {
+            currentStats.entries = undefined;
+            currentStats.chunks = undefined;
+            currentStats.assets = undefined;
+        };
+    }
 
     return instance;
 

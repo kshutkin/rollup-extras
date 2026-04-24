@@ -316,6 +316,34 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(plugin.name).toBe('my-size');
     });
 
+    it('should attach buildStart by default (input plugin mode)', () => {
+        const plugin = size();
+        expect(plugin.buildStart).toBeTypeOf('function');
+    });
+
+    it('should not attach buildStart when outputPlugin is true', () => {
+        const plugin = size({ outputPlugin: true });
+        expect(plugin.buildStart).toBeUndefined();
+    });
+
+    it('should work as an output plugin when outputPlugin is true', async () => {
+        const statsPath = join(tmpDir, '.stats.json');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 42' })],
+        });
+        await bundle.generate({
+            format: 'es',
+            dir: 'dist',
+            plugins: [size({ statsFile: statsPath, outputPlugin: true, gzip: false, brotli: false })],
+        });
+        await bundle.close();
+
+        const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+        expect(stats.entries.es).toBeDefined();
+        expect(stats.entries.es.raw).toBeGreaterThan(0);
+    });
+
     it('should complete a second build with delta comparison without errors', async () => {
         const statsPath = join(tmpDir, '.stats.json');
 
