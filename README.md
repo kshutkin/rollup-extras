@@ -19,6 +19,7 @@ Collection of rollup plugins
 - [plugin-script-loader](./plugin-script-loader) - mimics Webpack's script-loader for inlining raw scripts in order or emitting them as separate assets.
 - [plugin-size](./plugin-size) - reports the size of generated artifacts with compression and delta tracking.
 - [plugin-prebundle](./plugin-prebundle) - prebundles external npm dependencies into a single hashed chunk for faster dev/serve builds.
+- [plugin-strip-comments](./plugin-strip-comments) - strips comments from generated chunks with full sourcemap support, configurable by comment type (jsdoc, regular, license, annotation).
 
 ## Other places to search for plugins
 
