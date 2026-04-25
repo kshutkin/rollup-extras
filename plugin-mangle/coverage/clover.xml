@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1777138344849" clover="3.2.0">
+  <project timestamp="1777138344850" name="All files">
+    <metrics statements="54" coveredstatements="54" conditionals="49" coveredconditionals="49" methods="6" coveredmethods="6" elements="109" coveredelements="109" complexity="0" loc="54" ncloc="54" packages="1" files="1" classes="1"/>
+    <file name="index.js" path="/home/runner/work/rollup-extras/rollup-extras/plugin-mangle/src/index.js">
+      <metrics statements="54" coveredstatements="54" conditionals="49" coveredconditionals="49" methods="6" coveredmethods="6"/>
+      <line num="25" count="1" type="stmt"/>
+      <line num="32" count="30" type="stmt"/>
+      <line num="41" count="30" type="stmt"/>
+      <line num="44" count="30" type="stmt"/>
+      <line num="45" count="30" type="stmt"/>
+      <line num="51" count="30" type="stmt"/>
+      <line num="52" count="98" type="cond" truecount="2" falsecount="0"/>
+      <line num="53" count="53" type="stmt"/>
+      <line num="54" count="53" type="stmt"/>
+      <line num="55" count="53" type="stmt"/>
+      <line num="56" count="54" type="stmt"/>
+      <line num="57" count="54" type="stmt"/>
+      <line num="59" count="53" type="stmt"/>
+      <line num="61" count="98" type="stmt"/>
+      <line num="68" count="257" type="stmt"/>
+      <line num="70" count="30" type="stmt"/>
+      <line num="74" count="29" type="stmt"/>
+      <line num="75" count="29" type="stmt"/>
+      <line num="79" count="30" type="stmt"/>
+      <line num="80" count="30" type="stmt"/>
+      <line num="84" count="30" type="stmt"/>
+      <line num="86" count="30" type="stmt"/>
+      <line num="89" count="646" type="cond" truecount="5" falsecount="0"/>
+      <line num="90" count="8" type="stmt"/>
+      <line num="91" count="8" type="stmt"/>
+      <line num="93" count="8" type="cond" truecount="2" falsecount="0"/>
+      <line num="94" count="2" type="stmt"/>
+      <line num="96" count="6" type="stmt"/>
+      <line num="98" count="8" type="stmt"/>
+      <line num="101" count="638" type="cond" truecount="2" falsecount="0"/>
+      <line num="107" count="14" type="stmt"/>
+      <line num="108" count="14" type="stmt"/>
+      <line num="109" count="14" type="stmt"/>
+      <line num="112" count="624" type="cond" truecount="5" falsecount="0"/>
+      <line num="113" count="5" type="stmt"/>
+      <line num="114" count="5" type="stmt"/>
+      <line num="115" count="5" type="stmt"/>
+      <line num="116" count="5" type="stmt"/>
+      <line num="117" count="5" type="stmt"/>
+      <line num="120" count="619" type="cond" truecount="2" falsecount="0"/>
+      <line num="126" count="1" type="stmt"/>
+      <line num="127" count="1" type="stmt"/>
+      <line num="132" count="1" type="stmt"/>
+      <line num="135" count="618" type="cond" truecount="4" falsecount="0"/>
+      <line num="136" count="94" type="cond" truecount="2" falsecount="0"/>
+      <line num="138" count="94" type="cond" truecount="3" falsecount="0"/>
+      <line num="139" count="94" type="cond" truecount="3" falsecount="0"/>
+      <line num="141" count="94" type="cond" truecount="5" falsecount="0"/>
+      <line num="142" count="70" type="stmt"/>
+      <line num="143" count="70" type="stmt"/>
+      <line num="144" count="70" type="stmt"/>
+      <line num="150" count="30" type="cond" truecount="2" falsecount="0"/>
+      <line num="151" count="27" type="stmt"/>
+      <line num="154" count="30" type="stmt"/>
+    </file>
+  </project>
+</coverage>
