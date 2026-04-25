@@ -1,3 +1,5 @@
+![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-serve/badge.svg)
+
 # Plugin Serve
 
 Rollup plugin for a dev server.

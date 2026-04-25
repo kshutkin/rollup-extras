@@ -1,3 +1,5 @@
+![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-externals/badge.svg)
+
 # plugin-externals
 
 Rollup plugin to declare dependencies external with reasonable defaults and customizable logic.

@@ -1,3 +1,5 @@
+![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-copy/badge.svg)
+
 # Plugin Copy
 
 Rollup plugin to copy assets during build.

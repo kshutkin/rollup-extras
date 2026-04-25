@@ -1,3 +1,5 @@
+![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/utils/badge.svg)
+
 # Utils
 
 Utils to support the development of rollup plugins.

@@ -1,3 +1,5 @@
+![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-strip-comments/badge.svg)
+
 # @rollup-extras/plugin-strip-comments
 
 Rollup output plugin that strips comments from generated chunks, with full sourcemap support.

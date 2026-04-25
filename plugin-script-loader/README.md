@@ -1,3 +1,5 @@
+![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-script-loader/badge.svg)
+
 # Plugin Script Loader
 
 Rollup plugin to mimic Webpack's `script-loader` inline behavior. Inlines raw scripts into the bundle in import order, or emits them as a separate asset file for non-module, non-strict mode execution.

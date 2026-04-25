@@ -1,3 +1,5 @@
+![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-exec/badge.svg)
+
 # Plugin Exec
 
 Executes some code when the bundle you are building is finished.

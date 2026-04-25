@@ -1,3 +1,5 @@
+![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-angularjs-template-cache/badge.svg)
+
 # Plugin AngularJS template cache
 
 Plugin to build AngularJS template cache.

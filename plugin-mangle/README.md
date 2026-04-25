@@ -1,3 +1,5 @@
+![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-mangle/badge.svg)
+
 # @rollup-extras/plugin-mangle
 
 Rollup plugin to mangle (minify) specific variables and properties based on a configurable prefix.

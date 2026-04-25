@@ -1,3 +1,5 @@
+![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-prebundle/badge.svg)
+
 # Plugin Prebundle
 
 Rollup plugin to prebundle external npm dependencies into a single cached chunk for faster dev/serve builds.

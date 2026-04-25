@@ -1,3 +1,5 @@
+![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-binify/badge.svg)
+
 # Plugin Binify
 
 Rollup plugin to create CLI entry files during the build.

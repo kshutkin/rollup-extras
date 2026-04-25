@@ -1,3 +1,5 @@
+![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-clean/badge.svg)
+
 # Plugin Clean
 
 Rollup plugin to clean a directory during the build.

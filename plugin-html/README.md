@@ -1,3 +1,5 @@
+![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-html/badge.svg)
+
 # Plugin Html
 
 Rollup plugin to inject assets names into html template.

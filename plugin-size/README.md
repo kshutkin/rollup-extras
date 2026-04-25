@@ -1,3 +1,5 @@
+![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-size/badge.svg)
+
 # @rollup-extras/plugin-size
 
 Rollup plugin that reports the size of generated artifacts — raw, optionally minified, and compressed (gzip and/or brotli).
