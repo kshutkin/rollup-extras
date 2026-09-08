@@ -211,7 +211,7 @@ importers:
     dependencies:
       '@hono/node-server':
         specifier: ^2.0.0
-        version: 2.0.0(hono@4.12.14)
+        version: 2.0.10(hono@4.12.14)
       '@niceties/logger':
         specifier: ^2.1.0
         version: 2.1.1
@@ -532,8 +532,8 @@ packages:
   '@emnapi/wasi-threads@1.2.1':
     resolution: {integrity: sha512-uTII7OYF+/Mes/MrcIOYp5yOtSMLBWSIoLPpcgwipoiKbli6k322tcoFsxoIIxPDqW01SQGAgko4EzZi2BNv2w==}
 
-  '@hono/node-server@2.0.0':
-    resolution: {integrity: sha512-n3GfHwwCvHCkGmOwKfxUPOlbfzuO64Sbc5XC4NGPIXxkuOnJrdgExdRKmHfF924r914WRJPT397GdqLvdYTeyQ==}
+  '@hono/node-server@2.0.10':
+    resolution: {integrity: sha512-ZcnNVhKTmyDJeg0UlnZjvM73JBsTAuhrH/J4fjwGOw59PwOW51r4J+p6CsKZWXdKSme4MFqU62CZMOsdDrU4CA==}
     engines: {node: '>=20'}
     peerDependencies:
       hono: ^4
@@ -2724,7 +2724,7 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
-  '@hono/node-server@2.0.0(hono@4.12.14)':
+  '@hono/node-server@2.0.10(hono@4.12.14)':
     dependencies:
       hono: 4.12.14
 
@@ -2913,62 +2913,52 @@ snapshots:
     optionalDependencies:
       rollup: 4.60.2
 
-  '@rollup/rollup-android-arm-eabi@4.37.0':
-    optional: true
+  '@rollup/rollup-android-arm-eabi@4.37.0': {}
 
   '@rollup/rollup-android-arm-eabi@4.60.2':
     optional: true
 
-  '@rollup/rollup-android-arm64@4.37.0':
-    optional: true
+  '@rollup/rollup-android-arm64@4.37.0': {}
 
   '@rollup/rollup-android-arm64@4.60.2':
     optional: true
 
-  '@rollup/rollup-darwin-arm64@4.37.0':
-    optional: true
+  '@rollup/rollup-darwin-arm64@4.37.0': {}
 
   '@rollup/rollup-darwin-arm64@4.60.2':
     optional: true
 
-  '@rollup/rollup-darwin-x64@4.37.0':
-    optional: true
+  '@rollup/rollup-darwin-x64@4.37.0': {}
 
   '@rollup/rollup-darwin-x64@4.60.2':
     optional: true
 
-  '@rollup/rollup-freebsd-arm64@4.37.0':
-    optional: true
+  '@rollup/rollup-freebsd-arm64@4.37.0': {}
 
   '@rollup/rollup-freebsd-arm64@4.60.2':
     optional: true
 
-  '@rollup/rollup-freebsd-x64@4.37.0':
-    optional: true
+  '@rollup/rollup-freebsd-x64@4.37.0': {}
 
   '@rollup/rollup-freebsd-x64@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-arm-gnueabihf@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-arm-gnueabihf@4.37.0': {}
 
   '@rollup/rollup-linux-arm-gnueabihf@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-arm-musleabihf@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-arm-musleabihf@4.37.0': {}
 
   '@rollup/rollup-linux-arm-musleabihf@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-arm64-gnu@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-arm64-gnu@4.37.0': {}
 
   '@rollup/rollup-linux-arm64-gnu@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-arm64-musl@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-arm64-musl@4.37.0': {}
 
   '@rollup/rollup-linux-arm64-musl@4.60.2':
     optional: true
@@ -2979,11 +2969,9 @@ snapshots:
   '@rollup/rollup-linux-loong64-musl@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-loongarch64-gnu@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-loongarch64-gnu@4.37.0': {}
 
-  '@rollup/rollup-linux-powerpc64le-gnu@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-powerpc64le-gnu@4.37.0': {}
 
   '@rollup/rollup-linux-ppc64-gnu@4.60.2':
     optional: true
@@ -2991,32 +2979,27 @@ snapshots:
   '@rollup/rollup-linux-ppc64-musl@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-riscv64-gnu@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-riscv64-gnu@4.37.0': {}
 
   '@rollup/rollup-linux-riscv64-gnu@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-riscv64-musl@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-riscv64-musl@4.37.0': {}
 
   '@rollup/rollup-linux-riscv64-musl@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-s390x-gnu@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-s390x-gnu@4.37.0': {}
 
   '@rollup/rollup-linux-s390x-gnu@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-x64-gnu@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-x64-gnu@4.37.0': {}
 
   '@rollup/rollup-linux-x64-gnu@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-x64-musl@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-x64-musl@4.37.0': {}
 
   '@rollup/rollup-linux-x64-musl@4.60.2':
     optional: true
@@ -3027,14 +3010,12 @@ snapshots:
   '@rollup/rollup-openharmony-arm64@4.60.2':
     optional: true
 
-  '@rollup/rollup-win32-arm64-msvc@4.37.0':
-    optional: true
+  '@rollup/rollup-win32-arm64-msvc@4.37.0': {}
 
   '@rollup/rollup-win32-arm64-msvc@4.60.2':
     optional: true
 
-  '@rollup/rollup-win32-ia32-msvc@4.37.0':
-    optional: true
+  '@rollup/rollup-win32-ia32-msvc@4.37.0': {}
 
   '@rollup/rollup-win32-ia32-msvc@4.60.2':
     optional: true
@@ -3042,8 +3023,7 @@ snapshots:
   '@rollup/rollup-win32-x64-gnu@4.60.2':
     optional: true
 
-  '@rollup/rollup-win32-x64-msvc@4.37.0':
-    optional: true
+  '@rollup/rollup-win32-x64-msvc@4.37.0': {}
 
   '@rollup/rollup-win32-x64-msvc@4.60.2':
     optional: true
