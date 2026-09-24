@@ -152,8 +152,8 @@ importers:
         specifier: ^3.0.3
         version: 3.0.3
       magic-string:
-        specifier: ^0.30.21
-        version: 0.30.21
+        specifier: ^1.0.0
+        version: 1.4.2
       rollup:
         specifier: ^4.0.0
         version: 4.37.0
@@ -201,8 +201,8 @@ importers:
         specifier: workspace:^
         version: link:../utils
       magic-string:
-        specifier: ^0.30.21
-        version: 0.30.21
+        specifier: ^1.0.0
+        version: 1.4.2
       rollup:
         specifier: ^4.0.0
         version: 4.37.0
@@ -249,8 +249,8 @@ importers:
         specifier: workspace:^
         version: link:../utils
       magic-string:
-        specifier: ^0.30.21
-        version: 0.30.21
+        specifier: ^1.0.0
+        version: 1.4.2
       rollup:
         specifier: ^4.0.0
         version: 4.60.2
@@ -564,6 +564,9 @@ packages:
 
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
+
+  '@jridgewell/sourcemap-codec@1.6.0':
+    resolution: {integrity: sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw==}
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
@@ -1768,6 +1771,9 @@ packages:
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
+  magic-string@1.4.2:
+    resolution: {integrity: sha512-vG+rjFRj1PqdIBozIxAGMjPlOhaVe+GXpbttY/iSK7rGcJRMlwNJO7dcUwmUqkymsFLJiNGI06t4D7Fr7yRC9g==}
+
   magicast@0.5.2:
     resolution: {integrity: sha512-E3ZJh4J3S9KfwdjZhe2afj6R9lGIN5Pher1pF39UGrXRqq/VDaGVIGN13BjHd2u8B61hArAGOnso7nBOouW3TQ==}
 
@@ -2752,6 +2758,8 @@ snapshots:
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
+  '@jridgewell/sourcemap-codec@1.6.0': {}
+
   '@jridgewell/trace-mapping@0.3.31':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
@@ -2913,62 +2921,52 @@ snapshots:
     optionalDependencies:
       rollup: 4.60.2
 
-  '@rollup/rollup-android-arm-eabi@4.37.0':
-    optional: true
+  '@rollup/rollup-android-arm-eabi@4.37.0': {}
 
   '@rollup/rollup-android-arm-eabi@4.60.2':
     optional: true
 
-  '@rollup/rollup-android-arm64@4.37.0':
-    optional: true
+  '@rollup/rollup-android-arm64@4.37.0': {}
 
   '@rollup/rollup-android-arm64@4.60.2':
     optional: true
 
-  '@rollup/rollup-darwin-arm64@4.37.0':
-    optional: true
+  '@rollup/rollup-darwin-arm64@4.37.0': {}
 
   '@rollup/rollup-darwin-arm64@4.60.2':
     optional: true
 
-  '@rollup/rollup-darwin-x64@4.37.0':
-    optional: true
+  '@rollup/rollup-darwin-x64@4.37.0': {}
 
   '@rollup/rollup-darwin-x64@4.60.2':
     optional: true
 
-  '@rollup/rollup-freebsd-arm64@4.37.0':
-    optional: true
+  '@rollup/rollup-freebsd-arm64@4.37.0': {}
 
   '@rollup/rollup-freebsd-arm64@4.60.2':
     optional: true
 
-  '@rollup/rollup-freebsd-x64@4.37.0':
-    optional: true
+  '@rollup/rollup-freebsd-x64@4.37.0': {}
 
   '@rollup/rollup-freebsd-x64@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-arm-gnueabihf@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-arm-gnueabihf@4.37.0': {}
 
   '@rollup/rollup-linux-arm-gnueabihf@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-arm-musleabihf@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-arm-musleabihf@4.37.0': {}
 
   '@rollup/rollup-linux-arm-musleabihf@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-arm64-gnu@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-arm64-gnu@4.37.0': {}
 
   '@rollup/rollup-linux-arm64-gnu@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-arm64-musl@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-arm64-musl@4.37.0': {}
 
   '@rollup/rollup-linux-arm64-musl@4.60.2':
     optional: true
@@ -2979,11 +2977,9 @@ snapshots:
   '@rollup/rollup-linux-loong64-musl@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-loongarch64-gnu@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-loongarch64-gnu@4.37.0': {}
 
-  '@rollup/rollup-linux-powerpc64le-gnu@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-powerpc64le-gnu@4.37.0': {}
 
   '@rollup/rollup-linux-ppc64-gnu@4.60.2':
     optional: true
@@ -2991,32 +2987,27 @@ snapshots:
   '@rollup/rollup-linux-ppc64-musl@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-riscv64-gnu@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-riscv64-gnu@4.37.0': {}
 
   '@rollup/rollup-linux-riscv64-gnu@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-riscv64-musl@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-riscv64-musl@4.37.0': {}
 
   '@rollup/rollup-linux-riscv64-musl@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-s390x-gnu@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-s390x-gnu@4.37.0': {}
 
   '@rollup/rollup-linux-s390x-gnu@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-x64-gnu@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-x64-gnu@4.37.0': {}
 
   '@rollup/rollup-linux-x64-gnu@4.60.2':
     optional: true
 
-  '@rollup/rollup-linux-x64-musl@4.37.0':
-    optional: true
+  '@rollup/rollup-linux-x64-musl@4.37.0': {}
 
   '@rollup/rollup-linux-x64-musl@4.60.2':
     optional: true
@@ -3027,14 +3018,12 @@ snapshots:
   '@rollup/rollup-openharmony-arm64@4.60.2':
     optional: true
 
-  '@rollup/rollup-win32-arm64-msvc@4.37.0':
-    optional: true
+  '@rollup/rollup-win32-arm64-msvc@4.37.0': {}
 
   '@rollup/rollup-win32-arm64-msvc@4.60.2':
     optional: true
 
-  '@rollup/rollup-win32-ia32-msvc@4.37.0':
-    optional: true
+  '@rollup/rollup-win32-ia32-msvc@4.37.0': {}
 
   '@rollup/rollup-win32-ia32-msvc@4.60.2':
     optional: true
@@ -3042,8 +3031,7 @@ snapshots:
   '@rollup/rollup-win32-x64-gnu@4.60.2':
     optional: true
 
-  '@rollup/rollup-win32-x64-msvc@4.37.0':
-    optional: true
+  '@rollup/rollup-win32-x64-msvc@4.37.0': {}
 
   '@rollup/rollup-win32-x64-msvc@4.60.2':
     optional: true
@@ -3818,6 +3806,10 @@ snapshots:
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  magic-string@1.4.2:
+    dependencies:
+      '@jridgewell/sourcemap-codec': 1.6.0
 
   magicast@0.5.2:
     dependencies:
