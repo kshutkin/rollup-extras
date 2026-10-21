@@ -134,6 +134,8 @@ export default function (options = {}) {
 
             if (id.startsWith(PREBUNDLE_PREFIX)) {
                 const specifier = id.slice(PREBUNDLE_PREFIX.length);
+                // Cached modules still pass through load, but skip resolveId.
+                discoveredSpecifiers.add(specifier);
                 const ns = specifierToNamespace(specifier);
                 return {
                     code: `import { ${ns} } from './${PREBUNDLE_CHUNK}';\nexport const __moduleExports = ${ns};\n`,

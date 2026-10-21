@@ -295,6 +295,27 @@ describe('@rollup-extras/plugin-prebundle integration', () => {
         expect(prebundled).toBeUndefined();
     });
 
+    it.each([false, true])('should re-emit prebundles with Rollup cache (new instance: %s)', async newInstance => {
+        let plugin = prebundle({ enableInBuildMode: true });
+        let cache;
+        for (let index = 0; index < 2; index++) {
+            if (newInstance) plugin = prebundle({ enableInBuildMode: true });
+            const bundle = await rollup({
+                input: 'entry',
+                cache,
+                plugins: [virtual({ entry: "import isBuiltin from 'is-builtin-module'; export default isBuiltin('node:fs');" }), plugin],
+            });
+            try {
+                cache = bundle.cache;
+                const { output } = await bundle.generate({ format: 'es' });
+                expect(output.some(isPrebundled)).toBe(true);
+                expect(await runOutput(output)).toBe(true);
+            } finally {
+                await bundle.close();
+            }
+        }
+    });
+
     it('should reuse cache on second build with the same specifiers', async () => {
         const plugin = prebundle({ enableInBuildMode: true });
         const v = virtual({ entry: "import isBuiltin from 'is-builtin-module'; export default isBuiltin;" });
