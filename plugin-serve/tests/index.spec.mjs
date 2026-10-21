@@ -1,9 +1,9 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { createServer as createNetServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { rollup } from 'rollup';
+import { rollup, watch } from 'rollup';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import serve from '../src/index.js';
@@ -751,6 +751,68 @@ describe('@rollup-extras/plugin-serve – inMemory mode', () => {
         }
         return plugin.generateBundle.call({ meta: { watchMode: true } }, {}, bundle || {});
     }
+
+    it('should retain every output and remove stale files on watch rebuilds', async () => {
+        const dir = await mkdtemp(join(tmpdir(), 'serve-outputs-'));
+        const input = join(dir, 'entry.js');
+        await writeFile(input, 'console.log(1);');
+        const res = createInMemoryPlugin();
+        const files = [];
+        const watcher = watch({
+            input,
+            output: [
+                { dir: join(dir, 'out'), format: 'es', entryFileNames: 'es-[hash].js' },
+                { dir: join(dir, 'out'), format: 'cjs', entryFileNames: 'cjs-[hash].js' },
+            ],
+            plugins: [
+                res.plugin,
+                {
+                    name: 'capture-output',
+                    generateBundle(_options, bundle) {
+                        files.push(...Object.keys(bundle));
+                    },
+                },
+            ],
+        });
+        const nextBuild = () =>
+            new Promise((resolve, reject) => {
+                const handler = event => {
+                    if (event.code === 'BUNDLE_END') event.result.close();
+                    if (event.code === 'END' || event.code === 'ERROR') {
+                        watcher.off('event', handler);
+                        if (event.code === 'ERROR') reject(event.error);
+                        else resolve();
+                    }
+                };
+                watcher.on('event', handler);
+            });
+        try {
+            await nextBuild();
+            const server = await res.serverPromise;
+            serversToClose.push(server);
+            const base = `http://127.0.0.1:${server.address().port}`;
+            expect(files).toHaveLength(2);
+            for (const file of files) {
+                const response = await fetch(`${base}/${file}`);
+                expect(response.status).toBe(200);
+                expect(await response.text()).toContain('console.log(1)');
+            }
+            const oldFiles = files.splice(0);
+            const rebuilt = nextBuild();
+            await writeFile(input, 'console.log(2);');
+            await rebuilt;
+            expect(files).toHaveLength(2);
+            for (const file of files) {
+                const response = await fetch(`${base}/${file}`);
+                expect(response.status).toBe(200);
+                expect(await response.text()).toContain('console.log(2)');
+            }
+            for (const file of oldFiles) expect((await fetch(`${base}/${file}`)).status).toBe(404);
+        } finally {
+            await watcher.close();
+            await rm(dir, { recursive: true, force: true });
+        }
+    });
 
     it('should use generateBundle hook when inMemory is true', () => {
         const plugin = serve({ inMemory: true, port: 0, dirs: [] });

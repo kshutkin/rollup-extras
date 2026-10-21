@@ -62,6 +62,8 @@ export default function (options = {}) {
 
     /** @type {Map<string, { content: string | Uint8Array, type: string }>} */
     const memoryFiles = new Map();
+    /** @type {NormalizedInputOptions | undefined} */
+    let currentInputOptions;
 
     let { dirs } = normalizedOptions,
         collectDirs = false,
@@ -84,8 +86,9 @@ export default function (options = {}) {
     function renderStart(/** @type {NormalizedOutputOptions} */ outputOptions, /** @type {NormalizedInputOptions} */ inputOptions) {
         /** @type {(this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) => void | Promise<void>} */
         (/** @type {Required<typeof instance>} */ (instance).renderStart).call(this, outputOptions, inputOptions);
-        if (inMemory) {
+        if (inMemory && currentInputOptions !== inputOptions) {
             memoryFiles.clear();
+            currentInputOptions = inputOptions;
         }
         if (collectDirs) {
             if (outputOptions.dir) {
