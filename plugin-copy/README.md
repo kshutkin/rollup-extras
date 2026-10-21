@@ -69,14 +69,16 @@ copy({ targets: [{ src: "assets/*" }] });
 
 all of them will trigger a copy (through emitFile) of all files in assets in each output directory.
 
-Emitted assets are included in every bundle. When copying directly to disk with `emitFiles: false`, use `copyOnce: false` to copy unchanged files on every rebuild:
+By default, `copyOnce: true` skips unchanged files on rebuilds, including when `emitFiles: true`. Previously written files remain on disk when the output directory is preserved, as with the clean plugin's default `deleteOnce: true`.
+
+Use `copyOnce: false` to include unchanged files in every rebuilt bundle, for example when serving from memory or cleaning on every rebuild:
 
 ```javascript
-copy({ src: "assets/*", emitFiles: false, copyOnce: false });
+copy({ src: "assets/*", copyOnce: false });
 
 // or
 
-copy({ targets: ["assets/*"], emitFiles: false, copyOnce: false });
+copy({ targets: ["assets/*"], copyOnce: false });
 ```
 
 To stop triggering on changes in files use `watch` = `false`:

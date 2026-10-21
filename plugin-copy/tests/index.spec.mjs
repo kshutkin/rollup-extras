@@ -1,10 +1,11 @@
-import { lstat, mkdir, mkdtemp, readdir, readFile, readlink, rm, symlink, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readdir, readFile, readlink, rm, stat, symlink, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { rollup } from 'rollup';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import clean from '../../plugin-clean/src/index.js';
 import copy from '../src/index.js';
 
 function virtual(modules) {
@@ -30,10 +31,10 @@ describe('@rollup-extras/plugin-copy integration', () => {
         await rm(tmpDir, { recursive: true, force: true });
     });
 
-    it.each([false, true])('should emit unchanged assets in every bundle (output plugin: %s)', async outputPlugin => {
+    it.each([false, true])('should emit unchanged assets in every bundle with copyOnce:false (output plugin: %s)', async outputPlugin => {
         const src = join(tmpDir, 'asset.txt');
         await writeFile(src, 'unchanged');
-        const plugin = copy({ src, outputPlugin });
+        const plugin = copy({ src, outputPlugin, copyOnce: false });
         let cache;
         for (let index = 0; index < 2; index++) {
             const bundle = await rollup({
@@ -49,6 +50,36 @@ describe('@rollup-extras/plugin-copy integration', () => {
                     expect(asset).toBeDefined();
                     expect(Buffer.from(asset.source).toString()).toBe('unchanged');
                 }
+            } finally {
+                await bundle.close();
+            }
+        }
+    });
+
+    it.each([
+        false,
+        true,
+    ])('should preserve unchanged disk assets with default copyOnce and clean (output plugin: %s)', async outputPlugin => {
+        const src = join(tmpDir, 'asset.txt');
+        const dir = join(tmpDir, 'dist');
+        const asset = join(dir, 'asset.txt');
+        await writeFile(src, 'unchanged');
+        const plugin = copy({ src, outputPlugin });
+        const cleaner = clean();
+        let cache;
+        for (let index = 0; index < 2; index++) {
+            const bundle = await rollup({
+                input: 'entry',
+                cache,
+                plugins: [virtual({ entry: 'export default 1;' }), cleaner, ...(outputPlugin ? [] : [plugin])],
+            });
+            try {
+                cache = bundle.cache;
+                const { output } = await bundle.write({ format: 'es', dir, plugins: outputPlugin ? [plugin] : [] });
+                expect(output.some(item => item.fileName === 'asset.txt')).toBe(index === 0);
+                expect(await readFile(asset, 'utf8')).toBe('unchanged');
+                if (index === 0) await utimes(asset, 1000, 1000);
+                else expect((await stat(asset)).mtimeMs).toBe(1_000_000);
             } finally {
                 await bundle.close();
             }

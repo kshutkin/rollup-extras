@@ -223,7 +223,7 @@ export default function (options) {
                         return;
                     }
                     for (const dest of fileDesc.dest) {
-                        if (!emitFiles && copyOnce && fileDesc.copied.includes(dest)) {
+                        if (copyOnce && fileDesc.copied.includes(dest)) {
                             continue;
                         }
                         const baseName = basename(fileName);
