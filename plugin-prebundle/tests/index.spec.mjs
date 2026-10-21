@@ -18,10 +18,11 @@ vi.mock('package-directory', async importOriginal => {
     };
 });
 
-const { realRollupImpl, childRollupShouldFail } = vi.hoisted(() => {
+const { realRollupImpl, childRollupShouldFail, childPlugins } = vi.hoisted(() => {
     return {
         realRollupImpl: { current: /** @type {any} */ (null) },
         childRollupShouldFail: { value: false },
+        childPlugins: { current: [] },
     };
 });
 
@@ -33,6 +34,9 @@ vi.mock('rollup', async importOriginal => {
         rollup: vi.fn((...args) => {
             if (childRollupShouldFail.value && args[0]?.input === '\0prebundle-entry') {
                 throw new Error('simulated child rollup failure');
+            }
+            if (args[0]?.input === '\0prebundle-entry') {
+                args[0] = { ...args[0], plugins: [...args[0].plugins, ...childPlugins.current] };
             }
             return realRollupImpl.current(...args);
         }),
@@ -92,6 +96,7 @@ async function runOutput(output, run = module => module.default) {
 describe('@rollup-extras/plugin-prebundle integration', () => {
     afterEach(() => {
         childRollupShouldFail.value = false;
+        childPlugins.current = [];
     });
 
     it('should use @rollup-extras/plugin-prebundle as the default plugin name', () => {
@@ -170,6 +175,41 @@ describe('@rollup-extras/plugin-prebundle integration', () => {
             { enableInBuildMode: true }
         );
         expect(await runOutput(output)).toEqual(['function', true, true, 'function']);
+    });
+
+    it('should emit dynamic child chunks and preserve lazy execution, including cached rebuilds', async () => {
+        childPlugins.current = [
+            virtual({
+                'review-dynamic': 'export const run = () => import("review-lazy").then(module => module.value);',
+                'review-lazy': 'globalThis.__prebundleLazyLoaded = true; export const value = 42;',
+            }),
+        ];
+        const plugin = prebundle({ enableInBuildMode: true });
+        let cache;
+        try {
+            for (let index = 0; index < 2; index++) {
+                delete globalThis.__prebundleLazyLoaded;
+                const bundle = await rollup({
+                    input: 'entry',
+                    cache,
+                    plugins: [virtual({ entry: "export { run } from 'review-dynamic';" }), plugin],
+                });
+                try {
+                    cache = bundle.cache;
+                    const { output } = await bundle.generate({ format: 'es', sourcemap: true });
+                    expect(output.filter(isPrebundled)).toHaveLength(2);
+                    await runOutput(output, async module => {
+                        expect(globalThis.__prebundleLazyLoaded).toBeUndefined();
+                        expect(await module.run()).toBe(42);
+                        expect(globalThis.__prebundleLazyLoaded).toBe(true);
+                    });
+                } finally {
+                    await bundle.close();
+                }
+            }
+        } finally {
+            delete globalThis.__prebundleLazyLoaded;
+        }
     });
 
     it('should not prebundle Node.js builtins', async () => {

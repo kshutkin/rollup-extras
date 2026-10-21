@@ -7,7 +7,7 @@ Rollup plugin to prebundle external npm dependencies into a single cached chunk 
 Points:
 
 - Intercepts bare specifier imports that resolve into `node_modules` or outside the project root
-- Bundles all discovered externals into one hashed chunk via a child Rollup build
+- Bundles discovered externals into a hashed entry chunk via a child Rollup build, retaining additional chunks for dynamic imports
 - Uses `@rollup/plugin-node-resolve`, `@rollup/plugin-json`, and `@rollup/plugin-commonjs` internally — no extra config needed
 - Emits the prebundled chunk via Rollup's `prebuilt-chunk` API (Rollup ≥ 3.23.0)
 - Includes sourcemap support (`sourcemap: 'hidden'` in the child build)

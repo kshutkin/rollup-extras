@@ -1,8 +1,7 @@
-import { createHash } from 'node:crypto';
 import { dirname, posix, relative } from 'node:path';
 
 /**
- * @import { Plugin, PluginContext, SourceMap } from 'rollup'
+ * @import { Plugin, PluginContext, OutputChunk } from 'rollup'
  */
 
 import commonjs from '@rollup/plugin-commonjs';
@@ -45,7 +44,7 @@ function getPackageName(specifier) {
     return specifier.split('/')[0];
 }
 
-/** @type {{ code: string, exports: string[], map: SourceMap | null, specifiers: Set<string> } | undefined} */
+/** @type {{ chunks: OutputChunk[], specifiers: Set<string> } | undefined} */
 let prebundleCache;
 
 /**
@@ -182,7 +181,7 @@ export default function (options = {}) {
             // Check if we can reuse the cache
             if (prebundleCache && setsEqual(prebundleCache.specifiers, discoveredSpecifiers)) {
                 logger('reusing cached prebundle', LogLevel.verbose);
-                prebundleFileName = emitPrebundleChunk.call(this, prebundleCache.code, prebundleCache.exports, prebundleCache.map);
+                prebundleFileName = emitPrebundleChunks.call(this, prebundleCache.chunks);
                 return;
             }
 
@@ -214,18 +213,18 @@ export default function (options = {}) {
                     onwarn() {},
                 });
 
-                const { output } = await childBundle.generate({ format: 'es', sourcemap: 'hidden' });
+                const { output } = await childBundle.generate({
+                    format: 'es',
+                    sourcemap: 'hidden',
+                    entryFileNames: '_prebundled.[hash].js',
+                    chunkFileNames: '_prebundled.[hash].js',
+                    hashCharacters: 'hex',
+                });
                 await childBundle.close();
 
-                const chunk = output[0];
-                prebundleCache = {
-                    code: chunk.code,
-                    exports: chunk.exports,
-                    map: chunk.map ?? null,
-                    specifiers: new Set(discoveredSpecifiers),
-                };
-
-                prebundleFileName = emitPrebundleChunk.call(this, chunk.code, chunk.exports, chunk.map ?? null);
+                const chunks = output.filter(item => item.type === 'chunk');
+                prebundleCache = { chunks, specifiers: new Set(discoveredSpecifiers) };
+                prebundleFileName = emitPrebundleChunks.call(this, chunks);
             } catch (e) {
                 logger(`prebundling failed: ${/** @type {Error} */ (e).message}`, LogLevel.warn);
                 // On failure, clear cache so next build retries
@@ -274,21 +273,19 @@ export default function (options = {}) {
 
 /**
  * @this {PluginContext}
- * @param {string} code
- * @param {string[]} exports
- * @param {SourceMap | null} map
+ * @param {OutputChunk[]} chunks
  */
-function emitPrebundleChunk(code, exports, map) {
-    const hash = createHash('sha256').update(code).digest('hex').slice(0, 8);
-    const fileName = `_prebundled.${hash}.js`;
-    this.emitFile({
-        type: 'prebuilt-chunk',
-        fileName,
-        code,
-        exports,
-        ...(map ? { map } : {}),
-    });
-    return fileName;
+function emitPrebundleChunks(chunks) {
+    for (const chunk of chunks) {
+        this.emitFile({
+            type: 'prebuilt-chunk',
+            fileName: chunk.fileName,
+            code: chunk.code,
+            exports: chunk.exports,
+            ...(chunk.map ? { map: chunk.map } : {}),
+        });
+    }
+    return /** @type {OutputChunk} */ (chunks.find(chunk => chunk.isEntry)).fileName;
 }
 
 /**
