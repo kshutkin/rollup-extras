@@ -50,7 +50,7 @@
         "@rollup/plugin-node-resolve": "^16.0.0",
         "@rollup-extras/utils": "workspace:^",
         "is-builtin-module": "^5.0.0",
-        "pkg-dir": "^9.0.0"
+        "package-directory": "^8.2.0"
     },
     "peerDependencies": {
         "rollup": "^4.0.0"

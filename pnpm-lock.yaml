@@ -121,9 +121,9 @@ importers:
       is-builtin-module:
         specifier: ^5.0.0
         version: 5.0.0
-      pkg-dir:
-        specifier: ^9.0.0
-        version: 9.0.0
+      package-directory:
+        specifier: ^8.2.0
+        version: 8.2.0
       rollup:
         specifier: ^4.0.0
         version: 4.37.0
@@ -182,9 +182,9 @@ importers:
       is-builtin-module:
         specifier: ^5.0.0
         version: 5.0.0
-      pkg-dir:
-        specifier: ^9.0.0
-        version: 9.0.0
+      package-directory:
+        specifier: ^8.2.0
+        version: 8.2.0
       rollup:
         specifier: ^4.0.0
         version: 4.60.2
@@ -1860,6 +1860,10 @@ packages:
     resolution: {integrity: sha512-R4nPAVTAU0B9D35/Gk3uJf/7XYbQcyohSKdvAxIRSNghFl4e71hVoGnBNQz9cWaXxO2I10KTC+3jMdvvoKw6dQ==}
     engines: {node: '>=6'}
 
+  package-directory@8.2.0:
+    resolution: {integrity: sha512-qJSu5Mo6tHmRxCy2KCYYKYgcfBdUpy9dwReaZD/xwf608AUk/MoRtIOWzgDtUeGeC7n/55yC3MI1Q+MbSoektw==}
+    engines: {node: '>=18'}
+
   package-manager-detector@0.2.11:
     resolution: {integrity: sha512-BEnLolu+yuz22S56CU1SUKq3XC3PkwD5wv4ikR4MfGvnRVcmzXR9DwSlW2fEamyTPyXHomBJRzgapeuBvRNzJQ==}
 
@@ -1906,11 +1910,6 @@ packages:
   pify@4.0.1:
     resolution: {integrity: sha512-uB80kBFb/tfd68bVleG9T5GGsGPjJrLAUpR5PZIrhBnIaRTQRjqdJSsIKkOP6OAIFbj7GOrcudc5pNjZ+geV2g==}
     engines: {node: '>=6'}
-
-  pkg-dir@9.0.0:
-    resolution: {integrity: sha512-BMmxOuokumBehLGYwCKMBJxpAGSBbvGTtDn1yUV9UpCAvC4F7UWHoPTGSDGPV8eQPkYq/G8b0g1W5vIc5K/EhA==}
-    engines: {node: '>=18'}
-    deprecated: Renamed to `package-directory`.
 
   pkgprn-internal@0.8.0:
     resolution: {integrity: sha512-Hft/IS2kxVA9oeRbjY92c9VZn6jN1yCBF6gl85/0Z8+8adU4OazEXBtkCT+uII3Dq94pJo2PJSv2kkUqTx1SYQ==}
@@ -3897,6 +3896,10 @@ snapshots:
 
   p-try@2.2.0: {}
 
+  package-directory@8.2.0:
+    dependencies:
+      find-up-simple: 1.0.1
+
   package-manager-detector@0.2.11:
     dependencies:
       quansync: 0.2.11
@@ -3933,10 +3936,6 @@ snapshots:
   picomatch@4.0.4: {}
 
   pify@4.0.1: {}
-
-  pkg-dir@9.0.0:
-    dependencies:
-      find-up-simple: 1.0.1
 
   pkgprn-internal@0.8.0:
     dependencies:

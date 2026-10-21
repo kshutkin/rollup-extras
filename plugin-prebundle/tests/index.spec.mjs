@@ -1,11 +1,11 @@
 import nodeResolve from '@rollup/plugin-node-resolve';
-import { packageDirectory } from 'pkg-dir';
+import { packageDirectory } from 'package-directory';
 import { rollup } from 'rollup';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import prebundle from '../src/index.js';
 
-vi.mock('pkg-dir', async importOriginal => {
+vi.mock('package-directory', async importOriginal => {
     const mod = await importOriginal();
     return {
         ...mod,

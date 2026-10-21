@@ -9,7 +9,7 @@ import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
 import nodeResolve from '@rollup/plugin-node-resolve';
 import isBuiltinModule from 'is-builtin-module';
-import { packageDirectory } from 'pkg-dir';
+import { packageDirectory } from 'package-directory';
 import { rollup } from 'rollup';
 
 import { LogLevel } from '@niceties/logger';

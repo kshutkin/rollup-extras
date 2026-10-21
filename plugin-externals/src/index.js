@@ -13,7 +13,7 @@ import { dirname, relative, resolve } from 'node:path';
  */
 
 import isBuiltinModule from 'is-builtin-module';
-import { packageDirectory } from 'pkg-dir';
+import { packageDirectory } from 'package-directory';
 
 import { LogLevel } from '@niceties/logger';
 import logger from '@rollup-extras/utils/logger';
