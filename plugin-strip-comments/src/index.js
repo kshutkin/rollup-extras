@@ -63,7 +63,8 @@ export default function (options) {
             const magicString = new MagicString(code, { filename: chunk.fileName });
 
             for (const { start, end } of toRemove) {
-                magicString.remove(start, end);
+                const lineBreaks = code.slice(start, end).replace(/[^\r\n\u2028\u2029]/g, '');
+                magicString.overwrite(start, end, lineBreaks || ' ');
             }
 
             logger(`stripped ${toRemove.length} comment(s) in ${chunk.fileName}`);

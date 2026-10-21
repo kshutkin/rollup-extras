@@ -29,6 +29,22 @@ async function build(code, pluginOptions, outputOptions = {}) {
 }
 
 describe('@rollup-extras/plugin-strip-comments', () => {
+    it.each([
+        ['typeof/* separator */globalThis', 'object'],
+        ['1 +/* separator */+2', 3],
+    ])('should preserve token boundaries in %s', async (expression, expected) => {
+        const output = await build(`export default ${expression};`);
+        const result = await import(`data:text/javascript,${encodeURIComponent(output[0].code)}`);
+        expect(result.default).toBe(expected);
+    });
+
+    it.each(['\n', '\r', '\r\n', '\u2028', '\u2029'])('should preserve line terminators inside removed comments (%j)', lineBreak => {
+        const source = `function f() { return/*${lineBreak}comment*/42; }`;
+        const result = stripComments().renderChunk(source, { fileName: 'entry.js' });
+        expect(result.code).not.toContain('comment');
+        expect(new Function(`${result.code}; return f();`)()).toBeUndefined();
+    });
+
     it('should strip regular line comments by default', async () => {
         const output = await build('// hello\nexport default 1;');
         expect(output[0].code).not.toContain('// hello');
