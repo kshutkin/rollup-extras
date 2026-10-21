@@ -130,18 +130,18 @@ export default function (options = {}) {
                     handleTemplateReadError(e);
                 }
             } else {
-                templateString = new Promise(resolve => {
-                    readFile(template, { encoding: 'utf8' })
-                        .then(newTemplateString => {
-                            if (!isUsableByDefaultTemplateFactory(newTemplateString) && !hasCustomTemplateFactory) {
-                                warnAboutUsingDefaultTemplate();
-                                resolve(defaultTemplate);
-                            } else {
-                                resolve(newTemplateString);
-                            }
-                        })
-                        .catch(handleTemplateReadError);
-                });
+                templateString = readFile(template, { encoding: 'utf8' })
+                    .then(newTemplateString => {
+                        if (!isUsableByDefaultTemplateFactory(newTemplateString) && !hasCustomTemplateFactory) {
+                            warnAboutUsingDefaultTemplate();
+                            return defaultTemplate;
+                        }
+                        return newTemplateString;
+                    })
+                    .catch(e => {
+                        handleTemplateReadError(e);
+                        return defaultTemplate;
+                    });
             }
         }
     }

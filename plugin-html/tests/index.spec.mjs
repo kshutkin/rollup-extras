@@ -40,6 +40,23 @@ describe('@rollup-extras/plugin-html integration', () => {
         }
     });
 
+    it.each(['missing', 'directory'])('should fall back after a %s template read fails with watch disabled', async kind => {
+        const template = kind === 'missing' ? join(tmpDir, 'missing.html') : tmpDir;
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'console.log("fallback")' }), html({ template, watch: false })],
+        });
+        try {
+            const { output } = await bundle.generate({ format: 'es', dir: tmpDir });
+            const asset = output.find(item => item.fileName === 'index.html');
+            expect(asset.source).toContain('</head>');
+            expect(asset.source).toContain('</body>');
+            expect(asset.source).toContain('entry.js');
+        } finally {
+            await bundle.close();
+        }
+    }, 1000);
+
     it('should generate index.html with a module script tag for ES format', async () => {
         const bundle = await rollup({
             input: 'entry',

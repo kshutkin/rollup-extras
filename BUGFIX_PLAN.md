@@ -8,7 +8,7 @@ Validate each affected package before continuing; finish with workspace tests, b
 3. [x] Preserve default imports through prebundle proxies.
 4. [x] Restore prebundle discovery and emission on cached rebuilds.
 5. [x] Keep dynamic dependencies in prebundle output.
-6. [ ] Settle the HTML template promise after read errors.
+6. [x] Settle the HTML template promise after read errors.
 7. [ ] Re-emit copied assets in subsequent bundles.
 8. [ ] Set executable permissions when using `output.file`.
 9. [ ] Retain all outputs when serving from memory.
