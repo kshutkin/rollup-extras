@@ -5,7 +5,7 @@ Validate each affected package before continuing; finish with workspace tests, b
 
 1. [x] Prevent mangled names from colliding with existing bindings and properties.
 2. [x] Preserve JavaScript token boundaries when stripping comments.
-3. [ ] Preserve default imports through prebundle proxies.
+3. [x] Preserve default imports through prebundle proxies.
 4. [ ] Restore prebundle discovery and emission on cached rebuilds.
 5. [ ] Keep dynamic dependencies in prebundle output.
 6. [ ] Settle the HTML template promise after read errors.

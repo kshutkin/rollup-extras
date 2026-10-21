@@ -1,3 +1,8 @@
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
 import nodeResolve from '@rollup/plugin-node-resolve';
 import { packageDirectory } from 'package-directory';
 import { rollup } from 'rollup';
@@ -68,6 +73,22 @@ async function build(modules, pluginOptions, buildOptions = {}) {
     return output;
 }
 
+async function runOutput(output, run = module => module.default) {
+    const dir = await mkdtemp(join(tmpdir(), 'prebundle-output-'));
+    try {
+        await writeFile(join(dir, 'package.json'), '{"type":"module"}');
+        for (const item of output) {
+            const file = join(dir, item.fileName);
+            await mkdir(dirname(file), { recursive: true });
+            await writeFile(file, item.type === 'chunk' ? item.code : item.source);
+        }
+        const entry = output.find(item => item.type === 'chunk' && item.isEntry);
+        return await run(await import(pathToFileURL(join(dir, entry.fileName)).href));
+    } finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+}
+
 describe('@rollup-extras/plugin-prebundle integration', () => {
     afterEach(() => {
         childRollupShouldFail.value = false;
@@ -106,6 +127,49 @@ describe('@rollup-extras/plugin-prebundle integration', () => {
         const mainChunk = output.find(o => isNotPrebundled(o));
         expect(mainChunk.code).toContain('_prebundled.');
         expect(mainChunk.code).not.toContain("from 'is-builtin-module'");
+    });
+
+    it('should preserve live default exports through the proxy', async () => {
+        const proxy = prebundle().load('\0prebundle:live');
+        const bundle = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({
+                    entry: `
+                    import value, { set } from 'proxy';
+                    import * as namespace from 'proxy';
+                    const before = value;
+                    set(2);
+                    export default [before, value, namespace.default];
+                `,
+                    proxy,
+                    './_prebundled.js': `
+                    let value = 1;
+                    export const __pre_live = { get default() { return value; }, set(next) { value = next; } };
+                `,
+                }),
+            ],
+        });
+        try {
+            const { output } = await bundle.generate({ format: 'es' });
+            expect(await runOutput(output)).toEqual([1, 2, 2]);
+        } finally {
+            await bundle.close();
+        }
+    });
+
+    it('should preserve default, named, and namespace import values at runtime', async () => {
+        const output = await build(
+            {
+                entry: `
+                    import resolve, { nodeResolve } from '@rollup/plugin-node-resolve';
+                    import * as namespace from '@rollup/plugin-node-resolve';
+                    export default [typeof resolve, resolve === nodeResolve, namespace.default === resolve, typeof namespace.nodeResolve];
+                `,
+            },
+            { enableInBuildMode: true }
+        );
+        expect(await runOutput(output)).toEqual(['function', true, true, 'function']);
     });
 
     it('should not prebundle Node.js builtins', async () => {

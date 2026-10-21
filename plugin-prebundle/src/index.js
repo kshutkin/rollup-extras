@@ -136,8 +136,8 @@ export default function (options = {}) {
                 const specifier = id.slice(PREBUNDLE_PREFIX.length);
                 const ns = specifierToNamespace(specifier);
                 return {
-                    code: `export { ${ns} as default } from './${PREBUNDLE_CHUNK}';\n`,
-                    syntheticNamedExports: true,
+                    code: `import { ${ns} } from './${PREBUNDLE_CHUNK}';\nexport const __moduleExports = ${ns};\n`,
+                    syntheticNamedExports: '__moduleExports',
                 };
             }
 
