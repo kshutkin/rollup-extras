@@ -71,10 +71,16 @@ export function simpleModuleScript(predicateSource) {
  */
 export function combineAssetFactories(...factories) {
     return (fileName, content, type) => {
-        for (const factory of factories) {
-            const result = factory(fileName, content, type);
-            if (result) {
-                return result;
+        return next(0);
+
+        /** @param {number} start @returns {ReturnType<AssetFactory>} */
+        function next(start) {
+            for (let index = start; index < factories.length; index++) {
+                const result = factories[index](fileName, content, type);
+                if (result instanceof Promise) {
+                    return result.then(asset => asset || next(index + 1));
+                }
+                if (result) return result;
             }
         }
     };

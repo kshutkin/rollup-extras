@@ -78,6 +78,34 @@ describe('@rollup-extras/plugin-html/asset-factories', () => {
         expect(result2).toEqual('<script src="test.mjs" type="module"></script>');
     });
 
+    it('should continue after async factories return no asset', async () => {
+        const fallback = vi.fn(() => '<script>fallback</script>');
+        const factory = combineAssetFactories(
+            () => undefined,
+            async () => undefined,
+            async () => undefined,
+            fallback
+        );
+        expect(await factory('entry.js', 'code', 'es')).toBe('<script>fallback</script>');
+        expect(fallback).toHaveBeenCalledWith('entry.js', 'code', 'es');
+    });
+
+    it('should stop after an async factory returns an asset', async () => {
+        const fallback = vi.fn();
+        const factory = combineAssetFactories(async () => '<script>first</script>', fallback);
+        expect(await factory('entry.js', '', 'es')).toBe('<script>first</script>');
+        expect(fallback).not.toHaveBeenCalled();
+    });
+
+    it('should propagate async factory failures', async () => {
+        const fallback = vi.fn();
+        const factory = combineAssetFactories(async () => {
+            throw new Error('factory failed');
+        }, fallback);
+        await expect(factory('entry.js', '', 'es')).rejects.toThrow('factory failed');
+        expect(fallback).not.toHaveBeenCalled();
+    });
+
     // Cover line 97: getLogger creates the logger via createLogger on first invocation.
     // Uses vi.resetModules() to ensure the module-level logger is unset.
     it('should call createLogger when getLogger is invoked for the first time', async () => {

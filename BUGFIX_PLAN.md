@@ -12,4 +12,4 @@ Validate each affected package before continuing; finish with workspace tests, b
 7. [x] Re-emit copied assets in subsequent bundles.
 8. [x] Set executable permissions when using `output.file`.
 9. [x] Retain all outputs when serving from memory.
-10. [ ] Await combined asset factories before falling back.
+10. [x] Await combined asset factories before falling back.
