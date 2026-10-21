@@ -7,7 +7,7 @@ import globParent from 'glob-parent';
 import { globFiles } from './glob.js';
 
 /**
- * @import { PluginContext, Plugin, EmittedFile } from 'rollup'
+ * @import { PluginContext, Plugin, EmittedFile, NormalizedOutputOptions } from 'rollup'
  */
 
 /**
@@ -106,7 +106,8 @@ export default function (options) {
     return /** @type {Plugin} */ ({
         name: pluginName,
 
-        async [hookName]() {
+        async [hookName](/** @type {NormalizedOutputOptions} */ outputOptions) {
+            const outputDir = outputPlugin && emitFiles ? (outputOptions.dir ?? dirname(outputOptions.file ?? '.')) : undefined;
             const results = await Promise.all(
                 /** @type {SingleTargetDesc[]} */ (targets)
                     .flatMap(target =>
@@ -223,7 +224,8 @@ export default function (options) {
                         return;
                     }
                     for (const dest of fileDesc.dest) {
-                        if (copyOnce && fileDesc.copied.includes(dest)) {
+                        const copyDestination = outputDir === undefined ? dest : resolve(outputDir, dest);
+                        if (copyOnce && fileDesc.copied.includes(copyDestination)) {
                             continue;
                         }
                         const baseName = basename(fileName);
@@ -250,7 +252,7 @@ export default function (options) {
                                 logger(`\t${fileName} → ${destFileName}`, LogLevel.info);
                             }
                             statisticsCollector(baseName);
-                            fileDesc.copied.push(dest);
+                            fileDesc.copied.push(copyDestination);
                         } catch (e) {
                             logger(`error copying file ${fileName} → ${destFileName}`, LogLevel.warn, e);
                         }

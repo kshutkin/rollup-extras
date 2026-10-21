@@ -86,6 +86,35 @@ describe('@rollup-extras/plugin-copy integration', () => {
         }
     });
 
+    it.each([false, true])('should track copyOnce by output directory (output.file: %s)', async useFile => {
+        const src = join(tmpDir, 'asset.txt');
+        await writeFile(src, 'unchanged');
+        const plugin = copy({ src, dest: 'assets', outputPlugin: true });
+        const outputs = ['first', 'second'].map(name => {
+            const dir = join(tmpDir, name);
+            return {
+                asset: join(dir, 'assets', 'asset.txt'),
+                options: useFile ? { file: join(dir, 'entry.js') } : { dir },
+            };
+        });
+        let cache;
+        for (let index = 0; index < 2; index++) {
+            const bundle = await rollup({ input: 'entry', cache, plugins: [virtual({ entry: 'export default 1;' })] });
+            try {
+                cache = bundle.cache;
+                for (const { asset, options } of outputs) {
+                    const { output } = await bundle.write({ ...options, format: 'es', plugins: [plugin] });
+                    expect(output.some(item => item.fileName === 'assets/asset.txt')).toBe(index === 0);
+                    expect(await readFile(asset, 'utf8')).toBe('unchanged');
+                    if (index === 0) await utimes(asset, 1000, 1000);
+                    else expect((await stat(asset)).mtimeMs).toBe(1_000_000);
+                }
+            } finally {
+                await bundle.close();
+            }
+        }
+    });
+
     it('should copy a single file to the output directory', async () => {
         const srcDir = join(tmpDir, 'src');
         const outDir = join(tmpDir, 'dist');

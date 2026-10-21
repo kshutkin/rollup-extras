@@ -71,6 +71,8 @@ all of them will trigger a copy (through emitFile) of all files in assets in eac
 
 By default, `copyOnce: true` skips unchanged files on rebuilds, including when `emitFiles: true`. Previously written files remain on disk when the output directory is preserved, as with the clean plugin's default `deleteOnce: true`.
 
+With `outputPlugin: true` and `emitFiles: true`, copied files are tracked separately for each output directory.
+
 Use `copyOnce: false` to include unchanged files in every rebuilt bundle, for example when serving from memory or cleaning on every rebuild:
 
 ```javascript
