@@ -30,6 +30,31 @@ describe('@rollup-extras/plugin-copy integration', () => {
         await rm(tmpDir, { recursive: true, force: true });
     });
 
+    it.each([false, true])('should emit unchanged assets in every bundle (output plugin: %s)', async outputPlugin => {
+        const src = join(tmpDir, 'asset.txt');
+        await writeFile(src, 'unchanged');
+        const plugin = copy({ src, outputPlugin });
+        let cache;
+        for (let index = 0; index < 2; index++) {
+            const bundle = await rollup({
+                input: 'entry',
+                cache,
+                plugins: [virtual({ entry: 'export default 1;' }), ...(outputPlugin ? [] : [plugin])],
+            });
+            try {
+                cache = bundle.cache;
+                for (const format of ['es', 'cjs']) {
+                    const { output } = await bundle.generate({ format, plugins: outputPlugin ? [plugin] : [] });
+                    const asset = output.find(item => item.fileName === 'asset.txt');
+                    expect(asset).toBeDefined();
+                    expect(Buffer.from(asset.source).toString()).toBe('unchanged');
+                }
+            } finally {
+                await bundle.close();
+            }
+        }
+    });
+
     it('should copy a single file to the output directory', async () => {
         const srcDir = join(tmpDir, 'src');
         const outDir = join(tmpDir, 'dist');

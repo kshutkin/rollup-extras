@@ -69,14 +69,14 @@ copy({ targets: [{ src: "assets/*" }] });
 
 all of them will trigger a copy (through emitFile) of all files in assets in each output directory.
 
-To copy files on every rebuild in watch mode use `copyOnce` = `false`:
+Emitted assets are included in every bundle. When copying directly to disk with `emitFiles: false`, use `copyOnce: false` to copy unchanged files on every rebuild:
 
 ```javascript
-copy({ src: "assets/*", copyOnce: false });
+copy({ src: "assets/*", emitFiles: false, copyOnce: false });
 
 // or
 
-copy({ targets: ["assets/*"], copyOnce: false });
+copy({ targets: ["assets/*"], emitFiles: false, copyOnce: false });
 ```
 
 To stop triggering on changes in files use `watch` = `false`:
