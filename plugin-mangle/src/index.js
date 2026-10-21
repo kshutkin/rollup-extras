@@ -42,7 +42,9 @@ export default function (options) {
 
     /** @type {Map<string, string>} */
     const propertyMap = new Map();
+    const reservedNames = new Set();
     let counter = 0;
+    let collectedNames = false;
 
     /**
      * @param {string} name
@@ -50,12 +52,15 @@ export default function (options) {
      */
     const getMangled = name => {
         if (!propertyMap.has(name)) {
-            let n = counter++;
             let result = '';
             do {
-                result = String.fromCharCode(97 + (n % 26)) + result;
-                n = Math.floor(n / 26) - 1;
-            } while (n >= 0);
+                let n = counter++;
+                result = '';
+                do {
+                    result = String.fromCharCode(97 + (n % 26)) + result;
+                    n = Math.floor(n / 26) - 1;
+                } while (n >= 0);
+            } while (reservedNames.has(result));
             propertyMap.set(name, result);
         }
         return /** @type {string} */ (propertyMap.get(name));
@@ -72,11 +77,28 @@ export default function (options) {
 
         renderStart() {
             propertyMap.clear();
+            reservedNames.clear();
+            for (const word of 'await break case catch class const continue debugger default delete do else enum export extends false finally for function if implements import in instanceof interface let new null package private protected public return static super switch this throw true try typeof var void while with yield'.split(
+                ' '
+            )) {
+                reservedNames.add(word);
+            }
             counter = 0;
+            collectedNames = false;
         },
 
-        renderChunk(code, chunk) {
+        renderChunk(code, chunk, _options, meta) {
             const ast = this.parse(code);
+            if (!collectedNames) {
+                for (const renderedChunk of Object.values(meta.chunks)) {
+                    for (const name of renderedChunk.exports) reservedNames.add(name);
+                    for (const module of Object.values(renderedChunk.modules)) {
+                        if (module.code) reserveNames(this.parse(module.code));
+                    }
+                }
+                collectedNames = true;
+            }
+            reserveNames(ast);
             const magicString = new MagicString(code, {
                 filename: chunk.fileName,
             });
@@ -157,4 +179,15 @@ export default function (options) {
             };
         },
     });
+
+    /** @param {unknown} ast */
+    function reserveNames(ast) {
+        walk(/** @type {Node} */ (ast), {
+            enter(node) {
+                if (node.type === 'Identifier') reservedNames.add(node.name);
+                else if (node.type === 'Literal' && typeof node.value === 'string') reservedNames.add(node.value);
+                else if (node.type === 'TemplateElement') reservedNames.add(node.value.cooked);
+            },
+        });
+    }
 }

@@ -25,6 +25,45 @@ async function build(code, mangleOptions, outputOptions = {}) {
 }
 
 describe('@rollup-extras/plugin-mangle', () => {
+    it('should avoid existing bindings, globals, and property names', async () => {
+        const output = await build(`
+            const a = 1;
+            const $_x = 2;
+            const obj = { b: 3, 'c': 4, $_value: 5 };
+            export default [a, $_x, obj.b, obj['c'], obj.$_value];
+        `);
+        const result = await import(`data:text/javascript,${encodeURIComponent(output[0].code)}`);
+        expect(result.default).toEqual([1, 2, 3, 4, 5]);
+    });
+
+    it('should reserve names across output chunks before assigning shared properties', async () => {
+        const bundle = await rollup({
+            input: ['entry', 'other'],
+            plugins: [
+                virtual({
+                    entry: 'export const obj = { $_value: 1 };',
+                    other: 'export const obj = { a: 2, $_value: 3 };',
+                }),
+                mangle(),
+            ],
+        });
+        try {
+            const { output } = await bundle.generate({ format: 'es' });
+            const values = await Promise.all(output.map(chunk => import(`data:text/javascript,${encodeURIComponent(chunk.code)}`)));
+            expect(values.map(value => value.obj)).toEqual([{ b: 1 }, { a: 2, b: 3 }]);
+        } finally {
+            await bundle.close();
+        }
+    });
+
+    it('should skip reserved words when allocating many names', async () => {
+        const names = Array.from({ length: 250 }, (_, index) => `$_v${index}`);
+        const declarations = names.map((name, index) => `const ${name} = ${index};`).join('\n');
+        const output = await build(`${declarations} export default [${names.join(',')}];`);
+        const result = await import(`data:text/javascript,${encodeURIComponent(output[0].code)}`);
+        expect(result.default).toEqual(names.map((_, index) => index));
+    });
+
     it('should mangle dot-notation member expression properties', async () => {
         const output = await build('export const x = { $_prop: 1 }; x.$_prop;');
         expect(output[0].code).not.toContain('$_prop');
