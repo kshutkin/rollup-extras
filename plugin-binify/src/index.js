@@ -1,5 +1,5 @@
 import { chmod } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 /**
  * @import { NormalizedOutputOptions, OutputAsset, OutputBundle, OutputChunk, Plugin, PluginContext } from 'rollup'
@@ -44,7 +44,7 @@ export default function (options = {}) {
         name: pluginName,
         /** @this {PluginContext} */
         renderStart(/** @type {NormalizedOutputOptions} */ outputOptions) {
-            initialDir = outputOptions.dir || '';
+            initialDir = outputOptions.dir ?? (outputOptions.file ? dirname(outputOptions.file) : '');
             countFiles = 0;
             logger.start(`using ${initialDir} as output directory for ${pluginName}`, verbose ? LogLevel.info : LogLevel.verbose);
         },

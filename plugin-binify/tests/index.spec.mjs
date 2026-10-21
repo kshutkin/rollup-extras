@@ -1,6 +1,6 @@
 import { mkdtemp, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 
 import { rollup } from 'rollup';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -25,6 +25,22 @@ function virtual(modules) {
         },
     };
 }
+
+describe('output.file permissions', () => {
+    it.skipIf(process.platform === 'win32').each([false, true])('should chmod the written file (relative path: %s)', async relativePath => {
+        const dir = await mkdtemp(join(tmpdir(), 'binify-file-'));
+        const absoluteFile = join(dir, 'nested', 'cli.js');
+        const file = relativePath ? relative(process.cwd(), absoluteFile) : absoluteFile;
+        const bundle = await rollup({ input: 'entry', plugins: [virtual({ entry: 'console.log("cli");' }), binify()] });
+        try {
+            await bundle.write({ format: 'es', file });
+            expect((await stat(absoluteFile)).mode & 0o777).toBe(0o755);
+        } finally {
+            await bundle.close();
+            await rm(dir, { recursive: true, force: true });
+        }
+    });
+});
 
 describe('@rollup-extras/plugin-binify integration', () => {
     describe('generate', () => {
