@@ -1,3 +1,5 @@
+import { SourceMap } from 'node:module';
+
 import { rollup } from 'rollup';
 import { describe, expect, it } from 'vitest';
 
@@ -43,6 +45,31 @@ describe('@rollup-extras/plugin-strip-comments', () => {
         const result = stripComments().renderChunk(source, { fileName: 'entry.js' });
         expect(result.code).not.toContain('comment');
         expect(new Function(`${result.code}; return f();`)()).toBeUndefined();
+    });
+
+    it.each([
+        ['let count = 0; if (value) /[/*]/.test(value) && count++; return count;', 1],
+        ['const obj = { return: 4 }; const quotient = obj.return / 2; return quotient + /[/*]/.test(value);', 3],
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: source code passed to build
+        ['return `prefix ${1} ${/[/*]/.test(value) /* remove */}`;', 'prefix 1 true'],
+    ])('should preserve execution through Rollup for %s', async (body, expected) => {
+        const output = await build(`export function evaluate(value) { ${body} }`);
+        const result = await import(`data:text/javascript,${encodeURIComponent(output[0].code)}`);
+        expect(result.evaluate('*')).toBe(expected);
+    });
+
+    it('should map code after a removed inline comment back to its original column', async () => {
+        const source = ['export function evaluate(value) {', '    const re = /[/*]/;', '    /* remove */ return re.test(value);', '}'].join(
+            '\n'
+        );
+        const [chunk] = await build(source, undefined, { sourcemap: true });
+        expect(chunk.code).not.toContain('/* remove */');
+        const generated = chunk.code.slice(0, chunk.code.indexOf('re.test')).split('\n');
+        const original = source.slice(0, source.indexOf('re.test')).split('\n');
+        expect(new SourceMap(chunk.map).findEntry(generated.length - 1, generated.at(-1).length)).toMatchObject({
+            originalLine: original.length - 1,
+            originalColumn: original.at(-1).length,
+        });
     });
 
     it('should strip regular line comments by default', async () => {

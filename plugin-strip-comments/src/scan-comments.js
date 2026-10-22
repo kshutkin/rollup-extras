@@ -35,6 +35,8 @@ export function isStrippableFile(file) {
 /**
  * Keywords after which a `/` token begins a regex literal rather than division.
  */
+const controlKeywords = new Set(['if', 'while', 'for', 'with', 'switch', 'catch']);
+
 const regexPrecedingKeywords = new Set([
     'return',
     'throw',
@@ -104,15 +106,22 @@ export function scanComments(source) {
     const templateStack = [];
 
     let exprEnd = false;
+    let controlParen = false;
+    let propertyAccess = false;
+    let lastToken = '';
+    /** @type {boolean[]} */
+    const objectBraces = [];
+    /** @type {boolean[]} */
+    const parens = [];
 
     if (len >= 2 && source[0] === '#' && source[1] === '!') {
-        while (i < len && source[i] !== '\n') i++;
+        while (i < len && !isLineTerminator(source.charCodeAt(i))) i++;
     }
 
     while (i < len) {
         const ch = source.charCodeAt(i);
 
-        if (ch <= 0x20 || ch === 0xfeff || ch === 0xa0) {
+        if (isWhitespace(ch)) {
             i++;
             continue;
         }
@@ -121,7 +130,7 @@ export function scanComments(source) {
         if (ch === 0x2f && i + 1 < len && source.charCodeAt(i + 1) === 0x2f) {
             const start = i;
             i += 2;
-            while (i < len && source.charCodeAt(i) !== 0x0a) i++;
+            while (i < len && !isLineTerminator(source.charCodeAt(i))) i++;
             comments.push({ start, end: i, type: 'regular' });
             continue;
         }
@@ -159,7 +168,8 @@ export function scanComments(source) {
 
         if (ch === 0x60) {
             i = scanTemplateTail(source, i + 1, len, templateStack);
-            exprEnd = true;
+            exprEnd = source[i - 1] !== '{';
+            lastToken = exprEnd ? 'literal' : '(';
             continue;
         }
 
@@ -169,17 +179,22 @@ export function scanComments(source) {
                 if (depth === 0) {
                     templateStack.pop();
                     i = scanTemplateTail(source, i + 1, len, templateStack);
-                    exprEnd = true;
+                    exprEnd = source[i - 1] !== '{';
+                    lastToken = exprEnd ? 'literal' : '(';
                     continue;
                 }
                 templateStack[templateStack.length - 1] = depth - 1;
             }
             i++;
-            exprEnd = false;
+            // Object expressions can end before division; statement blocks cannot.
+            exprEnd = objectBraces.pop() ?? false;
+            lastToken = '}';
             continue;
         }
 
         if (ch === 0x7b) {
+            objectBraces.push(['=', '(', '[', ',', ':', 'return', 'yield'].includes(lastToken));
+            lastToken = '{';
             if (templateStack.length > 0) {
                 templateStack[templateStack.length - 1]++;
             }
@@ -193,7 +208,10 @@ export function scanComments(source) {
             i++;
             while (i < len && isIdentPart(source.charCodeAt(i))) i++;
             const word = source.slice(wordStart, i);
-            exprEnd = !regexPrecedingKeywords.has(word);
+            controlParen = !propertyAccess && (controlKeywords.has(word) || (word === 'await' && controlParen));
+            exprEnd = propertyAccess || !regexPrecedingKeywords.has(word);
+            propertyAccess = false;
+            lastToken = word;
             continue;
         }
 
@@ -203,17 +221,47 @@ export function scanComments(source) {
             continue;
         }
 
-        if (ch === 0x29 || ch === 0x5d) {
+        if (ch === 0x28) {
+            parens.push(controlParen);
+            lastToken = '(';
+            controlParen = false;
+            exprEnd = false;
             i++;
-            exprEnd = true;
             continue;
         }
 
+        // A control condition ends before a statement, which may start with a regex.
+        if (ch === 0x29 || ch === 0x5d) {
+            exprEnd = ch === 0x5d || !parens.pop();
+            lastToken = source[i];
+            i++;
+            continue;
+        }
+
+        controlParen = false;
+        propertyAccess = ch === 0x2e;
+        lastToken = source[i];
         i++;
         exprEnd = false;
     }
 
     return comments;
+}
+
+/**
+ * @param {number} ch
+ * @returns {boolean}
+ */
+function isLineTerminator(ch) {
+    return ch === 0x0a || ch === 0x0d || ch === 0x2028 || ch === 0x2029;
+}
+
+/**
+ * @param {number} ch
+ * @returns {boolean}
+ */
+function isWhitespace(ch) {
+    return ch <= 0x20 || ch === 0xfeff || ch === 0xa0 || isLineTerminator(ch);
 }
 
 /**
@@ -229,7 +277,14 @@ function isDigit(ch) {
  * @returns {boolean}
  */
 function isIdentStart(ch) {
-    return (ch >= 0x41 && ch <= 0x5a) || (ch >= 0x61 && ch <= 0x7a) || ch === 0x5f || ch === 0x24 || ch === 0x5c || ch > 0x7f;
+    return (
+        (ch >= 0x41 && ch <= 0x5a) ||
+        (ch >= 0x61 && ch <= 0x7a) ||
+        ch === 0x5f ||
+        ch === 0x24 ||
+        ch === 0x5c ||
+        (ch > 0x7f && !isWhitespace(ch))
+    );
 }
 
 /**
@@ -258,7 +313,7 @@ function skipSingleString(s, i, len) {
             i += 2;
             continue;
         }
-        if (ch === 0x0a || ch === 0x0d) break;
+        if (isLineTerminator(ch)) break;
         i++;
     }
     return i;
@@ -282,7 +337,7 @@ function skipDoubleString(s, i, len) {
             i += 2;
             continue;
         }
-        if (ch === 0x0a || ch === 0x0d) break;
+        if (isLineTerminator(ch)) break;
         i++;
     }
     return i;
@@ -314,7 +369,7 @@ function skipRegex(s, i, len) {
                     i++;
                     break;
                 }
-                if (cc === 0x0a || cc === 0x0d) break;
+                if (isLineTerminator(cc)) break;
                 i++;
             }
             continue;
@@ -324,7 +379,7 @@ function skipRegex(s, i, len) {
             while (i < len && isRegexFlag(s.charCodeAt(i))) i++;
             break;
         }
-        if (ch === 0x0a || ch === 0x0d) break;
+        if (isLineTerminator(ch)) break;
         i++;
     }
     return i;
