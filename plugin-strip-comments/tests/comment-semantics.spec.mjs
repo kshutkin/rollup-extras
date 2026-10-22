@@ -37,6 +37,17 @@ for (const source of [
 
 for (const source of [
     'if (true) /[/*]/.test("*");',
+    'do /[/*]/.test("*"); while(false);',
+    'const of = 4; of / 2; const re = /[/*]/; re.test("*");',
+    'const of = 4; for (; of / 2;) { break; } /[/*]/.test("*");',
+    'for (const x of /[/*]/.source) {} /[/*]/.test("*");',
+    'for (const of of /[/*]/.source) {} /[/*]/.test("*");',
+    'let of; for (of of /[/*]/.source) {} /[/*]/.test("*");',
+    'for (const {of} of [{of: 4}]) { of / 2; } /[/*]/.test("*");',
+    'const of = [2]; for (const x of of) { x / 2; } /[/*]/.test("*");',
+    'let of = 4; for (of / 2; false;) {} /[/*]/.test("*");',
+    'async function f(){ for await (const of of /[/*]/.source) {} } /[/*]/.test("*");',
+    'function f(){ const x = 4; return x\n/2; } f();',
     'if ((() => true)()) /[/*]/.test("*");',
     'let x = 0; while (x++ < 1) /[/*]/.test("*"); x;',
     'for (let x = 0; x < 1; x++) /[/*]/.test("*");',
@@ -46,6 +57,20 @@ for (const source of [
     test(`regex and division context survives stripping: ${source}`, () => {
         assert.equal(vm.runInNewContext(stripComments(source, regular)), vm.runInNewContext(source));
     });
+}
+
+for (const terminator of ['\n', '\r', '\r\n', '\u2028', '\u2029', '/*\n*/']) {
+    for (const keyword of ['break', 'break outer', 'continue', 'continue outer']) {
+        const source = `outer: for(let i=0;i<1;i++){${keyword}${terminator}/[/*]/.test('*');} true;`;
+        test(`jump statement ends at ${JSON.stringify(terminator)} after ${keyword}`, () => {
+            assert.equal(vm.runInNewContext(stripComments(source, regular)), vm.runInNewContext(source));
+        });
+    }
+    for (const source of [`debugger${terminator}/[/*]/.test('*');`, `function f(){ return${terminator}{} /[/*]/.test('*'); } f();`]) {
+        test(`restricted statement boundary preserves regex context: ${JSON.stringify(source)}`, () => {
+            assert.equal(vm.runInNewContext(stripComments(source, regular)), vm.runInNewContext(source));
+        });
+    }
 }
 
 for (const source of ['const s = `${/[/*]/.test("*") /* comment */}`; s;', 'const s = `${1} ${/[/*]/.test("*") /* comment */}`; s;']) {

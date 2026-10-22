@@ -49,12 +49,12 @@ const regexPrecedingKeywords = new Set([
     'case',
     'yield',
     'await',
-    'of',
     'export',
     'import',
     'default',
     'extends',
     'else',
+    'do',
 ]);
 
 /**
@@ -106,16 +106,26 @@ export function scanComments(source) {
     const templateStack = [];
 
     let exprEnd = false;
-    let controlParen = false;
+    /** @type {string | null} */
+    let controlParen = null;
     let propertyAccess = false;
     let lastToken = '';
     let statementStart = true;
+    let lineBreakKeyword = '';
     /** @type {boolean[]} */
     const objectBraces = [];
-    /** @type {boolean[]} */
+    /** @type {{control: string | null, braces: number, forBinding: boolean}[]} */
     const parens = [];
     /** @type {{keyword: string, expression: boolean, parens: number, braces: number}[]} */
     const bodies = [];
+
+    function lineBreak() {
+        if (lineBreakKeyword) {
+            exprEnd = false;
+            statementStart = true;
+            lineBreakKeyword = '';
+        }
+    }
 
     if (len >= 2 && source[0] === '#' && source[1] === '!') {
         while (i < len && !isLineTerminator(source.charCodeAt(i))) i++;
@@ -125,6 +135,7 @@ export function scanComments(source) {
         const ch = source.charCodeAt(i);
 
         if (isWhitespace(ch)) {
+            if (isLineTerminator(ch)) lineBreak();
             i++;
             continue;
         }
@@ -146,9 +157,13 @@ export function scanComments(source) {
                 i++;
             }
             if (i < len) i += 2;
+            if (lineBreakKeyword && /[\r\n\u2028\u2029]/.test(source.slice(start, i))) lineBreak();
             comments.push({ start, end: i, type: classifyBlockComment(source, start, i) });
             continue;
         }
+
+        // Only break/continue can carry a label before their terminating line break.
+        if (!isIdentStart(ch) && !isDigit(ch)) lineBreakKeyword = '';
 
         // regex literal
         if (ch === 0x2f && !exprEnd) {
@@ -230,11 +245,26 @@ export function scanComments(source) {
             i++;
             while (i < len && isIdentPart(source.charCodeAt(i))) i++;
             const word = source.slice(wordStart, i);
+            const paren = parens[parens.length - 1];
+            const forOf =
+                !propertyAccess &&
+                word === 'of' &&
+                paren?.forBinding &&
+                paren.braces === objectBraces.length &&
+                exprEnd &&
+                !['const', 'let', 'var'].includes(lastToken);
+            if (forOf) paren.forBinding = false;
             if (!propertyAccess && (word === 'function' || word === 'class')) {
                 bodies.push({ keyword: word, expression: !statementStart, parens: parens.length, braces: objectBraces.length });
             }
-            controlParen = !propertyAccess && (controlKeywords.has(word) || (word === 'await' && controlParen));
-            exprEnd = propertyAccess || !regexPrecedingKeywords.has(word);
+            controlParen = !propertyAccess && controlKeywords.has(word) ? word : word === 'await' && controlParen === 'for' ? 'for' : null;
+            exprEnd = propertyAccess || (!forOf && !regexPrecedingKeywords.has(word));
+            lineBreakKeyword =
+                !propertyAccess && ['break', 'continue', 'debugger', 'return', 'yield'].includes(word)
+                    ? word
+                    : ['break', 'continue'].includes(lineBreakKeyword)
+                      ? lineBreakKeyword
+                      : '';
             statementStart =
                 !propertyAccess &&
                 (['else', 'do', 'try', 'finally'].includes(word) || (statementStart && ['async', 'export', 'default'].includes(word)));
@@ -251,9 +281,9 @@ export function scanComments(source) {
         }
 
         if (ch === 0x28) {
-            parens.push(controlParen);
+            parens.push({ control: controlParen, braces: objectBraces.length, forBinding: controlParen === 'for' });
             lastToken = '(';
-            controlParen = false;
+            controlParen = null;
             exprEnd = false;
             statementStart = false;
             i++;
@@ -262,18 +292,21 @@ export function scanComments(source) {
 
         // A control condition ends before a statement, which may start with a regex.
         if (ch === 0x29 || ch === 0x5d) {
-            exprEnd = ch === 0x5d || !parens.pop();
+            exprEnd = ch === 0x5d || !parens.pop()?.control;
             statementStart = !exprEnd;
             lastToken = source[i];
             i++;
             continue;
         }
 
-        controlParen = false;
+        controlParen = null;
         propertyAccess = ch === 0x2e;
         // A reserved word followed by ':' was a property name, not a body header.
         if (ch === 0x3a && bodies[bodies.length - 1]?.keyword === lastToken) bodies.pop();
-        statementStart = ch === 0x3b && !parens[parens.length - 1];
+        const paren = parens[parens.length - 1];
+        const header = paren?.braces === objectBraces.length && paren.control;
+        if (ch === 0x3b && header) paren.forBinding = false;
+        statementStart = ch === 0x3b && !header;
         lastToken = source.startsWith('=>', i) ? '=>' : source[i];
         if (lastToken === '=>') i++;
         i++;
