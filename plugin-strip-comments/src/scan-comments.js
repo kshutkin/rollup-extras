@@ -174,16 +174,8 @@ export function scanComments(source) {
             continue;
         }
 
-        if (ch === 0x27) {
-            i = skipSingleString(source, i, len);
-            exprEnd = true;
-            statementStart = false;
-            lastToken = 'literal';
-            continue;
-        }
-
-        if (ch === 0x22) {
-            i = skipDoubleString(source, i, len);
+        if (ch === 0x27 || ch === 0x22) {
+            i = skipString(source, i, len);
             exprEnd = true;
             statementStart = false;
             lastToken = 'literal';
@@ -369,43 +361,20 @@ function isIdentPart(ch) {
  * @param {number} len
  * @returns {number}
  */
-function skipSingleString(s, i, len) {
-    i++;
+function skipString(s, i, len) {
+    const quote = s.charCodeAt(i++);
     while (i < len) {
         const ch = s.charCodeAt(i);
-        if (ch === 0x27) {
+        if (ch === quote) {
             i++;
             break;
         }
         if (ch === 0x5c) {
-            i += 2;
+            i += s.charCodeAt(i + 1) === 0x0d && s.charCodeAt(i + 2) === 0x0a ? 3 : 2;
             continue;
         }
-        if (isLineTerminator(ch)) break;
-        i++;
-    }
-    return i;
-}
-
-/**
- * @param {string} s
- * @param {number} i
- * @param {number} len
- * @returns {number}
- */
-function skipDoubleString(s, i, len) {
-    i++;
-    while (i < len) {
-        const ch = s.charCodeAt(i);
-        if (ch === 0x22) {
-            i++;
-            break;
-        }
-        if (ch === 0x5c) {
-            i += 2;
-            continue;
-        }
-        if (isLineTerminator(ch)) break;
+        // U+2028/U+2029 are valid unescaped characters in JavaScript strings.
+        if (ch === 0x0a || ch === 0x0d) break;
         i++;
     }
     return i;

@@ -13,6 +13,18 @@ function stripComments(source, types) {
 
 const regular = new Set(['regular']);
 
+for (const quote of ["'", '"']) {
+    for (const separator of ['\u2028', '\u2029', '\\\n', '\\\r', '\\\r\n', '\\\u2028', '\\\u2029']) {
+        const literal = `${quote}a${separator}//b/* c */${quote}`;
+        const source = `const s = ${literal}; s; // remove`;
+        test(`quoted strings preserve separators: ${JSON.stringify(source)}`, () => {
+            const stripped = stripComments(source, regular);
+            assert.equal(vm.runInNewContext(stripped), vm.runInNewContext(source));
+            assert.equal(stripped, `const s = ${literal}; s;  `);
+        });
+    }
+}
+
 for (const source of [
     'const/*comment*/value = 1; value;',
     'let a = 1, b = 2; a +/*comment*/+b;',
