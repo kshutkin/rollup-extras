@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { rollup } from 'rollup';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -106,6 +107,53 @@ describe('@rollup-extras/plugin-html integration', () => {
         expect(htmlAsset.source).toContain('entry.js');
         const indexHtml = output.find(item => item.fileName === 'index.html');
         expect(indexHtml).toBeUndefined();
+    });
+
+    it.each(
+        ['index.html', 'pages/index.html', 'nested/pages/index.html', '../index.html'].flatMap(outputFile =>
+            [false, true].map(useWriteBundle => ({ outputFile, useWriteBundle }))
+        )
+    )('should resolve asset URLs from $outputFile (write hook: $useWriteBundle)', async ({ outputFile, useWriteBundle }) => {
+        const dir = join(tmpDir, 'dist');
+        const bundle = await rollup({
+            input: ['entry', 'other'],
+            plugins: [
+                virtual({
+                    entry: 'import { value } from "shared"; console.log(value);',
+                    other: 'import { value } from "shared"; console.log(value + 1);',
+                    shared: 'export const value = 42;',
+                }),
+                emitCss('assets/styles.css', 'body {}'),
+                emitCss('assets/icon.svg', '<svg/>'),
+                html({
+                    outputFile,
+                    useWriteBundle,
+                    assetsFactory: fileName => (fileName.endsWith('.svg') ? `<img src="${fileName}">` : undefined),
+                }),
+            ],
+        });
+        try {
+            const { output } = await bundle.write({
+                dir,
+                format: 'es',
+                entryFileNames: 'scripts/[name].js',
+                chunkFileNames: 'chunks/[name]-[hash].js',
+            });
+            const htmlFile = join(dir, outputFile);
+            const source = await readFile(htmlFile, 'utf8');
+            expect(source).toContain('rel="modulepreload"');
+            const urls = [...source.matchAll(/(?:src|href)="([^"]+)"/g)].map(match => match[1]);
+            const targets = urls.map(url => fileURLToPath(new URL(url, pathToFileURL(htmlFile))));
+            expect([...new Set(targets)].sort()).toEqual(
+                output
+                    .filter(item => item.fileName !== outputFile)
+                    .map(item => join(dir, item.fileName))
+                    .sort()
+            );
+            for (const target of targets) await expect(readFile(target)).resolves.toBeDefined();
+        } finally {
+            await bundle.close();
+        }
     });
 
     it('should use a custom template string', async () => {

@@ -314,7 +314,7 @@ export default function (options = {}) {
         const dir = options.dir ?? '';
         for (const fileName of Object.keys(bundle)) {
             const relativeToRootAssetPath = join(dir, fileName);
-            const assetPath = relative(initialDir, relativeToRootAssetPath);
+            const assetPath = getAssetPath(relativeToRootAssetPath);
             if (ignore(relativeToRootAssetPath) || processedFiles.has(relativeToRootAssetPath)) {
                 continue;
             }
@@ -354,7 +354,7 @@ export default function (options = {}) {
                     if (modulepreload && options.format === 'es') {
                         const transitiveImports = collectTransitiveImports(bundle, fileName);
                         for (const importFileName of transitiveImports) {
-                            const importAssetPath = relative(initialDir, join(dir, importFileName));
+                            const importAssetPath = getAssetPath(join(dir, importFileName));
                             /** @type {AssetDescriptor[]} */ (assets.asset).push({
                                 html: getModulePreloadElement(importAssetPath),
                                 head: true,
@@ -365,6 +365,11 @@ export default function (options = {}) {
                 }
             }
         }
+    }
+
+    /** @param {string} fileName */
+    function getAssetPath(fileName) {
+        return relative(dirname(fileNameInInitialDir), fileName).replaceAll('\\', '/');
     }
 
     /**
