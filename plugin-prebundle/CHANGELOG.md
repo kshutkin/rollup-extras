@@ -1,5 +1,13 @@
 # @rollup-extras/plugin-prebundle
 
+## 0.1.2
+
+### Patch Changes
+
+- f857fe0: Escape punctuation in prebundle namespace identifiers without collisions so distinct package names and subpaths retain their own exports.
+- e21f599: Keep prebundle caches private to each plugin instance so projects importing the same package names do not reuse another project's dependency code. Cached rebuilds within an instance continue to reuse their prebundled chunks.
+- e998fa2: Register resolved dependencies and the child build's full watch list with Rollup, including transitive and dynamically imported files. Preserve these watches when reusing a prebundle and invalidate it when a dependency changes.
+
 ## 0.1.1
 
 ### Patch Changes

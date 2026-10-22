@@ -1,5 +1,12 @@
 Changelog
 
+## 2.0.1
+
+### Patch Changes
+
+- 106530d: Rescan templates when loading the generated cache module so cached rebuilds refresh template contents and matched files. This also supports fresh plugin instances reusing a Rollup cache when autoImport is disabled.
+- b8505a5: Mark generated template registrations as having side effects regardless of standalone mode, so Rollup retains side-effect-only imports when registering templates on an existing AngularJS module.
+
 ## 2.0.0
 
 ### Major Changes

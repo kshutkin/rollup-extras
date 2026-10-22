@@ -1,5 +1,11 @@
 Changelog
 
+## 2.1.2
+
+### Patch Changes
+
+- 1412f34: Resolve script, stylesheet, module-preload, and custom-factory asset URLs relative to the generated HTML file so nested HTML output and HTML outside the output directory reference the correct files.
+
 ## 2.1.1
 
 ### Patch Changes

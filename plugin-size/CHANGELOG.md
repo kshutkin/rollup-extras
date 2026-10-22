@@ -1,5 +1,11 @@
 # @rollup-extras/plugin-size
 
+## 0.3.1
+
+### Patch Changes
+
+- 7b992f2: Reset output-plugin size statistics between builds while preserving accumulation across formats and linked configurations within the same build. Removed chunks and asset categories no longer carry over from earlier builds.
+
 ## 0.3.0
 
 ### Minor Changes
