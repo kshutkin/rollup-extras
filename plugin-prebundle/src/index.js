@@ -44,9 +44,6 @@ function getPackageName(specifier) {
     return specifier.split('/')[0];
 }
 
-/** @type {{ chunks: OutputChunk[], specifiers: Set<string> } | undefined} */
-let prebundleCache;
-
 /**
  * @param {PrebundlePluginOptions} [options]
  * @returns {Plugin}
@@ -61,6 +58,8 @@ export default function (options = {}) {
         factories
     );
 
+    /** @type {{ chunks: OutputChunk[], specifiers: Set<string> } | undefined} */
+    let prebundleCache;
     /** @type {Set<string>} */
     const discoveredSpecifiers = new Set();
     /** @type {string | false} */

@@ -377,6 +377,52 @@ describe('@rollup-extras/plugin-prebundle integration', () => {
         expect(prebundled2.code).toBe(prebundled1.code);
     });
 
+    it("should isolate project caches while retaining each instance's cached rebuilds", async () => {
+        const cwd = process.cwd();
+        const dir = await mkdtemp(join(tmpdir(), 'prebundle-projects-'));
+        const projects = ['first', 'second'].map(name => ({
+            name,
+            dir: join(dir, name),
+            plugin: prebundle({ enableInBuildMode: true }),
+            cache: undefined,
+        }));
+        const childBuildCount = () => vi.mocked(rollup).mock.calls.filter(([options]) => options.input === '\0prebundle-entry').length;
+        const initialBuildCount = childBuildCount();
+        try {
+            for (const project of projects) {
+                const dependency = join(project.dir, 'node_modules', 'cache-isolation-fixture');
+                await mkdir(dependency, { recursive: true });
+                await writeFile(join(project.dir, 'package.json'), '{"type":"module"}');
+                await writeFile(
+                    join(dependency, 'package.json'),
+                    '{"name":"cache-isolation-fixture","type":"module","exports":"./index.js"}'
+                );
+                await writeFile(join(dependency, 'index.js'), `export default ${JSON.stringify(project.name)};`);
+                await writeFile(join(project.dir, 'entry.js'), "export { default } from 'cache-isolation-fixture';");
+            }
+            for (const index of [0, 1, 0, 1]) {
+                const project = projects[index];
+                process.chdir(project.dir);
+                const bundle = await rollup({
+                    input: join(project.dir, 'entry.js'),
+                    cache: project.cache,
+                    plugins: [project.plugin],
+                });
+                try {
+                    project.cache = bundle.cache;
+                    const { output } = await bundle.generate({ format: 'es' });
+                    expect(await runOutput(output)).toBe(project.name);
+                } finally {
+                    await bundle.close();
+                }
+            }
+            expect(childBuildCount() - initialBuildCount).toBe(2);
+        } finally {
+            process.chdir(cwd);
+            await rm(dir, { recursive: true, force: true });
+        }
+    });
+
     it('should invalidate cache when specifiers change between builds', async () => {
         const plugin = prebundle({ enableInBuildMode: true });
 
