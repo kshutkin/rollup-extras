@@ -321,7 +321,7 @@ function isLineTerminator(ch) {
  * @returns {boolean}
  */
 function isWhitespace(ch) {
-    return ch <= 0x20 || ch === 0xfeff || ch === 0xa0 || isLineTerminator(ch);
+    return ch <= 0x20 || (ch > 0x7f && /\s/u.test(String.fromCharCode(ch)));
 }
 
 /**

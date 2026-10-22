@@ -129,9 +129,36 @@ for (const terminator of ['\r', '\r\n', '\u2028', '\u2029']) {
     });
 }
 
-for (const terminator of ['\r', '\r\n', '\u2028', '\u2029']) {
-    for (const source of [`if${terminator}(true) /[/*]/.test('*');`, `if (true)${terminator}/[/*]/.test('*');`]) {
-        test(`line terminators separate tokens without changing regex context: ${JSON.stringify(source)}`, () => {
+for (const separator of [
+    '\t',
+    '\v',
+    '\f',
+    ' ',
+    '\n',
+    '\r',
+    '\r\n',
+    '\u00a0',
+    '\u1680',
+    '\u2000',
+    '\u2001',
+    '\u2002',
+    '\u2003',
+    '\u2004',
+    '\u2005',
+    '\u2006',
+    '\u2007',
+    '\u2008',
+    '\u2009',
+    '\u200a',
+    '\u2028',
+    '\u2029',
+    '\u202f',
+    '\u205f',
+    '\u3000',
+    '\ufeff',
+]) {
+    for (const source of [`if${separator}(true) /[/*]/.test('*');`, `if (true)${separator}/[/*]/.test('*');`]) {
+        test(`whitespace separates tokens without changing regex context: ${JSON.stringify(source)}`, () => {
             assert.equal(vm.runInNewContext(stripComments(source, regular)), vm.runInNewContext(source));
         });
     }
