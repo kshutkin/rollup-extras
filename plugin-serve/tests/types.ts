@@ -3,9 +3,19 @@
 import type { Server } from 'node:http';
 
 import serve from '@rollup-extras/plugin-serve';
+import watch from '@rollup-extras/plugin-serve/watch';
 
 import type { Hono } from 'hono';
-import type { Plugin } from 'rollup';
+import type { Plugin, RollupWatcher } from 'rollup';
+
+const watcher: RollupWatcher = watch({
+    input: 'src/index.js',
+    output: [{ format: 'es' }, { format: 'cjs' }],
+    plugins: [serve({ inMemory: true })],
+});
+watch([{ input: 'src/index.js' }, { input: 'src/other.js', watch: false }]);
+// @ts-expect-error - requires a Rollup configuration
+watch('rollup.config.js');
 
 // --- default call ---
 const plugin: Plugin = serve();

@@ -64,13 +64,15 @@ export default function (options = {}) {
     const memoryFiles = new Map();
     /** @type {NormalizedInputOptions | undefined} */
     let currentInputOptions;
+    /** @type {ServerType | undefined} */
+    let server;
 
     let { dirs } = normalizedOptions,
         collectDirs = false,
         started = false,
         watchMode = true;
 
-    const pluginInstance = { ...instance, outputOptions };
+    const pluginInstance = { ...instance, outputOptions, closeWatcher };
 
     if (!dirs) {
         dirs = [];
@@ -167,13 +169,13 @@ export default function (options = {}) {
             app.use('*', serveStatic({ root: dir, ...staticOptions }));
         }
 
-        const server = createAdaptorServer({
+        server = createAdaptorServer({
             fetch: app.fetch,
             ...(https ? { createServer: createHttpsServer, serverOptions: https } : {}),
         });
         globalServer = server;
 
-        const listenCb = () => internalOnListen(server);
+        const listenCb = () => internalOnListen(/** @type {ServerType} */ (server));
 
         if (host) {
             server.listen(port, host, listenCb);
@@ -188,6 +190,14 @@ export default function (options = {}) {
                 throw e;
             }
         });
+    }
+
+    async function closeWatcher() {
+        if (!server || globalServer !== server) return;
+        globalLiveReload?.close();
+        globalLiveReload = undefined;
+        globalServer = undefined;
+        await new Promise(resolve => /** @type {ServerType} */ (server).close(resolve));
     }
 
     /**

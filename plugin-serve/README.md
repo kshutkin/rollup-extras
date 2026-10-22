@@ -66,15 +66,15 @@ Option to use `writeBundle` hook instead of `generateBundle`.
 
 Optional, `boolean`, default: `false`.
 
-When enabled, serves all emitted assets directly from memory instead of from disk. This is similar to how webpack-dev-server works — Rollup output never needs to hit the filesystem.
+When enabled, serves all emitted assets directly from memory instead of from disk. This controls how files are served; Rollup still writes output when run with `rollup -cw`.
 
 When `inMemory` is `true`, the plugin automatically uses the `generateBundle` hook (regardless of `useWriteBundle`) to capture all chunks and assets in memory. A custom Hono middleware serves these files before falling through to any disk-based static serving configured via `dirs`.
 
-For a fully disk-free dev server, set `watch: { skipWrite: true }` in your Rollup config to prevent Rollup from writing files to disk. The plugin does not force this — you control it.
+For disk-free Rollup output, use the package's [`/watch` helper](#in-memory-serving). Setting `watch: { skipWrite: true }` with Rollup's ordinary watcher skips output generation as well as writing, so the plugin receives no files to serve.
 
 **Limitations:**
 - Only covers Rollup's own output. Other plugins (e.g., plugin-copy, plugin-html) may still perform disk I/O independently.
-- Plugins that only use the `writeBundle` hook won't participate when `skipWrite` is enabled.
+- Plugins that only use the `writeBundle` hook won't participate with the `/watch` helper. Configure plugins such as plugin-html to use `generateBundle` when their output should be served from memory.
 
 ### dirs
 
@@ -138,6 +138,8 @@ Set to `false` (or leave unset) to disable both the endpoint and the script inje
 
 ## In-Memory Serving
 
+Keep the Rollup configuration in `rollup.config.js`:
+
 ```javascript
 import serve from "@rollup-extras/plugin-serve";
 
@@ -147,12 +149,33 @@ export default {
     format: "es",
     dir: "dest",
   },
-  watch: {
-    skipWrite: true, // recommended: avoid writing files to disk
-  },
   plugins: [serve({ inMemory: true })],
 };
 ```
+
+Create `dev.js` to start a watcher that generates output without writing it to disk:
+
+```javascript
+import watch from "@rollup-extras/plugin-serve/watch";
+import config from "./rollup.config.js";
+
+const watcher = watch(config);
+
+watcher.on("event", event => {
+  if (event.code === "ERROR") console.error(event.error);
+});
+
+process.once("SIGINT", () => watcher.close());
+process.once("SIGTERM", () => watcher.close());
+```
+
+Run `node dev.js`. The helper accepts one Rollup configuration or an array, generates all configured outputs on each rebuild, and forces `watch.skipWrite` without mutating the supplied configuration. Configurations with `watch: false` are ignored.
+
+It returns a Rollup watcher. Use its `END` event to observe completion of generation and build cleanup. The helper owns the build results, so consumers should not call `event.result.generate()` or `event.result.close()`. Output errors are reported through the usual `ERROR` event, and later file changes can trigger another build. `await watcher.close()` waits for pending generation and shuts down the server.
+
+Register watched dependencies in build hooks, such as `buildStart` or `transform`. With `skipWrite`, Rollup collects watch files before `BUNDLE_END`; files first registered in output hooks during the helper's generation are not picked up by the watcher.
+
+Running the same configuration with `rollup -cw` also serves from memory, while continuing to write the usual output files.
 
 Hybrid mode — bundle from memory, static assets from disk:
 

@@ -10,6 +10,10 @@
             "types": "./types/index.d.ts",
             "default": "./src/index.js"
         },
+        "./watch": {
+            "types": "./types/index.d.ts",
+            "default": "./src/watch.js"
+        },
         "./package.json": "./package.json"
     },
     "main": "./src/index.js",
@@ -36,7 +40,7 @@
         "serve"
     ],
     "scripts": {
-        "build": "dts-buddy -m @rollup-extras/plugin-serve:src/exports.d.ts",
+        "build": "dts-buddy -m @rollup-extras/plugin-serve:src/exports.d.ts -m @rollup-extras/plugin-serve/watch:src/watch-exports.d.ts",
         "prepack": "pkgprn-internal --flatten types,src --strip-comments --remove-sourcemaps",
         "test": "vitest run --coverage --config ../vitest.config.js",
         "test:types": "tsc -p tsconfig.types.json"
