@@ -1,6 +1,8 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { SourceMap } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { runInNewContext } from 'node:vm';
 
 import { rollup } from 'rollup';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -129,6 +131,36 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('asset mode (emit: asset)', () => {
+        it.each([
+            ['context.items = []', '(function () { context.items.push("second"); })()'],
+            ['context.items = [] // trailing comment', '(function () { context.items.push("second"); })()'],
+            ['context.items = []', '["second"].forEach(value => context.items.push(value))'],
+        ])('should preserve separate script expressions (%s, %s)', async (first, second) => {
+            const firstFile = join(tmpDir, 'first.js');
+            const secondFile = join(tmpDir, 'second.js');
+            await writeFile(firstFile, first);
+            await writeFile(secondFile, second);
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [entryPlugin(`import 'script!${firstFile}'; import 'script!${secondFile}';`), scriptLoader({ emit: 'asset' })],
+            });
+            try {
+                const { output } = await bundle.generate({ format: 'es' });
+                const asset = output.find(item => item.fileName === 'vendor.js');
+                const context = {};
+                runInNewContext(asset.source, { context });
+                expect(Array.from(context.items)).toEqual(['second']);
+                const map = output.find(item => item.fileName === 'vendor.js.map');
+                const position = asset.source.slice(0, asset.source.indexOf('context.items.push')).split('\n');
+                expect(new SourceMap(JSON.parse(map.source)).findEntry(position.length - 1, position.at(-1).length)).toMatchObject({
+                    originalLine: 0,
+                    originalColumn: second.indexOf('context.items.push'),
+                });
+            } finally {
+                await bundle.close();
+            }
+        });
+
         it('should emit a separate asset containing all scripts concatenated together', async () => {
             await writeFile(join(tmpDir, 'lib1.js'), 'var LIB1 = true;');
             await writeFile(join(tmpDir, 'lib2.js'), 'var LIB2 = true;');

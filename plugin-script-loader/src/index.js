@@ -265,7 +265,7 @@ export default function (options = {}) {
             const outputDir = _outputOptions.dir ?? (_outputOptions.file ? dirname(_outputOptions.file) : process.cwd());
 
             // Build concatenated code and sourcemap using MagicString Bundle
-            const magicBundle = new Bundle({ separator: '\n' });
+            const magicBundle = new Bundle({ separator: '\n;\n' });
 
             for (const entry of sortedEntries) {
                 const ms = new MagicString(entry.code, {
