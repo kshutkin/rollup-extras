@@ -1,4 +1,4 @@
-import { dirname, posix, relative } from 'node:path';
+import { dirname, isAbsolute, posix, relative } from 'node:path';
 
 /**
  * @import { Plugin, PluginContext, OutputChunk } from 'rollup'
@@ -58,7 +58,7 @@ export default function (options = {}) {
         factories
     );
 
-    /** @type {{ chunks: OutputChunk[], specifiers: Set<string> } | undefined} */
+    /** @type {{ chunks: OutputChunk[], specifiers: Set<string>, watchFiles: string[] } | undefined} */
     let prebundleCache;
     /** @type {Set<string>} */
     const discoveredSpecifiers = new Set();
@@ -79,6 +79,12 @@ export default function (options = {}) {
                 logger('build mode detected, prebundling disabled (set enableInBuildMode: true to override)', LogLevel.info);
             }
             discoveredSpecifiers.clear();
+        },
+
+        watchChange(id) {
+            if (prebundleCache?.watchFiles.includes(id)) {
+                prebundleCache = undefined;
+            }
         },
 
         /** @this {PluginContext} */
@@ -114,13 +120,13 @@ export default function (options = {}) {
 
             if (!resolution || resolution.external) {
                 // Unresolved or already external — this is a candidate for prebundling
-                return addToPrebundle(source, resolution);
+                return addToPrebundle.call(this, source, resolution);
             }
 
             // Check if it resolves into node_modules or outside the project
             const resolvedPath = resolution.id;
             if (resolvedPath.includes('node_modules') || relative(pkgDir, resolvedPath).startsWith('..')) {
-                return addToPrebundle(source, resolution);
+                return addToPrebundle.call(this, source, resolution);
             }
 
             return null;
@@ -180,7 +186,7 @@ export default function (options = {}) {
             // Check if we can reuse the cache
             if (prebundleCache && setsEqual(prebundleCache.specifiers, discoveredSpecifiers)) {
                 logger('reusing cached prebundle', LogLevel.verbose);
-                prebundleFileName = emitPrebundleChunks.call(this, prebundleCache.chunks);
+                prebundleFileName = emitPrebundleChunks.call(this, prebundleCache.chunks, prebundleCache.watchFiles);
                 return;
             }
 
@@ -219,11 +225,12 @@ export default function (options = {}) {
                     chunkFileNames: '_prebundled.[hash].js',
                     hashCharacters: 'hex',
                 });
+                const watchFiles = childBundle.watchFiles.filter(isAbsolute);
                 await childBundle.close();
 
                 const chunks = output.filter(item => item.type === 'chunk');
-                prebundleCache = { chunks, specifiers: new Set(discoveredSpecifiers) };
-                prebundleFileName = emitPrebundleChunks.call(this, chunks);
+                prebundleCache = { chunks, specifiers: new Set(discoveredSpecifiers), watchFiles };
+                prebundleFileName = emitPrebundleChunks.call(this, chunks, watchFiles);
             } catch (e) {
                 logger(`prebundling failed: ${/** @type {Error} */ (e).message}`, LogLevel.warn);
                 // On failure, clear cache so next build retries
@@ -233,6 +240,7 @@ export default function (options = {}) {
     });
 
     /**
+     * @this {PluginContext}
      * @param {string} source
      * @param {{ id: string } | null} [resolution]
      * @returns {{ id: string } | null}
@@ -248,13 +256,8 @@ export default function (options = {}) {
         discoveredSpecifiers.add(source);
 
         // Watch the resolved file so changes trigger rebuilds
-        if (resolution?.id && !resolution.id.startsWith('\0')) {
-            try {
-                // @ts-expect-error - addWatchFile requires `this` context from a hook, called from resolveId
-                this.addWatchFile(resolution.id);
-            } catch {
-                // addWatchFile may not be available in all contexts
-            }
+        if (resolution?.id && isAbsolute(resolution.id)) {
+            this.addWatchFile(resolution.id);
         }
 
         // If we already have a cache that includes this specifier, redirect to proxy
@@ -273,8 +276,12 @@ export default function (options = {}) {
 /**
  * @this {PluginContext}
  * @param {OutputChunk[]} chunks
+ * @param {string[]} watchFiles
  */
-function emitPrebundleChunks(chunks) {
+function emitPrebundleChunks(chunks, watchFiles) {
+    for (const file of watchFiles) {
+        this.addWatchFile(file);
+    }
     for (const chunk of chunks) {
         this.emitFile({
             type: 'prebuilt-chunk',

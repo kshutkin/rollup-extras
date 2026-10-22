@@ -1,11 +1,11 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import nodeResolve from '@rollup/plugin-node-resolve';
 import { packageDirectory } from 'package-directory';
-import { rollup } from 'rollup';
+import { rollup, watch } from 'rollup';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import prebundle from '../src/index.js';
@@ -229,6 +229,91 @@ describe('@rollup-extras/plugin-prebundle integration', () => {
             delete globalThis.__prebundleLazyLoaded;
         }
     });
+
+    it('should watch dependencies and invalidate their cached prebundle', async () => {
+        const dir = await realpath(await mkdtemp(join(tmpdir(), 'prebundle-watch-')));
+        const input = join(dir, 'entry.js');
+        const dependency = join(dir, 'dependency.js');
+        const value = join(dir, 'value.js');
+        const lazy = join(dir, 'lazy.js');
+        const entryCode = "export { default, load } from 'review-watched';";
+        const lazyExport = 'export const load = () => import("./lazy.js").then(module => module.default);';
+        await writeFile(input, entryCode);
+        await writeFile(dependency, `export { value as default } from './value.js'; ${lazyExport}`);
+        await writeFile(value, 'export const value = 1;');
+        await writeFile(lazy, 'export default 10;');
+        const resolver = {
+            name: 'resolve-watched-dependency',
+            resolveId(source) {
+                if (source === 'review-watched') return dependency;
+            },
+        };
+        childPlugins.current = [resolver];
+        const childBuildCount = () => vi.mocked(rollup).mock.calls.filter(([options]) => options.input === '\0prebundle-entry').length;
+        const initialBuildCount = childBuildCount();
+        let output;
+        let watchFiles;
+        const watcher = watch({
+            input,
+            output: { dir: join(dir, 'out'), format: 'es' },
+            plugins: [
+                prebundle(),
+                resolver,
+                {
+                    name: 'capture-output',
+                    generateBundle(_options, bundle) {
+                        output = Object.values(bundle);
+                    },
+                },
+            ],
+        });
+        const nextBuild = () =>
+            new Promise((resolve, reject) => {
+                const finish = error => {
+                    clearTimeout(timer);
+                    watcher.off('event', handler);
+                    if (error) reject(error);
+                    else resolve();
+                };
+                const handler = event => {
+                    if (event.code === 'BUNDLE_END') {
+                        watchFiles = event.result.watchFiles;
+                        event.result.close();
+                    }
+                    if (event.code === 'ERROR') finish(event.error);
+                    else if (event.code === 'END') finish();
+                };
+                const timer = setTimeout(() => finish(new Error('Timed out waiting for a prebundle rebuild')), 5000);
+                watcher.on('event', handler);
+            });
+        const checkOutput = async expected => {
+            expect(watchFiles).toEqual(expect.arrayContaining([input, dependency, value, lazy]));
+            expect(await runOutput(output, async module => [module.default, await module.load()])).toEqual(expected);
+        };
+        try {
+            await nextBuild();
+            await checkOutput([1, 10]);
+            const rebuildEntry = nextBuild();
+            await writeFile(input, `${entryCode}\n// rebuild without changing dependencies`);
+            await rebuildEntry;
+            await checkOutput([1, 10]);
+            expect(childBuildCount() - initialBuildCount).toBe(1);
+            for (const [file, code, expected] of [
+                [value, 'export const value = 2;', [2, 10]],
+                [lazy, 'export default 20;', [2, 20]],
+                [dependency, `import { value } from './value.js'; export default value + 1; ${lazyExport}`, [3, 20]],
+            ]) {
+                const rebuilt = nextBuild();
+                await writeFile(file, code);
+                await rebuilt;
+                await checkOutput(expected);
+            }
+            expect(childBuildCount() - initialBuildCount).toBe(4);
+        } finally {
+            await watcher.close();
+            await rm(dir, { recursive: true, force: true });
+        }
+    }, 15000);
 
     it('should not prebundle Node.js builtins', async () => {
         const output = await build({ entry: "import fs from 'node:fs'; export default fs;" }, { enableInBuildMode: true });

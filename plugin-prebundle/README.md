@@ -11,7 +11,7 @@ Points:
 - Uses `@rollup/plugin-node-resolve`, `@rollup/plugin-json`, and `@rollup/plugin-commonjs` internally — no extra config needed
 - Emits the prebundled chunk via Rollup's `prebuilt-chunk` API (Rollup ≥ 3.23.0)
 - Includes sourcemap support (`sourcemap: 'hidden'` in the child build)
-- Caches the result per plugin instance across rebuilds — only rebuilds when the set of prebundled specifiers changes
+- Caches the result per plugin instance across rebuilds, rebuilding when prebundled specifiers or watched dependency files change
 - Disabled in build mode by default (enabled in watch mode only)
 
 Uses [`@niceties/logger`](https://github.com/kshutkin/niceties/blob/main/logger/README.md) to log messages, can be configured through `@niceties/logger` API.
