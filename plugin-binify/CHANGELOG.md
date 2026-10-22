@@ -1,5 +1,11 @@
 Changelog
 
+## 2.0.1
+
+### Patch Changes
+
+- bebb753: Resolve executable permissions relative to output.file's directory when output.dir is not provided.
+
 ## 2.0.0
 
 ### Major Changes

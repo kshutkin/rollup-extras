@@ -1,5 +1,11 @@
 # @rollup-extras/plugin-mangle
 
+## 0.1.3
+
+### Patch Changes
+
+- 2c537db: Avoid collisions with existing bindings, properties, and reserved words when mangling names across output chunks.
+
 ## 0.1.2
 
 ### Patch Changes

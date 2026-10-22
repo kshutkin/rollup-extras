@@ -1,5 +1,12 @@
 Changelog
 
+## 2.1.1
+
+### Patch Changes
+
+- 50fd12c: Continue to later asset factories when an asynchronous factory returns no asset, preserving synchronous results for synchronous factories.
+- 0a62dcf: Fall back to the default template after asynchronous read errors instead of leaving the build pending indefinitely.
+
 ## 2.1.0
 
 ### Minor Changes
