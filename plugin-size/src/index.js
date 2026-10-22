@@ -1,5 +1,5 @@
 /**
- * @import { Plugin, NormalizedOutputOptions, OutputBundle, OutputChunk, OutputAsset } from 'rollup'
+ * @import { Plugin, FunctionPluginHooks, NormalizedInputOptions, NormalizedOutputOptions, OutputBundle, OutputChunk, OutputAsset } from 'rollup'
  */
 
 import { readFile, writeFile } from 'node:fs/promises';
@@ -291,22 +291,41 @@ export default function (options) {
     const flags = { gzip: normalizedOptions.gzip, brotli: normalizedOptions.brotli };
 
     /** @type {StatsData} */
-    const currentStats = {};
+    let currentStats = {};
+    /** @type {WeakSet<NormalizedInputOptions>} */
+    let buildInputs = new WeakSet();
+    let reportComplete = false;
 
     const instance = multiConfigPluginBase(false, pluginName, reportAndSave, onEachOutput);
 
-    // Clear accumulated stats at the start of each new build cycle (watch mode support).
-    // Only attached when used as an input plugin — `buildStart` is an input-only hook
-    // and Rollup rejects it in output-plugin position.
-    if (!outputPlugin) {
+    // Output plugins cannot use buildStart, so track build inputs from renderStart instead.
+    if (outputPlugin) {
+        const addInstance = instance.api.addInstance;
+        instance.api.addInstance = () => trackBuild(addInstance());
+        trackBuild(instance);
+    } else {
         instance.buildStart = () => {
-            currentStats.entries = undefined;
-            currentStats.chunks = undefined;
-            currentStats.assets = undefined;
+            currentStats = {};
         };
     }
 
     return instance;
+
+    /** @param {Plugin} plugin */
+    function trackBuild(plugin) {
+        const renderStart = /** @type {FunctionPluginHooks['renderStart']} */ (plugin.renderStart);
+        plugin.renderStart = function (outputOptions, inputOptions) {
+            // Keep sequential outputs and linked configs together until a new build follows the report.
+            if (reportComplete && !buildInputs.has(inputOptions)) {
+                currentStats = {};
+                buildInputs = new WeakSet();
+                reportComplete = false;
+            }
+            buildInputs.add(inputOptions);
+            return renderStart.call(this, outputOptions, inputOptions);
+        };
+        return plugin;
+    }
 
     /**
      * Called on every generateBundle invocation (once per output config).
@@ -321,14 +340,18 @@ export default function (options) {
      * Called once when all configs and outputs have been processed.
      */
     async function reportAndSave() {
-        const statsPath = resolve(process.cwd(), statsFile);
+        try {
+            const statsPath = resolve(process.cwd(), statsFile);
 
-        const previousStats = await loadPreviousStats(statsPath);
+            const previousStats = await loadPreviousStats(statsPath);
 
-        printReport(currentStats, previousStats, logger);
+            printReport(currentStats, previousStats, logger);
 
-        if (updateStats) {
-            await writeFile(statsPath, `${JSON.stringify(currentStats, null, 2)}\n`);
+            if (updateStats) {
+                await writeFile(statsPath, `${JSON.stringify(currentStats, null, 2)}\n`);
+            }
+        } finally {
+            reportComplete = true;
         }
     }
 }
