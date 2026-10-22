@@ -55,6 +55,54 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
         expect(code).toContain('hello.html');
     });
 
+    it.each(
+        [false, true].flatMap(autoImport => [false, true].map(newInstance => ({ autoImport, newInstance })))
+    )('should refresh cached templates (autoImport: $autoImport, new instance: $newInstance)', async ({ autoImport, newInstance }) => {
+        const options = { templates: join(tmpDir, '*.html'), rootDir: tmpDir, importAngular: false, autoImport };
+        const plugin = templateCache(options);
+        const snapshots = [
+            { 'updated.html': '<p>OLD</p>', 'removed.html': '<p>Removed</p>' },
+            { 'updated.html': '<p>NEW</p>', 'added.html': '<p>Added</p>' },
+            {},
+        ];
+        let previous = {};
+        let cache;
+        for (const templates of snapshots) {
+            for (const file of Object.keys(previous)) {
+                if (!(file in templates)) await rm(join(tmpDir, file));
+            }
+            for (const [file, html] of Object.entries(templates)) {
+                await writeFile(join(tmpDir, file), html);
+            }
+            previous = templates;
+            const bundle = await rollup({
+                input: 'entry',
+                cache,
+                plugins: [
+                    entryPlugin(autoImport ? 'export default 1;' : "export { default } from 'templates';"),
+                    newInstance ? templateCache(options) : plugin,
+                ],
+            });
+            try {
+                cache = bundle.cache;
+                const { output } = await bundle.generate({ format: 'cjs' });
+                const chunk = output.find(item => item.type === 'chunk' && item.code.includes('angular.module('));
+                const registered = new Map();
+                const angular = {
+                    module: () => ({
+                        run: ([, register]) => register({ put: (uri, html) => registered.set(uri, html) }),
+                    }),
+                };
+                const module = { exports: {} };
+                new Function('angular', 'module', 'exports', chunk.code)(angular, module, module.exports);
+                expect([...registered].sort()).toEqual(Object.entries(templates).sort());
+                expect(bundle.watchFiles).toEqual(expect.arrayContaining(Object.keys(templates).map(file => join(tmpDir, file))));
+            } finally {
+                await bundle.close();
+            }
+        }
+    });
+
     it('should use custom angular module name', async () => {
         const templatesDir = join(tmpDir, 'templates');
         await mkdir(templatesDir, { recursive: true });

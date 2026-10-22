@@ -38,8 +38,6 @@ export default function (options = defaultTemplatesGlob) {
     let templatesMap;
     /** @type {string[]} */
     let templateFiles;
-    /** @type {Promise<void> | undefined} */
-    let scanPromise;
 
     const normalizedOptions = getOptions(
         options,
@@ -87,9 +85,8 @@ export default function (options = defaultTemplatesGlob) {
         name: pluginName,
 
         /** @this {PluginContext} */
-        async buildStart() {
+        buildStart() {
             if (autoImport) {
-                scanPromise = scanForTemplates.apply(this);
                 this.emitFile({
                     type: 'chunk',
                     id: prefixedModuleName,
@@ -104,7 +101,6 @@ export default function (options = defaultTemplatesGlob) {
             }
 
             if (id === module) {
-                scanPromise = scanForTemplates.apply(this);
                 return { id: prefixedModuleName, moduleSideEffects: standalone };
             }
 
@@ -118,7 +114,7 @@ export default function (options = defaultTemplatesGlob) {
         /** @this {PluginContext} */
         async load(/** @type {string} */ id) {
             if (id === prefixedModuleName) {
-                await scanPromise;
+                await scanForTemplates();
 
                 if (watch) {
                     for (const fileName of templateFiles) {
@@ -148,7 +144,6 @@ export default function (options = defaultTemplatesGlob) {
         },
     });
 
-    /** @this {PluginContext} */
     async function scanForTemplates() {
         templatesMap = new Map();
         templateFiles = [];
