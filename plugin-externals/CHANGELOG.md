@@ -1,5 +1,11 @@
 Changelog
 
+## 2.0.1
+
+### Patch Changes
+
+- 9b9410e: Replace deprecated pkg-dir with package-directory.
+
 ## 2.0.0
 
 ### Major Changes

@@ -1,5 +1,15 @@
 Changelog
 
+## 2.2.0
+
+### Minor Changes
+
+- c3dd52f: Restore following directory symlinks during glob expansion on newer Node versions. Add a followSymlinks option, enabled by default, to control traversal independently of preserveSymlinks, including on older supported Node versions.
+
+### Patch Changes
+
+- d48f8fd: Track emitted assets by output directory in output-plugin mode so copyOnce does not skip files in additional destinations.
+
 ## 2.1.0
 
 ### Minor Changes

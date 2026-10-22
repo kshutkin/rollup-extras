@@ -1,5 +1,11 @@
 Changelog
 
+## 2.3.1
+
+### Patch Changes
+
+- 4010d4c: Retain all outputs from the same build when serving from memory, and clear stale files when the next build starts.
+
 ## 2.3.0
 
 ### Minor Changes
