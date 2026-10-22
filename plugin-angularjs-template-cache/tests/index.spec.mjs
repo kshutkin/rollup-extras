@@ -225,6 +225,42 @@ describe('@rollup-extras/plugin-angularjs-template-cache', () => {
         expect(code).not.toContain(', []');
     });
 
+    it.each(
+        [false, true].flatMap(standalone => ['templates', '\0templates:templates'].map(id => ({ standalone, id })))
+    )('should retain side-effect-only registrations (standalone: $standalone, id: $id)', async ({ standalone, id }) => {
+        await writeFile(join(tmpDir, 'item.html'), '<li>Item</li>');
+        const bundle = await rollup({
+            input: 'entry',
+            treeshake: { moduleSideEffects: false },
+            plugins: [
+                entryPlugin(`import ${JSON.stringify(id)};`),
+                templateCache({
+                    templates: join(tmpDir, '*.html'),
+                    rootDir: tmpDir,
+                    importAngular: false,
+                    angularModule: 'app',
+                    standalone,
+                }),
+            ],
+        });
+        try {
+            const { output } = await bundle.generate({ format: 'iife' });
+            const registered = new Map();
+            const modules = [];
+            const angular = {
+                module: (...args) => {
+                    modules.push(args);
+                    return { run: ([, register]) => register({ put: (uri, html) => registered.set(uri, html) }) };
+                },
+            };
+            new Function('angular', output[0].code)(angular);
+            expect([...registered]).toEqual([['item.html', '<li>Item</li>']]);
+            expect(modules).toEqual([standalone ? ['app', []] : ['app']]);
+        } finally {
+            await bundle.close();
+        }
+    });
+
     it('should include templates from nested subdirectories', async () => {
         const templatesDir = join(tmpDir, 'templates');
         const subDir = join(templatesDir, 'partials');

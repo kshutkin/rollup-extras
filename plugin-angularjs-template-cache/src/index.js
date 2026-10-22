@@ -100,12 +100,8 @@ export default function (options = defaultTemplatesGlob) {
                 return { id: templatePrefix + (importer ? join(dirname(importer), id) : id), moduleSideEffects: false };
             }
 
-            if (id === module) {
-                return { id: prefixedModuleName, moduleSideEffects: standalone };
-            }
-
-            if (id === prefixedModuleName) {
-                return { id: prefixedModuleName, moduleSideEffects: standalone };
+            if (id === module || id === prefixedModuleName) {
+                return { id: prefixedModuleName, moduleSideEffects: true };
             }
 
             return null;
