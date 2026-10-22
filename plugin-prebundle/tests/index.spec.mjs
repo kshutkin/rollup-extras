@@ -177,6 +177,24 @@ describe('@rollup-extras/plugin-prebundle integration', () => {
         expect(await runOutput(output)).toEqual(['function', true, true, 'function']);
     });
 
+    it.each([
+        ['review-foo', 'review_foo'],
+        ['review.foo', 'review_foo'],
+        ['review/foo', 'review__foo'],
+        ['@review/foo', 'review/foo'],
+        ['review-foo', 'review_2d_foo'],
+    ])('should keep distinct namespaces for %s and %s', async (first, second) => {
+        childPlugins.current = [virtual({ [first]: 'export default "first";', [second]: 'export default "second";' })];
+        const output = await build(
+            {
+                entry: `import first from ${JSON.stringify(first)}; import second from ${JSON.stringify(second)}; export default [first, second];`,
+            },
+            { enableInBuildMode: true }
+        );
+        expect(output.some(isPrebundled)).toBe(true);
+        expect(await runOutput(output)).toEqual(['first', 'second']);
+    });
+
     it('should emit dynamic child chunks and preserve lazy execution, including cached rebuilds', async () => {
         childPlugins.current = [
             virtual({

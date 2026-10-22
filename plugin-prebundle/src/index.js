@@ -29,7 +29,7 @@ const factories = { logger };
  * @returns {string}
  */
 function specifierToNamespace(specifier) {
-    return `__pre_${specifier.replace(/@/g, '').replace(/\//g, '__').replace(/-/g, '_').replace(/\./g, '_')}`;
+    return `__pre_${specifier.replace(/[^a-zA-Z0-9]/g, char => `_${char.charCodeAt(0).toString(16)}_`)}`;
 }
 
 /**
