@@ -109,10 +109,13 @@ export function scanComments(source) {
     let controlParen = false;
     let propertyAccess = false;
     let lastToken = '';
+    let statementStart = true;
     /** @type {boolean[]} */
     const objectBraces = [];
     /** @type {boolean[]} */
     const parens = [];
+    /** @type {{keyword: string, expression: boolean, parens: number, braces: number}[]} */
+    const bodies = [];
 
     if (len >= 2 && source[0] === '#' && source[1] === '!') {
         while (i < len && !isLineTerminator(source.charCodeAt(i))) i++;
@@ -151,18 +154,24 @@ export function scanComments(source) {
         if (ch === 0x2f && !exprEnd) {
             i = skipRegex(source, i, len);
             exprEnd = true;
+            statementStart = false;
+            lastToken = 'literal';
             continue;
         }
 
         if (ch === 0x27) {
             i = skipSingleString(source, i, len);
             exprEnd = true;
+            statementStart = false;
+            lastToken = 'literal';
             continue;
         }
 
         if (ch === 0x22) {
             i = skipDoubleString(source, i, len);
             exprEnd = true;
+            statementStart = false;
+            lastToken = 'literal';
             continue;
         }
 
@@ -170,6 +179,7 @@ export function scanComments(source) {
             i = scanTemplateTail(source, i + 1, len, templateStack);
             exprEnd = source[i - 1] !== '{';
             lastToken = exprEnd ? 'literal' : '(';
+            statementStart = false;
             continue;
         }
 
@@ -181,6 +191,7 @@ export function scanComments(source) {
                     i = scanTemplateTail(source, i + 1, len, templateStack);
                     exprEnd = source[i - 1] !== '{';
                     lastToken = exprEnd ? 'literal' : '(';
+                    statementStart = false;
                     continue;
                 }
                 templateStack[templateStack.length - 1] = depth - 1;
@@ -188,12 +199,23 @@ export function scanComments(source) {
             i++;
             // Object expressions can end before division; statement blocks cannot.
             exprEnd = objectBraces.pop() ?? false;
+            statementStart = !exprEnd;
             lastToken = '}';
             continue;
         }
 
         if (ch === 0x7b) {
-            objectBraces.push(['=', '(', '[', ',', ':', 'return', 'yield'].includes(lastToken));
+            const body = bodies[bodies.length - 1];
+            const startsBody =
+                body &&
+                body.parens === parens.length &&
+                body.braces === objectBraces.length &&
+                (body.keyword === 'class' || lastToken === ')');
+            const arrow = lastToken === '=>';
+            const expression = startsBody ? body.expression : arrow || (!statementStart && !exprEnd);
+            if (startsBody) bodies.pop();
+            objectBraces.push(expression);
+            statementStart = !!startsBody || arrow || !expression;
             lastToken = '{';
             if (templateStack.length > 0) {
                 templateStack[templateStack.length - 1]++;
@@ -208,8 +230,14 @@ export function scanComments(source) {
             i++;
             while (i < len && isIdentPart(source.charCodeAt(i))) i++;
             const word = source.slice(wordStart, i);
+            if (!propertyAccess && (word === 'function' || word === 'class')) {
+                bodies.push({ keyword: word, expression: !statementStart, parens: parens.length, braces: objectBraces.length });
+            }
             controlParen = !propertyAccess && (controlKeywords.has(word) || (word === 'await' && controlParen));
             exprEnd = propertyAccess || !regexPrecedingKeywords.has(word);
+            statementStart =
+                !propertyAccess &&
+                (['else', 'do', 'try', 'finally'].includes(word) || (statementStart && ['async', 'export', 'default'].includes(word)));
             propertyAccess = false;
             lastToken = word;
             continue;
@@ -218,6 +246,7 @@ export function scanComments(source) {
         if ((ch === 0x2b || ch === 0x2d) && i + 1 < len && source.charCodeAt(i + 1) === ch) {
             i += 2;
             exprEnd = true;
+            statementStart = false;
             continue;
         }
 
@@ -226,6 +255,7 @@ export function scanComments(source) {
             lastToken = '(';
             controlParen = false;
             exprEnd = false;
+            statementStart = false;
             i++;
             continue;
         }
@@ -233,6 +263,7 @@ export function scanComments(source) {
         // A control condition ends before a statement, which may start with a regex.
         if (ch === 0x29 || ch === 0x5d) {
             exprEnd = ch === 0x5d || !parens.pop();
+            statementStart = !exprEnd;
             lastToken = source[i];
             i++;
             continue;
@@ -240,7 +271,11 @@ export function scanComments(source) {
 
         controlParen = false;
         propertyAccess = ch === 0x2e;
-        lastToken = source[i];
+        // A reserved word followed by ':' was a property name, not a body header.
+        if (ch === 0x3a && bodies[bodies.length - 1]?.keyword === lastToken) bodies.pop();
+        statementStart = ch === 0x3b && !parens[parens.length - 1];
+        lastToken = source.startsWith('=>', i) ? '=>' : source[i];
+        if (lastToken === '=>') i++;
         i++;
         exprEnd = false;
     }
