@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -36,6 +36,26 @@ describe('globFiles', () => {
     it('should return empty array when no files match and exclude is omitted', async () => {
         const result = await globFiles(join(tmpDir, '*.css'));
         expect(result).toEqual([]);
+    });
+
+    it.each([true, false])('should respect excludes and nested directory symlinks (followSymlinks: %s)', async followSymlinks => {
+        await mkdir(join(tmpDir, 'real', 'nested'), { recursive: true });
+        await writeFile(join(tmpDir, 'real', 'nested', 'keep.txt'), 'keep');
+        await writeFile(join(tmpDir, 'real', 'nested', 'skip.txt'), 'skip');
+        await symlink('real/nested', join(tmpDir, 'linked'));
+
+        const result = await globFiles(join(tmpDir, '**/*'), join(tmpDir, '**/skip.txt'), followSymlinks);
+        expect(result).toContain(join(tmpDir, 'real', 'nested', 'keep.txt'));
+        expect(result.some(file => file.endsWith('skip.txt'))).toBe(false);
+        expect(result.includes(join(tmpDir, 'linked', 'keep.txt'))).toBe(followSymlinks);
+    });
+
+    it('should allow an explicitly named directory symlink when followSymlinks is false', async () => {
+        await mkdir(join(tmpDir, 'real'));
+        await writeFile(join(tmpDir, 'real', 'file.txt'), 'content');
+        await symlink('real', join(tmpDir, 'linked'));
+
+        expect(await globFiles(join(tmpDir, 'linked', '*.txt'), undefined, false)).toEqual([join(tmpDir, 'linked', 'file.txt')]);
     });
 });
 

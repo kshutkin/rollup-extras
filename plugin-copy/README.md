@@ -165,6 +165,14 @@ copy({ src: "assets/*", dest: "public", emitFiles: false, preserveSymlinks: true
 
 When a glob pattern matches files inside a symlinked directory, the directory symlink itself is preserved at the destination instead of copying the individual files through it.
 
+Directory symlinks are followed during glob expansion by default. Set `followSymlinks: false` to skip their contents:
+
+```javascript
+copy({ targets: "assets/**/*", followSymlinks: false });
+```
+
+This controls glob traversal independently of `preserveSymlinks`. Matching symlinks themselves can still be copied or preserved, and explicitly named paths inside symlinked directories remain supported.
+
 ## Configuration
 
 ```typescript
@@ -196,6 +204,7 @@ type CopyPluginOptions =
         | "relative"
         | ((fileName: string) => string); // 'absolute' by default
       preserveSymlinks?: boolean; // false by default
+      followSymlinks?: boolean; // true by default
     }
   | MultipleTargetsDesc;
 ```

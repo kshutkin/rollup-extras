@@ -19,7 +19,7 @@ import { globFiles } from './glob.js';
  */
 
 /**
- * @typedef {{ targets?: MultipleTargetsDesc, pluginName?: string, copyOnce?: boolean, watch?: boolean, verbose?: boolean | 'list-filenames', flatten?: boolean, exactFileNames?: boolean, outputPlugin?: boolean, emitFiles?: boolean, emitOriginalFileName?: 'absolute' | 'relative' | ((fileName: string) => string), preserveSymlinks?: boolean }} NonTargetOptions
+ * @typedef {{ targets?: MultipleTargetsDesc, pluginName?: string, copyOnce?: boolean, watch?: boolean, verbose?: boolean | 'list-filenames', flatten?: boolean, exactFileNames?: boolean, outputPlugin?: boolean, emitFiles?: boolean, emitOriginalFileName?: 'absolute' | 'relative' | ((fileName: string) => string), preserveSymlinks?: boolean, followSymlinks?: boolean }} NonTargetOptions
  */
 
 /**
@@ -67,6 +67,7 @@ export default function (options) {
             outputPlugin: false,
             emitOriginalFileName: /** @type {const} */ ('absolute'),
             preserveSymlinks: false,
+            followSymlinks: true,
         },
         'targets',
         factories
@@ -84,6 +85,7 @@ export default function (options) {
         logger,
         emitOriginalFileName,
         preserveSymlinks,
+        followSymlinks,
     } = normalizedOptions;
     let { watch } = normalizedOptions;
 
@@ -119,7 +121,7 @@ export default function (options) {
                             : target
                     )
                     .map(target =>
-                        globFiles(/** @type {string} */ (target.src), target.exclude).then(result => ({
+                        globFiles(/** @type {string} */ (target.src), target.exclude, followSymlinks).then(result => ({
                             src: result,
                             dest: target.dest ? target.dest : '',
                             parent: globParent(/** @type {string} */ (target.src)),

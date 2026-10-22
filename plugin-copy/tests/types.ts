@@ -25,6 +25,7 @@ const plugin4: Plugin = copy({
     outputPlugin: false,
     emitFiles: true,
     emitOriginalFileName: 'relative',
+    followSymlinks: false,
 });
 
 // --- with emitOriginalFileName function ---
@@ -45,3 +46,6 @@ copy(123);
 
 // @ts-expect-error - boolean is not valid
 copy(true);
+
+// @ts-expect-error - followSymlinks must be a boolean
+copy({ targets: 'src/**/*', followSymlinks: 'false' });

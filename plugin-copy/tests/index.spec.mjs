@@ -1073,7 +1073,7 @@ describe('@rollup-extras/plugin-copy preserveSymlinks', () => {
         expect(linkTarget).toBe('nonexistent-target');
     });
 
-    it('should dereference symlinks by default (preserveSymlinks false)', async () => {
+    it.each([true, false])('should dereference file symlinks with followSymlinks: %s', async followSymlinks => {
         const srcDir = join(tmpDir, 'src');
         const destDir = join(tmpDir, 'dest');
         await mkdir(srcDir, { recursive: true });
@@ -1082,7 +1082,10 @@ describe('@rollup-extras/plugin-copy preserveSymlinks', () => {
 
         const bundle = await rollup({
             input: 'entry',
-            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, 'link.txt'), dest: destDir, emitFiles: false })],
+            plugins: [
+                virtual({ entry: 'export default 1' }),
+                copy({ src: join(srcDir, 'link.txt'), dest: destDir, emitFiles: false, followSymlinks }),
+            ],
         });
         await bundle.write({ format: 'es', dir: join(tmpDir, 'out') });
         await bundle.close();
@@ -1143,7 +1146,7 @@ describe('@rollup-extras/plugin-copy preserveSymlinks', () => {
         expect(linkStat.isSymbolicLink()).toBe(true);
     });
 
-    it('should preserve directory symlink when glob finds files inside it', async () => {
+    it.each([true, false])('should preserve directory symlink with followSymlinks: %s', async followSymlinks => {
         const srcDir = join(tmpDir, 'src');
         const destDir = join(tmpDir, 'dest');
         await mkdir(join(srcDir, 'realdir'), { recursive: true });
@@ -1154,7 +1157,7 @@ describe('@rollup-extras/plugin-copy preserveSymlinks', () => {
             input: 'entry',
             plugins: [
                 virtual({ entry: 'export default 1' }),
-                copy({ src: join(srcDir, '**/*'), dest: destDir, emitFiles: false, preserveSymlinks: true }),
+                copy({ src: join(srcDir, '**/*'), dest: destDir, emitFiles: false, preserveSymlinks: true, followSymlinks }),
             ],
         });
         await bundle.write({ format: 'es', dir: join(tmpDir, 'out') });
@@ -1201,7 +1204,12 @@ describe('@rollup-extras/plugin-copy preserveSymlinks', () => {
         expect(await readlink(destLink)).toBe('realdir');
     });
 
-    it('should not detect directory symlinks when preserveSymlinks is false', async () => {
+    it.each(
+        [false, true].flatMap(emitFiles => [undefined, true, false].map(followSymlinks => ({ emitFiles, followSymlinks })))
+    )('should control directory symlink traversal (emitFiles: $emitFiles, followSymlinks: $followSymlinks)', async ({
+        emitFiles,
+        followSymlinks,
+    }) => {
         const srcDir = join(tmpDir, 'src');
         const destDir = join(tmpDir, 'dest');
         await mkdir(join(srcDir, 'realdir'), { recursive: true });
@@ -1210,13 +1218,25 @@ describe('@rollup-extras/plugin-copy preserveSymlinks', () => {
 
         const bundle = await rollup({
             input: 'entry',
-            plugins: [virtual({ entry: 'export default 1' }), copy({ src: join(srcDir, '**/*'), dest: destDir, emitFiles: false })],
+            plugins: [
+                virtual({ entry: 'export default 1' }),
+                copy({
+                    src: join(srcDir, '**/*'),
+                    dest: emitFiles ? undefined : destDir,
+                    emitFiles,
+                    ...(followSymlinks === undefined ? {} : { followSymlinks }),
+                }),
+            ],
         });
-        await bundle.write({ format: 'es', dir: join(tmpDir, 'out') });
+        await bundle.write({ format: 'es', dir: emitFiles ? destDir : join(tmpDir, 'out') });
         await bundle.close();
 
-        // linked-dir/file.txt should be copied as a regular file (dereferenced)
+        expect(await readFile(join(destDir, 'realdir', 'file.txt'), 'utf8')).toBe('content');
         const copiedFile = join(destDir, 'linked-dir', 'file.txt');
+        if (followSymlinks === false) {
+            await expect(lstat(copiedFile)).rejects.toMatchObject({ code: 'ENOENT' });
+            return;
+        }
         const copiedStat = await lstat(copiedFile);
         expect(copiedStat.isFile()).toBe(true);
         expect(copiedStat.isSymbolicLink()).toBe(false);
