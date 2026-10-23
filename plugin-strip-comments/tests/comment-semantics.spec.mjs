@@ -13,6 +13,21 @@ function stripComments(source, types) {
 
 const regular = new Set(['regular']);
 
+for (const name of ['\\u{61}', 'v\\u{61}lue', '\\u0061', '\\u{61}\\u0062', '\\u{10400}', '\\u{24}value', '\\u{6f}f']) {
+    const source = `const ${name} = 4; ${name} / 2; const re = /[/*]/; re.test('*'); // remove`;
+    test(`Unicode-escaped identifiers preserve division and regex context: ${name}`, () => {
+        const stripped = stripComments(source, regular);
+        assert.equal(vm.runInNewContext(stripped), vm.runInNewContext(source));
+        assert.equal(stripped, `${source.slice(0, source.lastIndexOf('// remove'))} `);
+    });
+}
+
+for (const source of ['\\u{61}: {} /[/*]/.test("*");', 'const obj = {if(){return 4;}}; obj.\\u{69}f() / 2; /[/*]/.test("*");']) {
+    test(`Unicode escapes preserve label and property context: ${source}`, () => {
+        assert.equal(vm.runInNewContext(stripComments(source, regular)), vm.runInNewContext(source));
+    });
+}
+
 for (const source of [
     'label: {} /[/*]/.test("*");',
     'outer: inner: {} /[/*]/.test("*");',
