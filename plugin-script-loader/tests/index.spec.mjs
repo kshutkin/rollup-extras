@@ -208,6 +208,155 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
     });
 
     describe('asset mode ordering', () => {
+        it('should retain declared entry order when entries resolve in reverse order', async () => {
+            await writeFile(join(tmpDir, 'first.js'), 'globalThis.order = ["first"];');
+            await writeFile(join(tmpDir, 'second.js'), 'globalThis.order.push("second");');
+            let release;
+            const blocked = new Promise(resolve => {
+                release = resolve;
+            });
+            const bundle = await rollup({
+                input: ['first-entry', 'second-entry'],
+                plugins: [
+                    {
+                        name: 'reverse-entry-resolution',
+                        async resolveId(id) {
+                            if (id === 'first-entry') {
+                                await blocked;
+                                return id;
+                            }
+                            if (id === 'second-entry') {
+                                release();
+                                return id;
+                            }
+                        },
+                        load(id) {
+                            if (id === 'first-entry') return `import ${JSON.stringify(`script!${join(tmpDir, 'first.js')}`)};`;
+                            if (id === 'second-entry') return `import ${JSON.stringify(`script!${join(tmpDir, 'second.js')}`)};`;
+                        },
+                    },
+                    scriptLoader({ emit: 'asset', sourcemap: false }),
+                ],
+            });
+            try {
+                const { output } = await bundle.generate({ format: 'es' });
+                const context = {};
+                runInNewContext(output.find(item => item.fileName === 'vendor.js').source, context);
+                expect(context.order).toEqual(['first', 'second']);
+            } finally {
+                await bundle.close();
+            }
+        });
+
+        it('should include dynamic script graphs after static dependencies', async () => {
+            await writeFile(join(tmpDir, 'first.js'), 'globalThis.order = ["static"];');
+            await writeFile(join(tmpDir, 'second.js'), 'globalThis.order.push("dynamic");');
+            await writeFile(join(tmpDir, 'wrapper.js'), 'import "script!./first.js";');
+            await writeFile(join(tmpDir, 'lazy.js'), 'import "script!./second.js";');
+            const input = join(tmpDir, 'entry.js');
+            await writeFile(input, 'import "./wrapper.js"; export const load = () => import("./lazy.js");');
+            const bundle = await rollup({ input, plugins: [scriptLoader({ emit: 'asset', sourcemap: false })] });
+            try {
+                const { output } = await bundle.generate({ format: 'es' });
+                const context = {};
+                runInNewContext(output.find(item => item.fileName === 'vendor.js').source, context);
+                expect(context.order).toEqual(['static', 'dynamic']);
+            } finally {
+                await bundle.close();
+            }
+        });
+
+        it('should execute nested script dependencies before later direct imports, including cached builds', async () => {
+            await writeFile(join(tmpDir, 'library.js'), 'globalThis.order = ["library"]; globalThis.library = { value: 41 };');
+            await writeFile(
+                join(tmpDir, 'plugin.js'),
+                'globalThis.order.push("plugin"); globalThis.answer = globalThis.library.value + 1;'
+            );
+            await writeFile(join(tmpDir, 'wrapper.js'), 'import "script!./library.js";');
+            const input = join(tmpDir, 'entry.js');
+            const plugin = scriptLoader({ emit: 'asset', sourcemap: false });
+            let cache;
+            for (let round = 0; round < 2; round++) {
+                await writeFile(input, `import './wrapper.js'; import 'script!./plugin.js'; console.log(${round});`);
+                const bundle = await rollup({ input, cache, plugins: [plugin] });
+                try {
+                    cache = bundle.cache;
+                    const results = await Promise.all(['es', 'cjs'].map(format => bundle.generate({ format })));
+                    for (const { output } of results) {
+                        const asset = output.find(item => item.fileName === 'vendor.js');
+                        const context = {};
+                        runInNewContext(asset.source, context);
+                        expect(context.order).toEqual(['library', 'plugin']);
+                        expect(context.answer).toBe(42);
+                    }
+                } finally {
+                    await bundle.close();
+                }
+            }
+        });
+
+        it('should follow import order when sibling modules finish parsing in reverse order', async () => {
+            await writeFile(join(tmpDir, 'first.js'), 'globalThis.order = ["first"];');
+            await writeFile(join(tmpDir, 'second.js'), 'globalThis.order.push("second");');
+            await writeFile(join(tmpDir, 'first-wrapper.js'), 'import "script!./first.js";');
+            await writeFile(join(tmpDir, 'second-wrapper.js'), 'import "script!./second.js";');
+            const input = join(tmpDir, 'entry.js');
+            await writeFile(input, 'import "./first-wrapper.js"; import "./second-wrapper.js";');
+            let release;
+            const blocked = new Promise(resolve => {
+                release = resolve;
+            });
+            const parsed = [];
+            const bundle = await rollup({
+                input,
+                plugins: [
+                    {
+                        name: 'reverse-parsing',
+                        async load(id) {
+                            if (id.endsWith('/first-wrapper.js')) {
+                                await blocked;
+                                return 'import "script!./first.js";';
+                            }
+                        },
+                        moduleParsed(info) {
+                            if (info.id.endsWith('-wrapper.js')) parsed.push(info.id);
+                            if (info.id.endsWith('/second-wrapper.js')) release();
+                        },
+                    },
+                    scriptLoader({ emit: 'asset', sourcemap: false }),
+                ],
+            });
+            try {
+                const { output } = await bundle.generate({ format: 'es' });
+                expect(parsed[0]).toContain('second-wrapper.js');
+                const context = {};
+                runInNewContext(output.find(item => item.fileName === 'vendor.js').source, context);
+                expect(context.order).toEqual(['first', 'second']);
+            } finally {
+                await bundle.close();
+            }
+        });
+
+        it('should preserve dependency order through shared imports, re-exports, and cycles without duplicating scripts', async () => {
+            for (const name of ['base', 'left', 'right', 'plugin']) {
+                await writeFile(join(tmpDir, `${name}.js`), `globalThis.order.push(${JSON.stringify(name)});`);
+            }
+            await writeFile(join(tmpDir, 'shared.mjs'), 'import "./left.mjs"; import "script!./base.js"; export const value = 42;');
+            await writeFile(join(tmpDir, 'left.mjs'), 'export { value } from "./shared.mjs"; import "script!./left.js";');
+            await writeFile(join(tmpDir, 'right.mjs'), 'export { value } from "./shared.mjs"; import "script!./right.js";');
+            const input = join(tmpDir, 'entry.js');
+            await writeFile(input, 'export * from "./left.mjs"; import "./right.mjs"; import "script!./plugin.js";');
+            const bundle = await rollup({ input, plugins: [scriptLoader({ emit: 'asset', sourcemap: false })], onwarn() {} });
+            try {
+                const { output } = await bundle.generate({ format: 'es' });
+                const context = { order: [] };
+                runInNewContext(output.find(item => item.fileName === 'vendor.js').source, context);
+                expect(context.order).toEqual(['base', 'left', 'right', 'plugin']);
+            } finally {
+                await bundle.close();
+            }
+        });
+
         it('should concatenate scripts in the asset file respecting their import order', async () => {
             await writeFile(join(tmpDir, 'first.js'), 'var FIRST_SCRIPT = 1;');
             await writeFile(join(tmpDir, 'second.js'), 'var SECOND_SCRIPT = 2;');
@@ -735,10 +884,9 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
         });
     });
 
-    describe('sort comparator edge cases (lines 257-259)', () => {
+    describe('force-loaded scripts', () => {
         it('should sort statically-imported scripts before dynamically-loaded scripts in the concatenated asset', async () => {
-            // Create scripts: one will be statically imported (in importOrder),
-            // the other will be force-loaded (NOT in importOrder).
+            // Create one statically imported script and one force-loaded script.
             await writeFile(join(tmpDir, 'ordered.js'), 'var ORDERED_SCRIPT = 1;');
             await writeFile(join(tmpDir, 'unordered.js'), 'var UNORDERED_SCRIPT = 2;');
 
@@ -746,8 +894,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
             const unorderedPath = join(tmpDir, 'unordered.js');
 
             // This plugin force-loads a script via this.load() without any module
-            // importing it, so the script ends up in the scripts Map but NOT in
-            // importOrder (because moduleParsed only records importedIds).
+            // importing it, so it is absent from the entry's dependency graph.
             function forceLoadPlugin() {
                 return {
                     name: 'force-load',
@@ -760,8 +907,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
                 };
             }
 
-            // Entry only statically imports ordered.js => it goes into importOrder.
-            // unordered.js is force-loaded => in scripts Map but NOT in importOrder.
+            // Entry only statically imports ordered.js; unordered.js is force-loaded.
             const entryCode = `import 'script!${orderedPath}'; console.log('app');`;
 
             const bundle = await rollup({
@@ -780,13 +926,12 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
             expect(idxOrdered).toBeGreaterThanOrEqual(0);
             expect(idxUnordered).toBeGreaterThanOrEqual(0);
 
-            // The ordered script (in importOrder) should come before the unordered one
+            // The statically imported script should come before the force-loaded one.
             expect(idxOrdered).toBeLessThan(idxUnordered);
         });
 
-        it('should preserve Map insertion order for scripts that are both absent from importOrder', async () => {
-            // Both scripts are force-loaded (neither in importOrder).
-            // The comparator returns 0, preserving insertion order.
+        it('should preserve load order for scripts absent from the entry graphs', async () => {
+            // Both scripts are force-loaded without reachable import edges.
             await writeFile(join(tmpDir, 'alpha.js'), 'var ALPHA_SCRIPT = 1;');
             await writeFile(join(tmpDir, 'beta.js'), 'var BETA_SCRIPT = 2;');
 
@@ -833,8 +978,7 @@ describe('@rollup-extras/plugin-script-loader (integration)', () => {
             expect(idxAlpha).toBeGreaterThanOrEqual(0);
             expect(idxBeta).toBeGreaterThanOrEqual(0);
 
-            // Both are absent from importOrder, so comparator returns 0
-            // and stable sort preserves Map insertion order (alpha first)
+            // Neither script is reachable, so their load order is preserved (alpha first).
             expect(idxAlpha).toBeLessThan(idxBeta);
         });
     });

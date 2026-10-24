@@ -42,6 +42,8 @@ The plugin intercepts imports that start with a configurable prefix (`script!` b
 - **`emit: 'inline'`** (default) — Inlines the raw source code directly into the bundle at the import site
 - **`emit: 'asset'`** — Collects all scripts and emits them as a separate concatenated asset file
 
+In asset mode, script order follows static dependency evaluation across modules: a script imported through a helper runs before a later direct import. Shared dependencies and cycles do not duplicate scripts. Scripts force-loaded by other plugins without a reachable import edge are appended in load order.
+
 Because the code is handled as real JavaScript (not wrapped in `eval()` or `new Function()`), it:
 
 - Preserves **import order** — scripts appear exactly as imported

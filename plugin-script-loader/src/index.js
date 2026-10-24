@@ -76,10 +76,6 @@ export default function (options = {}) {
     /** @type {Map<string, ScriptEntry>} */
     const scripts = new Map();
 
-    // Track import order: array of virtual IDs in the order they appear in source
-    /** @type {string[]} */
-    const importOrder = [];
-
     /**
      * Try to read an existing sourcemap for a file
      * @param {string} filePath
@@ -124,6 +120,45 @@ export default function (options = {}) {
         return code.replace(/\n?\/\/[#@]\s*sourceMappingURL=.+?\s*$/, '');
     }
 
+    /**
+     * @this {PluginContext}
+     * @param {OutputBundle} bundle
+     * @returns {ScriptEntry[]}
+     */
+    function getOrderedScripts(bundle) {
+        const visited = new Set();
+        /** @type {ScriptEntry[]} */
+        const ordered = [];
+        /** @type {string[]} */
+        const dynamicImports = [];
+        /** @param {string} id */
+        const visit = id => {
+            if (visited.has(id)) return;
+            visited.add(id);
+            const info = this.getModuleInfo(id);
+            if (!info || info.isExternal) return;
+            for (const dependency of info.importedIds) visit(dependency);
+            const script = scripts.get(id);
+            if (script) ordered.push(script);
+            dynamicImports.push(...info.dynamicallyImportedIds);
+        };
+
+        // Entry chunks retain input order even when entry modules resolve in a different order.
+        for (const item of Object.values(bundle)) {
+            if (item.type === 'chunk' && item.isEntry && item.facadeModuleId) visit(item.facadeModuleId);
+        }
+        for (const id of this.getModuleIds()) {
+            if (this.getModuleInfo(id)?.isEntry) visit(id);
+        }
+        // Asset mode also collects dynamic imports; keep them after the static entry graphs.
+        for (const id of dynamicImports) visit(id);
+        // Preserve load order for scripts loaded by plugins without a reachable import edge.
+        for (const [id, script] of scripts) {
+            if (!visited.has(id)) ordered.push(script);
+        }
+        return ordered;
+    }
+
     return /** @type {Plugin} */ ({
         name: pluginName,
 
@@ -162,23 +197,6 @@ export default function (options = {}) {
                 id: virtualId,
                 moduleSideEffects: true,
             };
-        },
-
-        /**
-         * Track import order from the module graph
-         * @this {PluginContext}
-         */
-        moduleParsed(moduleInfo) {
-            if (emit !== 'asset') {
-                return;
-            }
-
-            // Find script-loader imports in this module and record their order
-            for (const importedId of moduleInfo.importedIds) {
-                if (importedId.startsWith(scriptPrefix) && !importOrder.includes(importedId)) {
-                    importOrder.push(importedId);
-                }
-            }
         },
 
         /** @this {PluginContext} */
@@ -245,21 +263,7 @@ export default function (options = {}) {
                 return;
             }
 
-            // Sort script entries by their order in importOrder (which reflects source order)
-            // Fall back to Map insertion order if not found in importOrder
-            const sortedEntries = Array.from(scripts.entries())
-                .sort(([idA], [idB]) => {
-                    const orderA = importOrder.indexOf(idA);
-                    const orderB = importOrder.indexOf(idB);
-                    // If both found, sort by order; if not found, preserve relative order
-                    if (orderA !== -1 && orderB !== -1) {
-                        return orderA - orderB;
-                    }
-                    if (orderA !== -1) return -1;
-                    if (orderB !== -1) return 1;
-                    return 0;
-                })
-                .map(([, entry]) => entry);
+            const sortedEntries = getOrderedScripts.call(this, bundle);
 
             // Compute the output base directory for relative sourcemap paths
             const outputDir = _outputOptions.dir ?? (_outputOptions.file ? dirname(_outputOptions.file) : process.cwd());
@@ -393,7 +397,6 @@ export default function (options = {}) {
         // Cleanup after generateBundle completes (for watch mode support)
         closeBundle() {
             scripts.clear();
-            importOrder.length = 0;
         },
     });
 }
