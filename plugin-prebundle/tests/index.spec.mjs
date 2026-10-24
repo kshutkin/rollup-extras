@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import nodeResolve from '@rollup/plugin-node-resolve';
 import { packageDirectory } from 'package-directory';
@@ -44,15 +44,24 @@ vi.mock('rollup', async importOriginal => {
 });
 
 function virtual(modules) {
+    const entry = fileURLToPath(new URL('../entry.js', import.meta.url));
     return {
         name: 'virtual-input',
         resolveId(id) {
-            if (modules[id] != null) return id;
+            if (modules[id] != null) return id === 'entry' ? entry : id;
         },
         load(id) {
+            if (id === entry) return modules.entry;
             if (modules[id] != null) return modules[id];
         },
     };
+}
+
+async function writePackage(root, name, value) {
+    const dir = join(root, 'node_modules', name);
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, 'package.json'), JSON.stringify({ name, type: 'module', exports: './index.js' }));
+    await writeFile(join(dir, 'index.js'), `export default ${JSON.stringify(value)};`);
 }
 
 const isPrebundled = o => o.fileName.startsWith('_prebundled.') && o.fileName.endsWith('.js');
@@ -69,7 +78,7 @@ const isNotPrebundled = o => !isPrebundled(o);
 async function build(modules, pluginOptions, buildOptions = {}) {
     const bundle = await rollup({
         input: 'entry',
-        plugins: [virtual(modules), ...(buildOptions.extraPlugins ?? []), prebundle(pluginOptions)],
+        plugins: [virtual(modules), prebundle(pluginOptions), ...(buildOptions.extraPlugins ?? [])],
         onwarn() {},
     });
     const { output } = await bundle.generate({ format: 'es', ...buildOptions.generateOptions });
@@ -97,6 +106,155 @@ describe('@rollup-extras/plugin-prebundle integration', () => {
     afterEach(() => {
         childRollupShouldFail.value = false;
         childPlugins.current = [];
+    });
+
+    it.each(['internal', 'parent', 'external'])('should resolve a nested-only dependency from its importer (%s resolver)', async mode => {
+        const cwd = process.cwd();
+        const root = await realpath(await mkdtemp(join(tmpdir(), 'prebundle-nested-')));
+        const app = join(root, 'app');
+        try {
+            await writeFile(join(root, 'package.json'), '{"type":"module"}');
+            await writePackage(app, 'review-dependency', 'nested');
+            const input = join(app, 'entry.js');
+            await writeFile(input, "export { default } from 'review-dependency';");
+            process.chdir(root);
+            const resolver =
+                mode === 'parent'
+                    ? nodeResolve()
+                    : {
+                          name: 'external-dependency',
+                          resolveId(source) {
+                              if (mode === 'external' && source === 'review-dependency') return { id: source, external: true };
+                          },
+                      };
+            const bundle = await rollup({ input, plugins: [prebundle({ enableInBuildMode: true }), resolver] });
+            try {
+                const { output } = await bundle.generate({ format: 'es' });
+                expect(await runOutput(output)).toBe('nested');
+                expect(bundle.watchFiles).toContain(join(app, 'node_modules/review-dependency/index.js'));
+            } finally {
+                await bundle.close();
+            }
+        } finally {
+            process.chdir(cwd);
+            await rm(root, { recursive: true, force: true });
+        }
+    });
+
+    it.each(
+        ['internal', 'parent', 'external'].flatMap(mode => [false, true].map(newInstance => ({ mode, newInstance })))
+    )('should preserve different copies of a package across cached builds ($mode resolver, new instance: $newInstance)', async ({
+        mode,
+        newInstance,
+    }) => {
+        const cwd = process.cwd();
+        const root = await realpath(await mkdtemp(join(tmpdir(), 'prebundle-copies-')));
+        const app = join(root, 'app');
+        try {
+            await writeFile(join(root, 'package.json'), '{"type":"module"}');
+            await writePackage(root, 'review-dependency', 'root');
+            await writePackage(app, 'review-dependency', 'nested');
+            await writeFile(
+                join(app, 'entry.js'),
+                "import value, * as namespace from 'review-dependency'; export { namespace }; export default value;"
+            );
+            await writeFile(join(root, 'helper.js'), "import * as namespace from 'review-dependency'; export default namespace;");
+            const input = join(root, 'entry.js');
+            await writeFile(
+                input,
+                "import root, * as namespace from 'review-dependency'; import duplicate from './helper.js'; import nested, { namespace as nestedNamespace } from './app/entry.js'; export default [root, nested, namespace === duplicate, namespace !== nestedNamespace];"
+            );
+            process.chdir(root);
+            let plugin = prebundle({ enableInBuildMode: true });
+            let cache;
+            for (let index = 0; index < 2; index++) {
+                if (newInstance) plugin = prebundle({ enableInBuildMode: true });
+                const resolver =
+                    mode === 'parent'
+                        ? nodeResolve()
+                        : {
+                              name: 'external-dependency',
+                              resolveId(source) {
+                                  if (mode === 'external' && source === 'review-dependency') return { id: source, external: true };
+                              },
+                          };
+                const bundle = await rollup({ input, cache, plugins: [plugin, resolver] });
+                try {
+                    cache = bundle.cache;
+                    const { output } = await bundle.generate({ format: 'es' });
+                    expect(await runOutput(output)).toEqual(['root', 'nested', true, true]);
+                } finally {
+                    await bundle.close();
+                }
+            }
+        } finally {
+            process.chdir(cwd);
+            await rm(root, { recursive: true, force: true });
+        }
+    });
+
+    it.each([
+        false,
+        true,
+    ])('should invalidate cached prebundles when the same import resolves to a different file (dynamic: %s)', async dynamic => {
+        const dir = await realpath(await mkdtemp(join(tmpdir(), 'prebundle-retarget-')));
+        const input = join(dir, 'entry.js');
+        const targets = ['first', 'second'].map(name => join(dir, `${name}.js`));
+        let selected = targets[0];
+        const childBuildCount = () => vi.mocked(rollup).mock.calls.filter(([options]) => options.input === '\0prebundle-entry').length;
+        const initialBuildCount = childBuildCount();
+        try {
+            await writeFile(
+                input,
+                dynamic
+                    ? "export default () => import('review-target').then(module => module.value);"
+                    : "export { default } from 'review-target';"
+            );
+            for (const [index, target] of targets.entries())
+                await writeFile(target, `export default ${index}; export const value = ${index};`);
+            const plugin = prebundle({ enableInBuildMode: true });
+            let cache;
+            for (const index of [0, 0, 1, 1]) {
+                selected = targets[index];
+                const bundle = await rollup({
+                    input,
+                    cache,
+                    plugins: [
+                        plugin,
+                        {
+                            name: 'select-target',
+                            resolveId(source) {
+                                if (source === 'review-target') return selected;
+                            },
+                        },
+                    ],
+                });
+                try {
+                    cache = bundle.cache;
+                    const { output } = await bundle.generate({ format: 'es' });
+                    expect(await runOutput(output, module => (dynamic ? module.default() : module.default))).toBe(index);
+                    expect(bundle.watchFiles).toContain(selected);
+                } finally {
+                    await bundle.close();
+                }
+            }
+            expect(childBuildCount() - initialBuildCount).toBe(2);
+        } finally {
+            await rm(dir, { recursive: true, force: true });
+        }
+    });
+
+    it('should reject unresolved dependencies instead of emitting broken prebundle imports', async () => {
+        await expect(build({ entry: "export { default } from 'review-missing-dependency';" }, { enableInBuildMode: true })).rejects.toThrow(
+            /review-missing-dependency/
+        );
+    });
+
+    it('should report unresolved transitive imports from the child build', async () => {
+        childPlugins.current = [virtual({ 'review-transitive': "export { default } from 'review-missing-transitive';" })];
+        await expect(build({ entry: "export { default } from 'review-transitive';" }, { enableInBuildMode: true })).rejects.toThrow(
+            /review-missing-transitive/
+        );
     });
 
     it('should use @rollup-extras/plugin-prebundle as the default plugin name', () => {
@@ -135,32 +293,24 @@ describe('@rollup-extras/plugin-prebundle integration', () => {
     });
 
     it('should preserve live default exports through the proxy', async () => {
-        const proxy = prebundle().load('\0prebundle:live');
-        const bundle = await rollup({
-            input: 'entry',
-            plugins: [
-                virtual({
-                    entry: `
-                    import value, { set } from 'proxy';
-                    import * as namespace from 'proxy';
+        childPlugins.current = [
+            virtual({
+                'review-live': 'let value = 1; export { value as default }; export function set(next) { value = next; }',
+            }),
+        ];
+        const output = await build(
+            {
+                entry: `
+                    import value, { set } from 'review-live';
+                    import * as namespace from 'review-live';
                     const before = value;
                     set(2);
                     export default [before, value, namespace.default];
                 `,
-                    proxy,
-                    './_prebundled.js': `
-                    let value = 1;
-                    export const __pre_live = { get default() { return value; }, set(next) { value = next; } };
-                `,
-                }),
-            ],
-        });
-        try {
-            const { output } = await bundle.generate({ format: 'es' });
-            expect(await runOutput(output)).toEqual([1, 2, 2]);
-        } finally {
-            await bundle.close();
-        }
+            },
+            { enableInBuildMode: true }
+        );
+        expect(await runOutput(output)).toEqual([1, 2, 2]);
     });
 
     it('should preserve default, named, and namespace import values at runtime', async () => {
@@ -592,25 +742,29 @@ describe('@rollup-extras/plugin-prebundle integration', () => {
 
     it('should prebundle imports that resolve outside the project root', async () => {
         vi.mocked(packageDirectory).mockResolvedValueOnce('/tmp/fake-project');
-
-        // Plugin placed after prebundle so this.resolve() finds it,
-        // but returns a path outside the mocked project root without node_modules
-        const resolveOutside = {
-            name: 'resolve-outside-project',
-            resolveId(source) {
-                if (source === 'is-builtin-module') return '/tmp/outside/is-builtin-module.js';
-            },
-        };
-
-        const v = virtual({ entry: "import isBuiltin from 'is-builtin-module'; export default isBuiltin;" });
-        const p = prebundle({ enableInBuildMode: true });
-
-        const bundle = await rollup({ input: 'entry', plugins: [v, p, resolveOutside], onwarn() {} });
-        const { output } = await bundle.generate({ format: 'es' });
-        await bundle.close();
-
-        const prebundled = output.find(o => isPrebundled(o));
-        expect(prebundled).toBeDefined();
+        const dir = await mkdtemp(join(tmpdir(), 'prebundle-outside-'));
+        const target = join(dir, 'outside.js');
+        try {
+            await writeFile(target, 'export default 42;');
+            const output = await build(
+                { entry: "export { default } from 'review-outside';" },
+                { enableInBuildMode: true },
+                {
+                    extraPlugins: [
+                        {
+                            name: 'resolve-outside',
+                            resolveId(source) {
+                                if (source === 'review-outside') return target;
+                            },
+                        },
+                    ],
+                }
+            );
+            expect(output.some(isPrebundled)).toBe(true);
+            expect(await runOutput(output)).toBe(42);
+        } finally {
+            await rm(dir, { recursive: true, force: true });
+        }
     });
 
     it('should not prebundle imports that resolve within the project', async () => {
@@ -670,18 +824,13 @@ describe('@rollup-extras/plugin-prebundle integration', () => {
         expect(prebundled).toBeDefined();
     });
 
-    it('should handle child rollup failure gracefully', async () => {
+    it('should report child rollup failures instead of emitting missing prebundle imports', async () => {
         childRollupShouldFail.value = true;
 
         // Use a unique specifier not cached by previous tests to force a child build attempt
-        const output = await build(
-            { entry: "import commonjs from '@rollup/plugin-commonjs'; export default commonjs;" },
-            { enableInBuildMode: true }
-        );
-
-        // Build completes without throwing, but no prebundled chunk since child build failed
-        const prebundled = output.find(o => isPrebundled(o));
-        expect(prebundled).toBeUndefined();
+        await expect(
+            build({ entry: "import commonjs from '@rollup/plugin-commonjs'; export default commonjs;" }, { enableInBuildMode: true })
+        ).rejects.toThrow('simulated child rollup failure');
     });
 
     it('should fix prebundled import path when chunks are in a subdirectory', async () => {

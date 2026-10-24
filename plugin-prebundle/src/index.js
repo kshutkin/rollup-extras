@@ -1,7 +1,8 @@
+import { createHash } from 'node:crypto';
 import { dirname, isAbsolute, posix, relative } from 'node:path';
 
 /**
- * @import { Plugin, PluginContext, OutputChunk } from 'rollup'
+ * @import { FunctionPluginHooks, Plugin, PluginContext, OutputChunk } from 'rollup'
  */
 
 import commonjs from '@rollup/plugin-commonjs';
@@ -24,12 +25,14 @@ const factories = { logger };
  * @typedef {{ pluginName?: string, packages?: string[], enableInBuildMode?: boolean }} PrebundlePluginOptions
  */
 
+/** @typedef {{ source: string, importer?: string, id?: string }} PrebundleRequest */
+
 /**
  * @param {string} specifier
  * @returns {string}
  */
 function specifierToNamespace(specifier) {
-    return `__pre_${specifier.replace(/[^a-zA-Z0-9]/g, char => `_${char.charCodeAt(0).toString(16)}_`)}`;
+    return `__pre_${createHash('sha256').update(specifier).digest('hex')}`;
 }
 
 /**
@@ -58,27 +61,30 @@ export default function (options = {}) {
         factories
     );
 
-    /** @type {{ chunks: OutputChunk[], specifiers: Set<string>, watchFiles: string[] } | undefined} */
+    /** @type {{ chunks: OutputChunk[], requests: Map<string, PrebundleRequest>, watchFiles: string[] } | undefined} */
     let prebundleCache;
-    /** @type {Set<string>} */
-    const discoveredSpecifiers = new Set();
+    /** @type {Map<string, PrebundleRequest>} */
+    const discoveredRequests = new Map();
     /** @type {string | false} */
     let pkgDir = false;
     let watchMode = false;
     let enabled = true;
     let prebundleFileName = PREBUNDLE_CHUNK;
+    let dependencyResolver = nodeResolve({ preferBuiltins: false });
 
     return /** @type {Plugin} */ ({
         name: pluginName,
 
         /** @this {PluginContext} */
-        buildStart() {
+        async buildStart(inputOptions) {
             watchMode = this.meta.watchMode;
             enabled = watchMode || enableInBuildMode;
             if (!enabled) {
                 logger('build mode detected, prebundling disabled (set enableInBuildMode: true to override)', LogLevel.info);
             }
-            discoveredSpecifiers.clear();
+            discoveredRequests.clear();
+            dependencyResolver = nodeResolve({ preferBuiltins: false });
+            await /** @type {FunctionPluginHooks['buildStart']} */ (dependencyResolver.buildStart).call(this, inputOptions);
         },
 
         watchChange(id) {
@@ -88,7 +94,7 @@ export default function (options = {}) {
         },
 
         /** @this {PluginContext} */
-        async resolveId(source, importer) {
+        async resolveId(source, importer, resolveOptions) {
             if (!enabled) return null;
 
             // Handle the prebundled chunk itself — mark it external
@@ -116,31 +122,51 @@ export default function (options = {}) {
             }
 
             // Check if the import is external (resolves outside project root or into node_modules)
-            const resolution = await this.resolve(source, importer, { skipSelf: true });
+            const resolution = await resolveRequest.call(this, source, importer, resolveOptions);
 
             if (!resolution || resolution.external) {
                 // Unresolved or already external — this is a candidate for prebundling
-                return addToPrebundle.call(this, source, resolution);
+                return addToPrebundle.call(this, source, resolution, importer);
             }
 
             // Check if it resolves into node_modules or outside the project
             const resolvedPath = resolution.id;
             if (resolvedPath.includes('node_modules') || relative(pkgDir, resolvedPath).startsWith('..')) {
-                return addToPrebundle.call(this, source, resolution);
+                return addToPrebundle.call(this, source, resolution, importer);
             }
 
             return null;
         },
 
         /** @this {PluginContext} */
-        load(id) {
+        async shouldTransformCachedModule(info) {
+            if (!enabled) return null;
+            let changed = false;
+            for (const [source, cachedResolution] of Object.entries(info.resolvedSources)) {
+                const { id } = cachedResolution;
+                if (!id.startsWith(PREBUNDLE_PREFIX)) continue;
+                const resolution = await resolveRequest.call(this, source, info.id, {
+                    attributes: cachedResolution.attributes,
+                    isEntry: false,
+                });
+                const proxy = addToPrebundle.call(this, source, resolution, info.id);
+                if (proxy?.id !== id) changed = true;
+            }
+            return changed || null;
+        },
+
+        /** @this {PluginContext} */
+        async load(id) {
             if (!enabled) return null;
 
             if (id.startsWith(PREBUNDLE_PREFIX)) {
-                const specifier = id.slice(PREBUNDLE_PREFIX.length);
-                // Cached modules still pass through load, but skip resolveId.
-                discoveredSpecifiers.add(specifier);
-                const ns = specifierToNamespace(specifier);
+                const key = id.slice(PREBUNDLE_PREFIX.length);
+                // Cached importers recheck their requests before reusing these shared proxies.
+                if (!discoveredRequests.has(key)) {
+                    const [source, target, importer] = /** @type {[string, string | null, string | null]} */ (JSON.parse(key));
+                    discoveredRequests.set(key, { source, importer: importer ?? undefined, id: target ?? undefined });
+                }
+                const ns = specifierToNamespace(key);
                 return {
                     code: `import { ${ns} } from './${PREBUNDLE_CHUNK}';\nexport const __moduleExports = ${ns};\n`,
                     syntheticNamedExports: '__moduleExports',
@@ -181,20 +207,23 @@ export default function (options = {}) {
 
         /** @this {PluginContext} */
         async buildEnd() {
-            if (!enabled || discoveredSpecifiers.size === 0) return;
+            if (!enabled || discoveredRequests.size === 0) return;
 
             // Check if we can reuse the cache
-            if (prebundleCache && setsEqual(prebundleCache.specifiers, discoveredSpecifiers)) {
+            if (prebundleCache && requestsEqual(prebundleCache.requests, discoveredRequests)) {
                 logger('reusing cached prebundle', LogLevel.verbose);
                 prebundleFileName = emitPrebundleChunks.call(this, prebundleCache.chunks, prebundleCache.watchFiles);
                 return;
             }
 
-            logger(`prebundling ${discoveredSpecifiers.size} external(s): ${[...discoveredSpecifiers].join(', ')}`, LogLevel.info);
+            logger(
+                `prebundling ${discoveredRequests.size} external(s): ${[...discoveredRequests.values()].map(request => request.source).join(', ')}`,
+                LogLevel.info
+            );
 
             try {
-                const virtualEntry = [...discoveredSpecifiers]
-                    .map(s => `export * as ${specifierToNamespace(s)} from ${JSON.stringify(s)};`)
+                const virtualEntry = [...discoveredRequests.keys()]
+                    .map(key => `export * as ${specifierToNamespace(key)} from ${JSON.stringify(PREBUNDLE_PREFIX + key)};`)
                     .join('\n');
 
                 const childBundle = await rollup({
@@ -202,9 +231,22 @@ export default function (options = {}) {
                     plugins: [
                         {
                             name: 'prebundle-virtual-entry',
-                            resolveId(id) {
+                            async resolveId(id) {
                                 if (id === '\0prebundle-entry') return id;
-                                return null;
+                                if (!id.startsWith(PREBUNDLE_PREFIX)) return null;
+                                const request = discoveredRequests.get(id.slice(PREBUNDLE_PREFIX.length));
+                                if (!request) return null;
+                                if (request.id && isAbsolute(request.id)) return request.id;
+                                const resolution = await this.resolve(
+                                    request.id ?? request.source,
+                                    request.importer && isAbsolute(request.importer) ? request.importer : undefined,
+                                    { skipSelf: true }
+                                );
+                                if (!resolution)
+                                    this.error(
+                                        `Could not resolve "${request.source}" from "${request.importer ?? process.cwd()}" for prebundling`
+                                    );
+                                return resolution;
                             },
                             load(id) {
                                 if (id === '\0prebundle-entry') return virtualEntry;
@@ -215,26 +257,30 @@ export default function (options = {}) {
                         json(),
                         commonjs(),
                     ],
-                    onwarn() {},
+                    onwarn: warning => {
+                        if (warning.code === 'UNRESOLVED_IMPORT' && !isBuiltinModule(warning.exporter ?? '')) this.error(warning);
+                        this.warn(warning);
+                    },
                 });
 
-                const { output } = await childBundle.generate({
-                    format: 'es',
-                    sourcemap: 'hidden',
-                    entryFileNames: '_prebundled.[hash].js',
-                    chunkFileNames: '_prebundled.[hash].js',
-                    hashCharacters: 'hex',
-                });
-                const watchFiles = childBundle.watchFiles.filter(isAbsolute);
-                await childBundle.close();
-
-                const chunks = output.filter(item => item.type === 'chunk');
-                prebundleCache = { chunks, specifiers: new Set(discoveredSpecifiers), watchFiles };
-                prebundleFileName = emitPrebundleChunks.call(this, chunks, watchFiles);
+                try {
+                    const { output } = await childBundle.generate({
+                        format: 'es',
+                        sourcemap: 'hidden',
+                        entryFileNames: '_prebundled.[hash].js',
+                        chunkFileNames: '_prebundled.[hash].js',
+                        hashCharacters: 'hex',
+                    });
+                    const watchFiles = childBundle.watchFiles.filter(isAbsolute);
+                    const chunks = output.filter(item => item.type === 'chunk');
+                    prebundleCache = { chunks, requests: new Map(discoveredRequests), watchFiles };
+                    prebundleFileName = emitPrebundleChunks.call(this, chunks, watchFiles);
+                } finally {
+                    await childBundle.close();
+                }
             } catch (e) {
-                logger(`prebundling failed: ${/** @type {Error} */ (e).message}`, LogLevel.warn);
-                // On failure, clear cache so next build retries
                 prebundleCache = undefined;
+                this.error(/** @type {Error} */ (e));
             }
         },
     });
@@ -242,10 +288,34 @@ export default function (options = {}) {
     /**
      * @this {PluginContext}
      * @param {string} source
+     * @param {string} [importer]
+     * @param {Parameters<FunctionPluginHooks['resolveId']>[2]} [resolveOptions]
+     */
+    async function resolveRequest(source, importer, resolveOptions) {
+        const resolution = await this.resolve(source, importer, { ...resolveOptions, skipSelf: true });
+        if (resolution?.id && isAbsolute(resolution.id)) return resolution;
+        // The fallback supplies file resolution when the parent has no resolver or marks bare imports external.
+        const context = Object.create(this);
+        // node-resolve rechecks its resolved file through this.resolve; keep the parent's bare-import external policy out of that check.
+        context.resolve = async (/** @type {string} */ id) => ({ id, external: false });
+        const resolveHook = /** @type {{ handler: FunctionPluginHooks['resolveId'] }} */ (dependencyResolver.resolveId);
+        const fallback = await resolveHook.handler.call(context, resolution?.id ?? source, importer, {
+            attributes: {},
+            isEntry: false,
+            ...resolveOptions,
+        });
+        if (fallback && typeof fallback === 'object') return fallback;
+        return resolution;
+    }
+
+    /**
+     * @this {PluginContext}
+     * @param {string} source
      * @param {{ id: string } | null} [resolution]
+     * @param {string} [importer]
      * @returns {{ id: string } | null}
      */
-    function addToPrebundle(source, resolution) {
+    function addToPrebundle(source, resolution, importer) {
         const pkgName = getPackageName(source);
 
         // If packages list is configured, only prebundle those
@@ -253,23 +323,19 @@ export default function (options = {}) {
             return null;
         }
 
-        discoveredSpecifiers.add(source);
+        const key = JSON.stringify([
+            source,
+            resolution?.id ?? null,
+            resolution?.id && isAbsolute(resolution.id) ? null : (importer ?? null),
+        ]);
+        discoveredRequests.set(key, { source, importer, id: resolution?.id });
 
         // Watch the resolved file so changes trigger rebuilds
         if (resolution?.id && isAbsolute(resolution.id)) {
             this.addWatchFile(resolution.id);
         }
 
-        // If we already have a cache that includes this specifier, redirect to proxy
-        if (prebundleCache?.specifiers.has(source)) {
-            return { id: PREBUNDLE_PREFIX + source };
-        }
-
-        // First build or new specifier — on first build we haven't prebundled yet.
-        // We need to let the build continue and prebundle in buildEnd.
-        // For now, return the proxy id — it will be loaded with syntheticNamedExports.
-        // The prebundle chunk will be emitted in buildEnd.
-        return { id: PREBUNDLE_PREFIX + source };
+        return { id: PREBUNDLE_PREFIX + key };
     }
 }
 
@@ -295,14 +361,14 @@ function emitPrebundleChunks(chunks, watchFiles) {
 }
 
 /**
- * @param {Set<string>} a
- * @param {Set<string>} b
+ * @param {Map<string, PrebundleRequest>} a
+ * @param {Map<string, PrebundleRequest>} b
  * @returns {boolean}
  */
-function setsEqual(a, b) {
+function requestsEqual(a, b) {
     if (a.size !== b.size) return false;
-    for (const item of a) {
-        if (!b.has(item)) return false;
+    for (const [key, request] of a) {
+        if (!b.has(key) || b.get(key)?.id !== request.id) return false;
     }
     return true;
 }
