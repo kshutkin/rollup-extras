@@ -2,10 +2,22 @@ import { access, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import serve from '../src/index.js';
+import { createLiveReload } from '../src/livereload.js';
 import watch from '../src/watch.js';
+
+vi.mock('../src/livereload.js', async importOriginal => {
+    const original = await importOriginal();
+    return {
+        ...original,
+        createLiveReload: vi.fn(() => {
+            const instance = original.createLiveReload();
+            return { ...instance, broadcast: vi.fn(instance.broadcast) };
+        }),
+    };
+});
 
 function nextBuild(watcher) {
     return new Promise((resolve, reject) => {
@@ -32,6 +44,7 @@ describe('in-memory watch helper', () => {
     let watcher;
 
     beforeEach(async () => {
+        vi.clearAllMocks();
         dir = await realpath(await mkdtemp(join(tmpdir(), 'serve-watch-')));
         input = join(dir, 'entry.js');
         await writeFile(input, 'console.log(1);');
@@ -41,6 +54,48 @@ describe('in-memory watch helper', () => {
         await watcher?.close();
         watcher = undefined;
         await rm(dir, { recursive: true, force: true });
+    });
+
+    it.each([false, true])('serves both concurrent outputs and reloads once per rebuild (linked: %s)', async linked => {
+        let server;
+        let onListen;
+        const listening = new Promise(resolve => {
+            onListen = value => {
+                server = value;
+                resolve();
+                return true;
+            };
+        });
+        const plugin = serve({ port: 0, dirs: [], inMemory: true, liveReload: true, useLogger: false, onListen });
+        const output = [
+            { format: 'es', entryFileNames: 'module.js' },
+            { format: 'cjs', entryFileNames: 'classic.js' },
+        ];
+        watcher = watch(
+            linked
+                ? [
+                      { input, output: output[0], plugins: [plugin] },
+                      { input, output: output[1], plugins: [plugin.api.addInstance()] },
+                  ]
+                : { input, output, plugins: [plugin] }
+        );
+        expect(await nextBuild(watcher)).toEqual([]);
+        await listening;
+        const { broadcast } = vi.mocked(createLiveReload).mock.results[0].value;
+        expect(broadcast).not.toHaveBeenCalled();
+
+        for (let value = 2; value <= 3; value++) {
+            const rebuilt = nextBuild(watcher);
+            await writeFile(input, `console.log(${value});`);
+            expect(await rebuilt).toEqual([]);
+            expect(broadcast).toHaveBeenCalledTimes(value - 1);
+            expect(broadcast).toHaveBeenLastCalledWith('reload');
+            for (const file of ['module.js', 'classic.js']) {
+                const response = await fetch(`http://127.0.0.1:${server.address().port}/${file}`);
+                expect(response.status).toBe(200);
+                expect(await response.text()).toContain(`console.log(${value})`);
+            }
+        }
     });
 
     it('serves all formats and assets, refreshes hashes, and closes the server without writing output', async () => {

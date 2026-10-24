@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -28,6 +28,34 @@ describe('@rollup-extras/plugin-exec', () => {
 
     afterEach(async () => {
         await rm(tmpDir, { recursive: true, force: true });
+    });
+
+    it.each([false, true])('should execute once after both concurrent outputs are written (linked: %s)', async linked => {
+        const callback = vi.fn(async function () {
+            expect(typeof this.logger).toBe('function');
+            const files = await Promise.all(['module.js', 'classic.js'].map(file => readFile(join(tmpDir, file), 'utf8')));
+            expect(files[0]).toContain('export');
+            expect(files[1]).toContain('module.exports');
+        });
+        const first = exec(callback);
+        const createBundle = plugin =>
+            rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'export default 42;' }), plugin],
+            });
+        const bundle = await createBundle(first);
+        const second = linked ? await createBundle(first.api.addInstance()) : bundle;
+        try {
+            for (let round = 0; round < 2; round++) {
+                await Promise.all([
+                    bundle.write({ format: 'es', dir: tmpDir, entryFileNames: 'module.js' }),
+                    second.write({ format: 'cjs', dir: tmpDir, entryFileNames: 'classic.js' }),
+                ]);
+                expect(callback).toHaveBeenCalledTimes(1);
+            }
+        } finally {
+            await Promise.all([...new Set([bundle, second])].map(bundle => bundle.close()));
+        }
     });
 
     it('should invoke the exec callback once after bundle.write()', async () => {

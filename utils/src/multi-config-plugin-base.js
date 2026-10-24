@@ -21,6 +21,7 @@ export function multiConfigPluginBase(useWriteBundle, pluginName, execute, onFin
     const finalHook = useWriteBundle ? 'writeBundle' : 'generateBundle';
 
     let remainingOutputsCount = 0,
+        processingOutputsCount = 0,
         configsCount = 0;
 
     const configs = new Set();
@@ -60,10 +61,16 @@ export function multiConfigPluginBase(useWriteBundle, pluginName, execute, onFin
     /** @this {PluginContext} */
     async function writeBundle(/** @type {NormalizedOutputOptions} */ options, /** @type {OutputBundle} */ bundle) {
         --remainingOutputsCount;
-        if (onFinalHook) {
-            await onFinalHook.call(this, options, bundle, configs.size, remainingOutputsCount);
+        ++processingOutputsCount;
+        try {
+            if (onFinalHook) {
+                await onFinalHook.call(this, options, bundle, configs.size, remainingOutputsCount);
+            }
+        } finally {
+            --processingOutputsCount;
         }
-        if (configs.size === 0 && remainingOutputsCount === 0) {
+        // Entering the final hook does not mean its asynchronous output processing has finished.
+        if (configs.size === 0 && remainingOutputsCount === 0 && processingOutputsCount === 0) {
             // do work
             try {
                 await execute.call(this, options, bundle);

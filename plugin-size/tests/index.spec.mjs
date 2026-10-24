@@ -50,6 +50,57 @@ describe('@rollup-extras/plugin-size integration', () => {
         await rm(tmpDir, { recursive: true, force: true });
     });
 
+    it.each(
+        [false, true].flatMap(outputPlugin => [false, true].map(linked => ({ outputPlugin, linked })))
+    )('should wait for all concurrent sizes before saving statistics (output plugin: $outputPlugin, linked: $linked)', async ({
+        outputPlugin,
+        linked,
+    }) => {
+        const statsPath = join(tmpDir, '.stats.json');
+        let release;
+        const blocked = new Promise(resolve => {
+            release = resolve;
+        });
+        const first = size({
+            statsFile: statsPath,
+            outputPlugin,
+            gzip: false,
+            minify: async (code, fileName) => {
+                if (fileName === 'module.js') await blocked;
+                return code;
+            },
+        });
+        const createBundle = plugin =>
+            rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'export default 42;' }), ...(outputPlugin ? [] : [plugin])],
+            });
+        const bundle = await createBundle(first);
+        const secondPlugin = linked ? first.api.addInstance() : first;
+        const second = linked ? await createBundle(secondPlugin) : bundle;
+        const outputs = [
+            bundle.generate({ format: 'es', entryFileNames: 'module.js', plugins: outputPlugin ? [first] : [] }),
+            second.generate({ format: 'cjs', entryFileNames: 'classic.js', plugins: outputPlugin ? [secondPlugin] : [] }),
+        ];
+        try {
+            try {
+                await outputs[1];
+                await expect(access(statsPath)).rejects.toMatchObject({ code: 'ENOENT' });
+            } finally {
+                release();
+                await Promise.all(outputs);
+            }
+            const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+            const results = await Promise.all(outputs);
+            for (const [index, format] of ['es', 'cjs'].entries()) {
+                const raw = Buffer.byteLength(results[index].output[0].code);
+                expect(stats.entries[format]).toEqual({ raw, minified: raw });
+            }
+        } finally {
+            await Promise.all([...new Set([bundle, second])].map(bundle => bundle.close()));
+        }
+    });
+
     it('should create a .stats.json file on disk after generating a bundle', async () => {
         const statsPath = join(tmpDir, '.stats.json');
         const bundle = await rollup({

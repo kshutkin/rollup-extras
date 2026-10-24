@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { rollup } from 'rollup';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import html from '../src/index.js';
 
@@ -38,6 +38,56 @@ describe('@rollup-extras/plugin-html integration', () => {
     afterEach(async () => {
         if (tmpDir) {
             await rm(tmpDir, { recursive: true, force: true });
+        }
+    });
+
+    it.each(
+        [false, true].flatMap(useWriteBundle => [false, true].map(linked => ({ useWriteBundle, linked })))
+    )('should generate one complete HTML file for concurrent outputs (write: $useWriteBundle, linked: $linked)', async ({
+        useWriteBundle,
+        linked,
+    }) => {
+        let release;
+        const blocked = new Promise(resolve => {
+            release = resolve;
+        });
+        const templateFactory = vi.fn((template, assets, defaultFactory) => defaultFactory(template, assets));
+        const first = html({
+            useWriteBundle,
+            templateFactory,
+            assetsFactory: async (_fileName, _source, format) => {
+                if (format === 'es') await blocked;
+            },
+        });
+        const createBundle = plugin =>
+            rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'console.log("hello");' }), plugin],
+            });
+        const bundle = await createBundle(first);
+        const second = linked ? await createBundle(first.api.addInstance()) : bundle;
+        const method = useWriteBundle ? 'write' : 'generate';
+        const outputs = [
+            bundle[method]({ format: 'es', dir: tmpDir, entryFileNames: 'module.js' }),
+            second[method]({ format: 'iife', dir: tmpDir, entryFileNames: 'classic.js' }),
+        ];
+        try {
+            try {
+                await outputs[1];
+                expect(templateFactory).not.toHaveBeenCalled();
+            } finally {
+                release();
+                await Promise.all(outputs);
+            }
+            expect(templateFactory).toHaveBeenCalledTimes(1);
+            const results = await Promise.all(outputs);
+            const pages = results.flatMap(result => result.output).filter(item => item.fileName === 'index.html');
+            if (!useWriteBundle) expect(pages).toHaveLength(1);
+            const source = useWriteBundle ? await readFile(join(tmpDir, 'index.html'), 'utf8') : pages[0].source;
+            expect(source).toContain('<script src="module.js" type="module"></script>');
+            expect(source).toContain('<script src="classic.js" type="text/javascript" nomodule></script>');
+        } finally {
+            await Promise.all([...new Set([bundle, second])].map(bundle => bundle.close()));
         }
     });
 

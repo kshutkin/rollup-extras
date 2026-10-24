@@ -39,6 +39,36 @@ describe('@rollup-extras/plugin-clean integration', () => {
         await rm(tmpDir, { recursive: true, force: true });
     });
 
+    it.each(
+        [false, true].flatMap(deleteOnce => [false, true].map(linked => ({ deleteOnce, linked })))
+    )('should preserve concurrent outputs and cleanup policy on the next build (deleteOnce: $deleteOnce, linked: $linked)', async ({
+        deleteOnce,
+        linked,
+    }) => {
+        const first = clean({ deleteOnce });
+        const createBundle = plugin =>
+            rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'export default 1;' }), plugin],
+            });
+        const bundle = await createBundle(first);
+        const second = linked ? await createBundle(first.api.addInstance()) : bundle;
+        try {
+            for (let round = 0; round < 2; round++) {
+                await writeFile(join(tmpDir, 'old.txt'), 'old');
+                await Promise.all([
+                    bundle.write({ format: 'es', dir: tmpDir, entryFileNames: 'module.js' }),
+                    second.write({ format: 'cjs', dir: tmpDir, entryFileNames: 'classic.js' }),
+                ]);
+                expect(await exists(join(tmpDir, 'module.js'))).toBe(true);
+                expect(await exists(join(tmpDir, 'classic.js'))).toBe(true);
+                expect(await exists(join(tmpDir, 'old.txt'))).toBe(round > 0 && deleteOnce);
+            }
+        } finally {
+            await Promise.all([...new Set([bundle, second])].map(bundle => bundle.close()));
+        }
+    });
+
     it('should remove old files from output directory on build', async () => {
         const outputDir = join(tmpDir, 'dist');
         await mkdir(outputDir, { recursive: true });
