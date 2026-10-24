@@ -30,6 +30,34 @@ describe('@rollup-extras/plugin-exec', () => {
         await rm(tmpDir, { recursive: true, force: true });
     });
 
+    it('should execute after recovering from a failed render', async () => {
+        const callback = vi.fn();
+        const plugin = exec(callback);
+        for (const fail of [true, false]) {
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [
+                    virtual({ entry: 'export default 42;' }),
+                    plugin,
+                    {
+                        name: 'fail-once',
+                        renderChunk() {
+                            if (fail) throw new Error('render failed');
+                        },
+                    },
+                ],
+            });
+            try {
+                const result = bundle.write({ dir: tmpDir, format: 'es' });
+                if (fail) await expect(result).rejects.toThrow('render failed');
+                else await result;
+                expect(callback).toHaveBeenCalledTimes(fail ? 0 : 1);
+            } finally {
+                await bundle.close();
+            }
+        }
+    });
+
     it.each([false, true])('should execute once after both concurrent outputs are written (linked: %s)', async linked => {
         const callback = vi.fn(async function () {
             expect(typeof this.logger).toBe('function');

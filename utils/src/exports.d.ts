@@ -24,7 +24,8 @@ export function multiConfigPluginBase(
     useWriteBundle: boolean,
     pluginName: string,
     execute: ExecuteFn,
-    onFinalHook?: OnFinalHook
+    onFinalHook?: OnFinalHook,
+    onAbort?: (this: PluginContext) => void | Promise<void>
 ): Plugin & {
     api: {
         addInstance(): Plugin;

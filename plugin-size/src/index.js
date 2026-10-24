@@ -296,7 +296,7 @@ export default function (options) {
     let buildInputs = new WeakSet();
     let reportComplete = false;
 
-    const instance = multiConfigPluginBase(false, pluginName, reportAndSave, onEachOutput);
+    const instance = multiConfigPluginBase(false, pluginName, reportAndSave, onEachOutput, resetStats);
 
     // Output plugins cannot use buildStart, so track build inputs from renderStart instead.
     if (outputPlugin) {
@@ -304,9 +304,7 @@ export default function (options) {
         instance.api.addInstance = () => trackBuild(addInstance());
         trackBuild(instance);
     } else {
-        instance.buildStart = () => {
-            currentStats = {};
-        };
+        instance.buildStart = resetStats;
     }
 
     return instance;
@@ -317,14 +315,18 @@ export default function (options) {
         plugin.renderStart = function (outputOptions, inputOptions) {
             // Keep sequential outputs and linked configs together until a new build follows the report.
             if (reportComplete && !buildInputs.has(inputOptions)) {
-                currentStats = {};
-                buildInputs = new WeakSet();
-                reportComplete = false;
+                resetStats();
             }
             buildInputs.add(inputOptions);
             return renderStart.call(this, outputOptions, inputOptions);
         };
         return plugin;
+    }
+
+    function resetStats() {
+        currentStats = {};
+        buildInputs = new WeakSet();
+        reportComplete = false;
     }
 
     /**

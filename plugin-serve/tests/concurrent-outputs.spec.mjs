@@ -14,6 +14,54 @@ vi.mock('../src/livereload.js', async importOriginal => {
     };
 });
 
+it.each([false, true])('recovers serving after a sibling render fails (linked: %s)', async linked => {
+    let server;
+    let onListen;
+    const listening = new Promise(resolve => {
+        onListen = value => {
+            server = value;
+            resolve();
+            return true;
+        };
+    });
+    const plugin = serve({ port: 0, dirs: [], inMemory: true, liveReload: true, useLogger: false, onListen });
+    const instances = [plugin, linked ? plugin.api.addInstance() : plugin];
+    const contexts = [{ meta: { watchMode: true } }, { meta: { watchMode: true } }];
+    const inputOptions = {};
+    const starts = vi.mocked(createLiveReload).mock.calls.length;
+    plugin.outputOptions.call(contexts[0]);
+    try {
+        for (const [index, instance] of instances.entries()) instance.renderStart.call(contexts[index], {}, inputOptions);
+        await plugin.generateBundle.call(contexts[0], {}, { 'old.js': { type: 'chunk', fileName: 'old.js', code: 'console.log(1);' } });
+        await instances[1].renderError.call(contexts[1], new Error('render failed'));
+        expect(createLiveReload).toHaveBeenCalledTimes(starts);
+
+        for (const [index, instance] of instances.entries()) instance.renderStart.call(contexts[index], {}, inputOptions);
+        await Promise.all(
+            instances.map((instance, index) =>
+                instance.generateBundle.call(
+                    contexts[index],
+                    {},
+                    {
+                        [`new-${index}.js`]: { type: 'chunk', fileName: `new-${index}.js`, code: 'console.log(2);' },
+                    }
+                )
+            )
+        );
+        await listening;
+        const base = `http://127.0.0.1:${server.address().port}`;
+        expect((await fetch(`${base}/old.js`)).status).toBe(404);
+        for (const index of [0, 1]) {
+            const response = await fetch(`${base}/new-${index}.js`);
+            expect(response.status).toBe(200);
+            expect(await response.text()).toContain('console.log(2)');
+        }
+        expect(vi.mocked(createLiveReload).mock.results.at(-1).value.broadcast).not.toHaveBeenCalled();
+    } finally {
+        await plugin.closeWatcher();
+    }
+});
+
 it.each([false, true])('serves both concurrent outputs and reloads once per rebuild (linked: %s)', async linked => {
     let server;
     let onListen;

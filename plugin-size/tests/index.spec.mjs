@@ -50,6 +50,48 @@ describe('@rollup-extras/plugin-size integration', () => {
         await rm(tmpDir, { recursive: true, force: true });
     });
 
+    it.each([false, true])('should discard partial statistics after a sibling render fails (output plugin: %s)', async outputPlugin => {
+        const statsFile = join(tmpDir, '.stats.json');
+        const plugin = size({ statsFile, outputPlugin, gzip: false });
+        let release;
+        const blocked = new Promise(resolve => {
+            release = resolve;
+        });
+        const failed = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 123456789;' }), emitAsset('old.css', 'body {}'), ...(outputPlugin ? [] : [plugin])],
+        });
+        const failClassic = {
+            name: 'fail-classic',
+            async renderChunk() {
+                await blocked;
+                throw new Error('render failed');
+            },
+        };
+        const classic = expect(
+            failed.generate({ format: 'cjs', plugins: [failClassic, ...(outputPlugin ? [plugin] : [])] })
+        ).rejects.toThrow('render failed');
+        try {
+            await failed.generate({ format: 'es', plugins: outputPlugin ? [plugin] : [] });
+            await expect(access(statsFile)).rejects.toMatchObject({ code: 'ENOENT' });
+        } finally {
+            release();
+            await classic;
+            await failed.close();
+        }
+        const recovered = await rollup({
+            input: 'entry',
+            plugins: [virtual({ entry: 'export default 1;' }), ...(outputPlugin ? [] : [plugin])],
+        });
+        try {
+            const { output } = await recovered.generate({ format: 'es', plugins: outputPlugin ? [plugin] : [] });
+            const stats = JSON.parse(await readFile(statsFile, 'utf8'));
+            expect(stats).toEqual({ entries: { es: { raw: Buffer.byteLength(output[0].code) } } });
+        } finally {
+            await recovered.close();
+        }
+    });
+
     it.each(
         [false, true].flatMap(outputPlugin => [false, true].map(linked => ({ outputPlugin, linked })))
     )('should wait for all concurrent sizes before saving statistics (output plugin: $outputPlugin, linked: $linked)', async ({

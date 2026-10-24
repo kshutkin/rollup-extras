@@ -153,7 +153,7 @@ export default function (options = {}) {
     /** @type {Set<string>} */
     const processedFiles = new Set();
 
-    const instance = multiConfigPluginBase(useWriteBundle, pluginName, generateBundle, updateAssets);
+    const instance = multiConfigPluginBase(useWriteBundle, pluginName, generateBundle, updateAssets, resetAssets);
 
     const baseRenderStart = /** @type {Required<typeof instance>} */ (instance).renderStart;
     const baseAddInstance = /** @type {() => Plugin} */ (instance.api.addInstance);
@@ -297,13 +297,17 @@ export default function (options = {}) {
                 });
             }
             // reset assets and configs for the next iteration
-            assets = freshAssets();
-            processedFiles.clear();
+            resetAssets();
             logger.finish('html file generated');
         } catch (e) {
             logger.finish('html generation failed', LogLevel.error, e);
             throw e;
         }
+    }
+
+    function resetAssets() {
+        assets = freshAssets();
+        processedFiles.clear();
     }
 
     /**

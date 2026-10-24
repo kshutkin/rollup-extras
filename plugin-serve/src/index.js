@@ -57,7 +57,7 @@ export default function (options = {}) {
         normalizedOptions;
     const useWriteBundle = inMemory ? false : normalizedOptions.useWriteBundle;
     const instance = inMemory
-        ? multiConfigPluginBase(useWriteBundle, pluginName, serve, captureOutput)
+        ? multiConfigPluginBase(useWriteBundle, pluginName, serve, captureOutput, resetMemory)
         : multiConfigPluginBase(useWriteBundle, pluginName, serve);
 
     /** @type {Map<string, { content: string | Uint8Array, type: string }>} */
@@ -114,6 +114,11 @@ export default function (options = {}) {
             const content = item.type === 'chunk' ? item.code : item.source;
             memoryFiles.set(item.fileName, { content, type: getMimeType(item.fileName) || 'application/octet-stream' });
         }
+    }
+
+    function resetMemory() {
+        memoryFiles.clear();
+        currentInputOptions = undefined;
     }
 
     /** @this {PluginContext} */

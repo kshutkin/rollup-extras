@@ -38,6 +38,12 @@ const onFinal = function (
 ) {};
 const fhPlugin = multiConfigPluginBase(false, 'test-fh', execute, onFinal);
 
+const onAbort = async function (this: PluginContext) {
+    this.warn('output cycle aborted');
+};
+const abortPlugin = multiConfigPluginBase(false, 'test-abort', execute, onFinal, onAbort);
+const subpathAbortPlugin = mcpb(false, 'test-subpath-abort', execute, undefined, onAbort);
+
 // ============================================================================
 // getOptionsObject
 // ============================================================================

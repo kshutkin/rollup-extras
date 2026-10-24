@@ -39,6 +39,38 @@ describe('@rollup-extras/plugin-clean integration', () => {
         await rm(tmpDir, { recursive: true, force: true });
     });
 
+    it.each([false, true])('should clean again after a failed render (output plugin: %s)', async outputPlugin => {
+        const plugin = clean({ outputPlugin, targets: [tmpDir], deleteOnce: false });
+        for (const fail of [true, false]) {
+            await mkdir(tmpDir, { recursive: true });
+            await writeFile(join(tmpDir, 'old.txt'), 'old');
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [
+                    virtual({ entry: 'export default 42;' }),
+                    plugin,
+                    {
+                        name: 'fail-once',
+                        renderChunk() {
+                            if (fail) throw new Error('render failed');
+                        },
+                    },
+                ],
+            });
+            try {
+                const result = bundle.write({ dir: tmpDir, format: 'es' });
+                if (fail) await expect(result).rejects.toThrow('render failed');
+                else {
+                    await result;
+                    expect(await exists(join(tmpDir, 'entry.js'))).toBe(true);
+                }
+                expect(await exists(join(tmpDir, 'old.txt'))).toBe(false);
+            } finally {
+                await bundle.close();
+            }
+        }
+    });
+
     it.each(
         [false, true].flatMap(deleteOnce => [false, true].map(linked => ({ deleteOnce, linked })))
     )('should preserve concurrent outputs and cleanup policy on the next build (deleteOnce: $deleteOnce, linked: $linked)', async ({

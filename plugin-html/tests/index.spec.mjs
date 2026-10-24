@@ -41,6 +41,100 @@ describe('@rollup-extras/plugin-html integration', () => {
         }
     });
 
+    it('should discard collected assets when a sibling render fails', async () => {
+        const plugin = html();
+        let release;
+        const blocked = new Promise(resolve => {
+            release = resolve;
+        });
+        const failed = await rollup({
+            input: 'entry',
+            plugins: [
+                virtual({ entry: 'console.log(1);' }),
+                emitCss('old.css', 'body {}'),
+                plugin,
+                {
+                    name: 'fail-classic',
+                    async renderChunk(_code, _chunk, options) {
+                        if (options.format === 'iife') {
+                            await blocked;
+                            throw new Error('render failed');
+                        }
+                    },
+                },
+            ],
+        });
+        const classic = expect(failed.generate({ format: 'iife', entryFileNames: 'old-classic.js' })).rejects.toThrow('render failed');
+        try {
+            const { output } = await failed.generate({ format: 'es', entryFileNames: 'old-module.js' });
+            expect(output.some(item => item.fileName === 'index.html')).toBe(false);
+        } finally {
+            release();
+            await classic;
+            await failed.close();
+        }
+        const recovered = await rollup({ input: 'entry', plugins: [virtual({ entry: 'console.log(2);' }), plugin] });
+        try {
+            const { output } = await recovered.generate({ format: 'es', entryFileNames: 'new-module.js' });
+            const source = output.find(item => item.fileName === 'index.html').source;
+            expect(source).toContain('new-module.js');
+            expect(source).not.toContain('old-module.js');
+            expect(source).not.toContain('old.css');
+        } finally {
+            await recovered.close();
+        }
+    });
+
+    it.each(
+        [false, true].flatMap(useWriteBundle => [false, true].map(linked => ({ useWriteBundle, linked })))
+    )('should recover HTML generation after a render fails (write: $useWriteBundle, linked: $linked)', async ({
+        useWriteBundle,
+        linked,
+    }) => {
+        const first = html({ useWriteBundle });
+        const second = linked ? first.api.addInstance() : first;
+        let fail = true;
+        const createBundle = plugin =>
+            rollup({
+                input: 'entry',
+                plugins: [
+                    virtual({ entry: 'console.log(42);' }),
+                    plugin,
+                    {
+                        name: 'fail-once',
+                        renderChunk() {
+                            if (fail) {
+                                fail = false;
+                                throw new Error('render failed');
+                            }
+                        },
+                    },
+                ],
+            });
+        const method = useWriteBundle ? 'write' : 'generate';
+        const failed = await createBundle(first);
+        try {
+            await expect(failed[method]({ format: 'es', dir: tmpDir })).rejects.toThrow('render failed');
+        } finally {
+            await failed.close();
+        }
+        const bundle = await createBundle(first);
+        const other = linked ? await createBundle(second) : bundle;
+        try {
+            const results = await Promise.all([
+                bundle[method]({ format: 'es', dir: tmpDir, entryFileNames: 'module.js' }),
+                other[method]({ format: 'iife', dir: tmpDir, entryFileNames: 'classic.js' }),
+            ]);
+            const pages = results.flatMap(result => result.output).filter(item => item.fileName === 'index.html');
+            if (!useWriteBundle) expect(pages).toHaveLength(1);
+            const source = useWriteBundle ? await readFile(join(tmpDir, 'index.html'), 'utf8') : pages[0].source;
+            expect(source).toContain('module.js');
+            expect(source).toContain('classic.js');
+        } finally {
+            await Promise.all([...new Set([bundle, other])].map(bundle => bundle.close()));
+        }
+    });
+
     it.each(
         [false, true].flatMap(useWriteBundle => [false, true].map(linked => ({ useWriteBundle, linked })))
     )('should generate one complete HTML file for concurrent outputs (write: $useWriteBundle, linked: $linked)', async ({

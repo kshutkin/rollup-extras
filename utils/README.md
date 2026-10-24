@@ -42,13 +42,17 @@ Utility to construct a plugin that should/can be executed when multiple configs 
 function multiConfigPluginBase(
   useWriteBundle: boolean,
   pluginName: string,
-  execute: ExecuteFn
+  execute: ExecuteFn,
+  onFinalHook?: OnFinalHook,
+  onAbort?: (this: PluginContext) => void | Promise<void>
 ): Partial<PluginHooks>;
 ```
 
 - `useWriteBundle` - truthy if `execute` function should be executed on the last `writeBundle`, falsy if it should be executed on `generateBundle`
 - `pluginName` - plugin name
 - `execute` - function to execute
+- `onFinalHook` - collects each output before completion; all concurrent callbacks are awaited before `execute` runs
+- `onAbort` - discards collected state after a render or collection callback fails, once active sibling outputs finish. Failed cycles skip `execute` and restore the configuration bookkeeping for the next build.
 
 Returns a plugin instance.
 

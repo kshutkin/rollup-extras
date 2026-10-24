@@ -41,7 +41,7 @@ export default function (options = {}) {
     const { pluginName, deleteOnce, verbose, outputPlugin } = normalizedOptions;
     let { targets } = normalizedOptions;
 
-    const instance = multiConfigPluginBase(false, pluginName, cleanup);
+    const instance = multiConfigPluginBase(false, pluginName, cleanup, undefined, cleanup);
     const baseAddInstance = /** @type {() => Plugin} */ (instance.api.addInstance);
     const baseRenderStart =
         /** @type {(this: PluginContext, outputOptions: NormalizedOutputOptions, inputOptions: NormalizedInputOptions) => void | Promise<void>} */ (
