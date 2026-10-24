@@ -1,5 +1,13 @@
 # @rollup-extras/plugin-size
 
+## 0.3.2
+
+### Patch Changes
+
+- eddbaef: Recover completion bookkeeping after failed renders without resetting active sibling outputs. Discard partial HTML, size, and in-memory serve data and release clean's deletion bookkeeping so subsequent builds can complete normally.
+- Updated dependencies [eddbaef]
+  - @rollup-extras/utils@2.0.2
+
 ## 0.3.1
 
 ### Patch Changes

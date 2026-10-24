@@ -1,5 +1,13 @@
 # @rollup-extras/plugin-prebundle
 
+## 0.1.3
+
+### Patch Changes
+
+- 164dfa5: Preserve importer-specific dependency resolution when prebundling. Keep different package copies separate, retain parent-resolved file paths, resolve remaining packages from their original importers, and invalidate cached prebundles when parent-resolved targets change. Report unresolved dependencies and child-build failures instead of emitting broken imports.
+- Updated dependencies [eddbaef]
+  - @rollup-extras/utils@2.0.2
+
 ## 0.1.2
 
 ### Patch Changes

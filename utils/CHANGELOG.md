@@ -1,5 +1,11 @@
 Changelog
 
+## 2.0.2
+
+### Patch Changes
+
+- eddbaef: Recover completion bookkeeping after failed renders without resetting active sibling outputs. Discard partial HTML, size, and in-memory serve data and release clean's deletion bookkeeping so subsequent builds can complete normally.
+
 ## 2.0.1
 
 ### Patch Changes
