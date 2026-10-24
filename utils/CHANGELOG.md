@@ -1,5 +1,11 @@
 Changelog
 
+## 2.0.1
+
+### Patch Changes
+
+- d46eb9f: Wait for all concurrent output callbacks to finish before completing a build. Prevent premature or duplicate HTML generation, size reporting, and live reload while preserving completion-hook count arguments.
+
 ## 2.0.0
 
 ### Major Changes
