@@ -1,5 +1,11 @@
 # @rollup-extras/plugin-strip-comments
 
+## 0.1.4
+
+### Patch Changes
+
+- 22ec274: Track complete numeric literals in the comment scanner so division after a trailing decimal point does not corrupt subsequent regular expression literals.
+
 ## 0.1.3
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 Changelog
 
+## 2.4.2
+
+### Patch Changes
+
+- 368e5d2: Register live reload before customized Hono routes and middleware so their HTML responses receive the reload client script. Preserve the HTML content type when rewriting responses.
+
 ## 2.4.1
 
 ### Patch Changes
