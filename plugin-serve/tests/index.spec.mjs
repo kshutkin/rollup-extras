@@ -1053,10 +1053,52 @@ describe('@rollup-extras/plugin-serve – livereload', () => {
         serversToClose.push(server);
         const addr = server.address();
         const response = await fetch(`http://127.0.0.1:${addr.port}/index.html`);
+        expect(response.headers.get('content-type')).toContain('text/html');
         const text = await response.text();
         expect(text).toContain('EventSource');
         expect(text).toContain('/__livereload');
         expect(text.indexOf('/__livereload')).toBeLessThan(text.indexOf('</body>'));
+    });
+
+    it.each(
+        ['route', 'middleware'].flatMap(kind => [true, false].map(liveReload => ({ kind, liveReload })))
+    )('should respect liveReload for custom HTML responses ($kind, enabled: $liveReload)', async ({ kind, liveReload }) => {
+        const html = '<html><body>custom: ✓</body></html>';
+        const res = createLivereloadPlugin({
+            liveReload,
+            customize(app) {
+                const handler = c =>
+                    c.html(html, 201, {
+                        'content-length': String(Buffer.byteLength(html)),
+                        'x-custom': 'preserved',
+                    });
+                if (kind === 'route') app.get('/custom', handler);
+                else app.use('/custom', handler);
+                app.get('/custom.json', c => c.json({ value: 'custom' }, 202));
+            },
+        });
+        await triggerInMemoryWatchMode(res.plugin, {
+            custom: { type: 'asset', fileName: 'custom', source: 'memory fallback' },
+        });
+        const server = await res.serverPromise;
+        serversToClose.push(server);
+        const { port } = server.address();
+        const response = await fetch(`http://127.0.0.1:${port}/custom`);
+        const text = await response.text();
+        expect(response.status).toBe(201);
+        expect(response.headers.get('content-type')).toContain('text/html');
+        expect(response.headers.get('x-custom')).toBe('preserved');
+        expect(Number(response.headers.get('content-length'))).toBe(Buffer.byteLength(text));
+        if (liveReload) {
+            expect(text.match(/new EventSource/g)).toHaveLength(1);
+            expect(text.indexOf('/__livereload')).toBeLessThan(text.indexOf('</body>'));
+            expect(text).toContain('custom: ✓');
+        } else {
+            expect(text).toBe(html);
+        }
+        const jsonResponse = await fetch(`http://127.0.0.1:${port}/custom.json`);
+        expect(jsonResponse.status).toBe(202);
+        expect(await jsonResponse.json()).toEqual({ value: 'custom' });
     });
 
     it('should broadcast reload event on subsequent builds', async () => {

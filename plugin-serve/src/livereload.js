@@ -70,7 +70,8 @@ export function createLiveReload() {
             c.res = new Response(injected, {
                 status: res.status,
                 statusText: res.statusText,
-                headers: { 'content-length': String(Buffer.byteLength(injected)) },
+                // Hono merges other existing headers, but excludes content-type.
+                headers: { 'content-type': contentType, 'content-length': String(Buffer.byteLength(injected)) },
             });
         });
     }

@@ -153,13 +153,14 @@ export default function (options = {}) {
 
         const app = new Hono();
 
-        if (customize) {
-            customize(app);
-        }
-
+        // Register the response wrapper before handlers that can return without calling next().
         if (liveReload) {
             globalLiveReload = createLiveReload();
             globalLiveReload.register(app);
+        }
+
+        if (customize) {
+            customize(app);
         }
 
         if (useLogger) {
