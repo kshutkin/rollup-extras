@@ -50,6 +50,7 @@ describe('@rollup-extras/plugin-strip-comments', () => {
     it.each([
         ['let count = 0; if (value) /[/*]/.test(value) && count++; return count;', 1],
         ['const obj = { return: 4 }; const quotient = obj.return / 2; return quotient + /[/*]/.test(value);', 3],
+        ['const quotient = 4. / 2; return quotient + /[/*]/.test(value);', 3],
         // biome-ignore lint/suspicious/noTemplateCurlyInString: source code passed to build
         ['return `prefix ${1} ${/[/*]/.test(value) /* remove */}`;', 'prefix 1 true'],
     ])('should preserve execution through Rollup for %s', async (body, expected) => {

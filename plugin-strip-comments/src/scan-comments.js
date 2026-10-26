@@ -243,7 +243,18 @@ export function scanComments(source) {
             continue;
         }
 
-        if (isIdentStart(ch) || isDigit(ch)) {
+        if (isDigit(ch) || (ch === 0x2e && isDigit(source.charCodeAt(i + 1)))) {
+            i = skipNumber(source, i, len);
+            exprEnd = true;
+            statementStart = false;
+            propertyAccess = false;
+            controlParen = null;
+            lineBreakKeyword = '';
+            lastToken = 'literal';
+            continue;
+        }
+
+        if (isIdentStart(ch)) {
             labelCandidate = statementStart && isIdentStart(ch) && !propertyAccess;
             const wordStart = i;
             while (i < len && isIdentPart(source.charCodeAt(i))) {
@@ -383,6 +394,35 @@ function isIdentStart(ch) {
  */
 function isIdentPart(ch) {
     return isIdentStart(ch) || isDigit(ch);
+}
+
+/**
+ * Consume a numeric literal, including decimal points, exponents and separators.
+ * Input is JavaScript source; syntax validation is left to the parser.
+ *
+ * @param {string} s
+ * @param {number} i
+ * @param {number} len
+ * @returns {number}
+ */
+function skipNumber(s, i, len) {
+    if (s[i] === '0' && /[xob]/i.test(s[i + 1] ?? '')) {
+        i += 2;
+        while (i < len && isIdentPart(s.charCodeAt(i))) i++;
+        return i;
+    }
+    while (i < len && (isDigit(s.charCodeAt(i)) || s[i] === '_')) i++;
+    if (s[i] === '.') {
+        i++;
+        while (i < len && (isDigit(s.charCodeAt(i)) || s[i] === '_')) i++;
+    }
+    if (s[i] === 'e' || s[i] === 'E') {
+        i++;
+        if (s[i] === '+' || s[i] === '-') i++;
+        while (i < len && (isDigit(s.charCodeAt(i)) || s[i] === '_')) i++;
+    }
+    if (s[i] === 'n') i++;
+    return i;
 }
 
 /**

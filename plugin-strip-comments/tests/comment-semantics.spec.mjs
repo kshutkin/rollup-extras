@@ -13,6 +13,32 @@ function stripComments(source, types) {
 
 const regular = new Set(['regular']);
 
+for (const literal of [
+    '4.',
+    '4.e+1',
+    '4.e-1',
+    '.4',
+    '4.5',
+    '4.5e+1',
+    '4e+1',
+    '4e-1',
+    '1_000.',
+    '1_000.5_0e+1',
+    '0x10',
+    '0b10',
+    '0o10',
+    '4n',
+    '0x10n',
+]) {
+    test(`numeric literals preserve division and subsequent regex: ${literal}`, () => {
+        const divisor = literal.endsWith('n') ? '2n' : '2';
+        const source = `const n = ${literal} / ${divisor}; const re = /[/*]/; [n, re.test('*')]; // remove`;
+        const stripped = stripComments(source, regular);
+        assert.equal(stripped, `${source.slice(0, source.lastIndexOf('// remove'))} `);
+        assert.deepEqual(Array.from(vm.runInNewContext(stripped)), Array.from(vm.runInNewContext(source)));
+    });
+}
+
 for (const name of ['\\u{61}', 'v\\u{61}lue', '\\u0061', '\\u{61}\\u0062', '\\u{10400}', '\\u{24}value', '\\u{6f}f']) {
     const source = `const ${name} = 4; ${name} / 2; const re = /[/*]/; re.test('*'); // remove`;
     test(`Unicode-escaped identifiers preserve division and regex context: ${name}`, () => {
