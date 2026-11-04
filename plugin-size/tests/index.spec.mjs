@@ -92,56 +92,54 @@ describe('@rollup-extras/plugin-size integration', () => {
         }
     });
 
-    it.each(
-        [false, true].flatMap(outputPlugin => [false, true].map(linked => ({ outputPlugin, linked })))
-    )('should wait for all concurrent sizes before saving statistics (output plugin: $outputPlugin, linked: $linked)', async ({
-        outputPlugin,
-        linked,
-    }) => {
-        const statsPath = join(tmpDir, '.stats.json');
-        let release;
-        const blocked = new Promise(resolve => {
-            release = resolve;
-        });
-        const first = size({
-            statsFile: statsPath,
-            outputPlugin,
-            gzip: false,
-            minify: async (code, fileName) => {
-                if (fileName === 'module.js') await blocked;
-                return code;
-            },
-        });
-        const createBundle = plugin =>
-            rollup({
-                input: 'entry',
-                plugins: [virtual({ entry: 'export default 42;' }), ...(outputPlugin ? [] : [plugin])],
+    it.each([false, true].flatMap(outputPlugin => [false, true].map(linked => ({ outputPlugin, linked }))))(
+        'should wait for all concurrent sizes before saving statistics (output plugin: $outputPlugin, linked: $linked)',
+        async ({ outputPlugin, linked }) => {
+            const statsPath = join(tmpDir, '.stats.json');
+            let release;
+            const blocked = new Promise(resolve => {
+                release = resolve;
             });
-        const bundle = await createBundle(first);
-        const secondPlugin = linked ? first.api.addInstance() : first;
-        const second = linked ? await createBundle(secondPlugin) : bundle;
-        const outputs = [
-            bundle.generate({ format: 'es', entryFileNames: 'module.js', plugins: outputPlugin ? [first] : [] }),
-            second.generate({ format: 'cjs', entryFileNames: 'classic.js', plugins: outputPlugin ? [secondPlugin] : [] }),
-        ];
-        try {
+            const first = size({
+                statsFile: statsPath,
+                outputPlugin,
+                gzip: false,
+                minify: async (code, fileName) => {
+                    if (fileName === 'module.js') await blocked;
+                    return code;
+                },
+            });
+            const createBundle = plugin =>
+                rollup({
+                    input: 'entry',
+                    plugins: [virtual({ entry: 'export default 42;' }), ...(outputPlugin ? [] : [plugin])],
+                });
+            const bundle = await createBundle(first);
+            const secondPlugin = linked ? first.api.addInstance() : first;
+            const second = linked ? await createBundle(secondPlugin) : bundle;
+            const outputs = [
+                bundle.generate({ format: 'es', entryFileNames: 'module.js', plugins: outputPlugin ? [first] : [] }),
+                second.generate({ format: 'cjs', entryFileNames: 'classic.js', plugins: outputPlugin ? [secondPlugin] : [] }),
+            ];
             try {
-                await outputs[1];
-                await expect(access(statsPath)).rejects.toMatchObject({ code: 'ENOENT' });
+                try {
+                    await outputs[1];
+                    await expect(access(statsPath)).rejects.toMatchObject({ code: 'ENOENT' });
+                } finally {
+                    release();
+                    await Promise.all(outputs);
+                }
+                const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+                const results = await Promise.all(outputs);
+                for (const [index, format] of ['es', 'cjs'].entries()) {
+                    const raw = Buffer.byteLength(results[index].output[0].code);
+                    expect(stats.entries[format]).toEqual({ raw, minified: raw });
+                }
             } finally {
-                release();
-                await Promise.all(outputs);
+                await Promise.all([...new Set([bundle, second])].map(bundle => bundle.close()));
             }
-            const stats = JSON.parse(await readFile(statsPath, 'utf8'));
-            const results = await Promise.all(outputs);
-            for (const [index, format] of ['es', 'cjs'].entries()) {
-                const raw = Buffer.byteLength(results[index].output[0].code);
-                expect(stats.entries[format]).toEqual({ raw, minified: raw });
-            }
-        } finally {
-            await Promise.all([...new Set([bundle, second])].map(bundle => bundle.close()));
         }
-    });
+    );
 
     it('should create a .stats.json file on disk after generating a bundle', async () => {
         const statsPath = join(tmpDir, '.stats.json');
@@ -437,63 +435,61 @@ describe('@rollup-extras/plugin-size integration', () => {
         expect(stats.entries.es.raw).toBeGreaterThan(0);
     });
 
-    it.each([
-        'single',
-        'sequential formats',
-        'parallel formats',
-        'multiple configs',
-    ])('should reset output-plugin statistics between builds (%s)', async mode => {
-        const statsPath = join(tmpDir, '.stats.json');
-        const plugin = size({ statsFile: statsPath, outputPlugin: true, gzip: false, brotli: false });
-        const secondPlugin = mode === 'multiple configs' ? plugin.api.addInstance() : plugin;
-        const formats = mode === 'single' ? ['es'] : ['es', 'cjs'];
-        for (const firstBuild of [true, false]) {
-            const bundles = [];
-            const createBundle = async () => {
-                const bundle = await rollup({
-                    input: 'entry',
-                    plugins: [
-                        virtual({
-                            entry: firstBuild ? 'export const load = () => import("lazy");' : 'export default 1;',
-                            lazy: 'export default 42;',
-                        }),
-                        ...(firstBuild ? [emitAsset('styles.css', 'body {}')] : []),
-                    ],
-                });
-                bundles.push(bundle);
-                return bundle;
-            };
-            try {
-                const first = await createBundle();
-                const second = mode === 'multiple configs' ? await createBundle() : first;
-                const generate = (format, index) =>
-                    (index === 0 ? first : second).generate({
-                        format,
-                        dir: 'dist',
-                        plugins: [index === 0 ? plugin : secondPlugin],
+    it.each(['single', 'sequential formats', 'parallel formats', 'multiple configs'])(
+        'should reset output-plugin statistics between builds (%s)',
+        async mode => {
+            const statsPath = join(tmpDir, '.stats.json');
+            const plugin = size({ statsFile: statsPath, outputPlugin: true, gzip: false, brotli: false });
+            const secondPlugin = mode === 'multiple configs' ? plugin.api.addInstance() : plugin;
+            const formats = mode === 'single' ? ['es'] : ['es', 'cjs'];
+            for (const firstBuild of [true, false]) {
+                const bundles = [];
+                const createBundle = async () => {
+                    const bundle = await rollup({
+                        input: 'entry',
+                        plugins: [
+                            virtual({
+                                entry: firstBuild ? 'export const load = () => import("lazy");' : 'export default 1;',
+                                lazy: 'export default 42;',
+                            }),
+                            ...(firstBuild ? [emitAsset('styles.css', 'body {}')] : []),
+                        ],
                     });
-                const outputs = [];
-                if (mode === 'parallel formats') outputs.push(...(await Promise.all(formats.map(generate))));
-                else for (const [index, format] of formats.entries()) outputs.push(await generate(format, index));
-                const stats = JSON.parse(await readFile(statsPath, 'utf8'));
-                for (const [index, { output }] of outputs.entries()) {
-                    const entry = output.find(item => item.type === 'chunk' && item.isEntry);
-                    expect(stats.entries[formats[index]]).toEqual({ raw: Buffer.byteLength(entry.code) });
-                    if (firstBuild) {
-                        const chunk = output.find(item => item.type === 'chunk' && !item.isEntry);
-                        expect(stats.chunks[formats[index]]).toEqual({ raw: Buffer.byteLength(chunk.code) });
+                    bundles.push(bundle);
+                    return bundle;
+                };
+                try {
+                    const first = await createBundle();
+                    const second = mode === 'multiple configs' ? await createBundle() : first;
+                    const generate = (format, index) =>
+                        (index === 0 ? first : second).generate({
+                            format,
+                            dir: 'dist',
+                            plugins: [index === 0 ? plugin : secondPlugin],
+                        });
+                    const outputs = [];
+                    if (mode === 'parallel formats') outputs.push(...(await Promise.all(formats.map(generate))));
+                    else for (const [index, format] of formats.entries()) outputs.push(await generate(format, index));
+                    const stats = JSON.parse(await readFile(statsPath, 'utf8'));
+                    for (const [index, { output }] of outputs.entries()) {
+                        const entry = output.find(item => item.type === 'chunk' && item.isEntry);
+                        expect(stats.entries[formats[index]]).toEqual({ raw: Buffer.byteLength(entry.code) });
+                        if (firstBuild) {
+                            const chunk = output.find(item => item.type === 'chunk' && !item.isEntry);
+                            expect(stats.chunks[formats[index]]).toEqual({ raw: Buffer.byteLength(chunk.code) });
+                        }
                     }
+                    if (firstBuild) expect(stats.assets['.css'].raw).toBe('body {}'.length * formats.length);
+                    else {
+                        expect(stats.assets).toBeUndefined();
+                        expect(stats.chunks).toBeUndefined();
+                    }
+                } finally {
+                    await Promise.all(bundles.map(bundle => bundle.close()));
                 }
-                if (firstBuild) expect(stats.assets['.css'].raw).toBe('body {}'.length * formats.length);
-                else {
-                    expect(stats.assets).toBeUndefined();
-                    expect(stats.chunks).toBeUndefined();
-                }
-            } finally {
-                await Promise.all(bundles.map(bundle => bundle.close()));
             }
         }
-    });
+    );
 
     it('should complete a second build with delta comparison without errors', async () => {
         const statsPath = join(tmpDir, '.stats.json');

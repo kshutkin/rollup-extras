@@ -85,122 +85,122 @@ describe('@rollup-extras/plugin-html integration', () => {
         }
     });
 
-    it.each(
-        [false, true].flatMap(useWriteBundle => [false, true].map(linked => ({ useWriteBundle, linked })))
-    )('should recover HTML generation after a render fails (write: $useWriteBundle, linked: $linked)', async ({
-        useWriteBundle,
-        linked,
-    }) => {
-        const first = html({ useWriteBundle });
-        const second = linked ? first.api.addInstance() : first;
-        let fail = true;
-        const createBundle = plugin =>
-            rollup({
-                input: 'entry',
-                plugins: [
-                    virtual({ entry: 'console.log(42);' }),
-                    plugin,
-                    {
-                        name: 'fail-once',
-                        renderChunk() {
-                            if (fail) {
-                                fail = false;
-                                throw new Error('render failed');
-                            }
+    it.each([false, true].flatMap(useWriteBundle => [false, true].map(linked => ({ useWriteBundle, linked }))))(
+        'should recover HTML generation after a render fails (write: $useWriteBundle, linked: $linked)',
+        async ({ useWriteBundle, linked }) => {
+            const first = html({ useWriteBundle });
+            const second = linked ? first.api.addInstance() : first;
+            let fail = true;
+            const createBundle = plugin =>
+                rollup({
+                    input: 'entry',
+                    plugins: [
+                        virtual({ entry: 'console.log(42);' }),
+                        plugin,
+                        {
+                            name: 'fail-once',
+                            renderChunk() {
+                                if (fail) {
+                                    fail = false;
+                                    throw new Error('render failed');
+                                }
+                            },
                         },
-                    },
-                ],
-            });
-        const method = useWriteBundle ? 'write' : 'generate';
-        const failed = await createBundle(first);
-        try {
-            await expect(failed[method]({ format: 'es', dir: tmpDir })).rejects.toThrow('render failed');
-        } finally {
-            await failed.close();
-        }
-        const bundle = await createBundle(first);
-        const other = linked ? await createBundle(second) : bundle;
-        try {
-            const results = await Promise.all([
-                bundle[method]({ format: 'es', dir: tmpDir, entryFileNames: 'module.js' }),
-                other[method]({ format: 'iife', dir: tmpDir, entryFileNames: 'classic.js' }),
-            ]);
-            const pages = results.flatMap(result => result.output).filter(item => item.fileName === 'index.html');
-            if (!useWriteBundle) expect(pages).toHaveLength(1);
-            const source = useWriteBundle ? await readFile(join(tmpDir, 'index.html'), 'utf8') : pages[0].source;
-            expect(source).toContain('module.js');
-            expect(source).toContain('classic.js');
-        } finally {
-            await Promise.all([...new Set([bundle, other])].map(bundle => bundle.close()));
-        }
-    });
-
-    it.each(
-        [false, true].flatMap(useWriteBundle => [false, true].map(linked => ({ useWriteBundle, linked })))
-    )('should generate one complete HTML file for concurrent outputs (write: $useWriteBundle, linked: $linked)', async ({
-        useWriteBundle,
-        linked,
-    }) => {
-        let release;
-        const blocked = new Promise(resolve => {
-            release = resolve;
-        });
-        const templateFactory = vi.fn((template, assets, defaultFactory) => defaultFactory(template, assets));
-        const first = html({
-            useWriteBundle,
-            templateFactory,
-            assetsFactory: async (_fileName, _source, format) => {
-                if (format === 'es') await blocked;
-            },
-        });
-        const createBundle = plugin =>
-            rollup({
-                input: 'entry',
-                plugins: [virtual({ entry: 'console.log("hello");' }), plugin],
-            });
-        const bundle = await createBundle(first);
-        const second = linked ? await createBundle(first.api.addInstance()) : bundle;
-        const method = useWriteBundle ? 'write' : 'generate';
-        const outputs = [
-            bundle[method]({ format: 'es', dir: tmpDir, entryFileNames: 'module.js' }),
-            second[method]({ format: 'iife', dir: tmpDir, entryFileNames: 'classic.js' }),
-        ];
-        try {
+                    ],
+                });
+            const method = useWriteBundle ? 'write' : 'generate';
+            const failed = await createBundle(first);
             try {
-                await outputs[1];
-                expect(templateFactory).not.toHaveBeenCalled();
+                await expect(failed[method]({ format: 'es', dir: tmpDir })).rejects.toThrow('render failed');
             } finally {
-                release();
-                await Promise.all(outputs);
+                await failed.close();
             }
-            expect(templateFactory).toHaveBeenCalledTimes(1);
-            const results = await Promise.all(outputs);
-            const pages = results.flatMap(result => result.output).filter(item => item.fileName === 'index.html');
-            if (!useWriteBundle) expect(pages).toHaveLength(1);
-            const source = useWriteBundle ? await readFile(join(tmpDir, 'index.html'), 'utf8') : pages[0].source;
-            expect(source).toContain('<script src="module.js" type="module"></script>');
-            expect(source).toContain('<script src="classic.js" type="text/javascript" nomodule></script>');
-        } finally {
-            await Promise.all([...new Set([bundle, second])].map(bundle => bundle.close()));
+            const bundle = await createBundle(first);
+            const other = linked ? await createBundle(second) : bundle;
+            try {
+                const results = await Promise.all([
+                    bundle[method]({ format: 'es', dir: tmpDir, entryFileNames: 'module.js' }),
+                    other[method]({ format: 'iife', dir: tmpDir, entryFileNames: 'classic.js' }),
+                ]);
+                const pages = results.flatMap(result => result.output).filter(item => item.fileName === 'index.html');
+                if (!useWriteBundle) expect(pages).toHaveLength(1);
+                const source = useWriteBundle ? await readFile(join(tmpDir, 'index.html'), 'utf8') : pages[0].source;
+                expect(source).toContain('module.js');
+                expect(source).toContain('classic.js');
+            } finally {
+                await Promise.all([...new Set([bundle, other])].map(bundle => bundle.close()));
+            }
         }
-    });
+    );
 
-    it.each(['missing', 'directory'])('should fall back after a %s template read fails with watch disabled', async kind => {
-        const template = kind === 'missing' ? join(tmpDir, 'missing.html') : tmpDir;
-        const bundle = await rollup({
-            input: 'entry',
-            plugins: [virtual({ entry: 'console.log("fallback")' }), html({ template, watch: false })],
-        });
-        try {
-            const { output } = await bundle.generate({ format: 'es', dir: tmpDir });
-            const asset = output.find(item => item.fileName === 'index.html');
-            expect(asset.source).toContain('</head>');
-            expect(asset.source).toContain('</body>');
-            expect(asset.source).toContain('entry.js');
-        } finally {
-            await bundle.close();
+    it.each([false, true].flatMap(useWriteBundle => [false, true].map(linked => ({ useWriteBundle, linked }))))(
+        'should generate one complete HTML file for concurrent outputs (write: $useWriteBundle, linked: $linked)',
+        async ({ useWriteBundle, linked }) => {
+            let release;
+            const blocked = new Promise(resolve => {
+                release = resolve;
+            });
+            const templateFactory = vi.fn((template, assets, defaultFactory) => defaultFactory(template, assets));
+            const first = html({
+                useWriteBundle,
+                templateFactory,
+                assetsFactory: async (_fileName, _source, format) => {
+                    if (format === 'es') await blocked;
+                },
+            });
+            const createBundle = plugin =>
+                rollup({
+                    input: 'entry',
+                    plugins: [virtual({ entry: 'console.log("hello");' }), plugin],
+                });
+            const bundle = await createBundle(first);
+            const second = linked ? await createBundle(first.api.addInstance()) : bundle;
+            const method = useWriteBundle ? 'write' : 'generate';
+            const outputs = [
+                bundle[method]({ format: 'es', dir: tmpDir, entryFileNames: 'module.js' }),
+                second[method]({ format: 'iife', dir: tmpDir, entryFileNames: 'classic.js' }),
+            ];
+            try {
+                try {
+                    await outputs[1];
+                    expect(templateFactory).not.toHaveBeenCalled();
+                } finally {
+                    release();
+                    await Promise.all(outputs);
+                }
+                expect(templateFactory).toHaveBeenCalledTimes(1);
+                const results = await Promise.all(outputs);
+                const pages = results.flatMap(result => result.output).filter(item => item.fileName === 'index.html');
+                if (!useWriteBundle) expect(pages).toHaveLength(1);
+                const source = useWriteBundle ? await readFile(join(tmpDir, 'index.html'), 'utf8') : pages[0].source;
+                expect(source).toContain('<script src="module.js" type="module"></script>');
+                expect(source).toContain('<script src="classic.js" type="text/javascript" nomodule></script>');
+            } finally {
+                await Promise.all([...new Set([bundle, second])].map(bundle => bundle.close()));
+            }
         }
-    }, 1000);
+    );
+
+    it.each(['missing', 'directory'])(
+        'should fall back after a %s template read fails with watch disabled',
+        async kind => {
+            const template = kind === 'missing' ? join(tmpDir, 'missing.html') : tmpDir;
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [virtual({ entry: 'console.log("fallback")' }), html({ template, watch: false })],
+            });
+            try {
+                const { output } = await bundle.generate({ format: 'es', dir: tmpDir });
+                const asset = output.find(item => item.fileName === 'index.html');
+                expect(asset.source).toContain('</head>');
+                expect(asset.source).toContain('</body>');
+                expect(asset.source).toContain('entry.js');
+            } finally {
+                await bundle.close();
+            }
+        },
+        1000
+    );
 
     it('should generate index.html with a module script tag for ES format', async () => {
         const bundle = await rollup({

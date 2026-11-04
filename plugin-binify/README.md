@@ -1,4 +1,4 @@
-![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-binify/badge.svg)
+[![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-binify/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-binify/coverage)
 
 # Plugin Binify
 

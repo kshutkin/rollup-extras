@@ -135,6 +135,8 @@ describe('in-memory watch helper', () => {
             ['es', ['es.js']],
             ['cjs', ['cjs.js']],
         ]);
+        // Rollup registers filesystem watchers asynchronously after the initial build.
+        await new Promise(resolve => setTimeout(resolve, 100));
         formats.length = 0;
         const rebuilt = nextBuild(watcher);
         await writeFile(input, 'console.log(2);');

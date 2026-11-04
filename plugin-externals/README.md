@@ -1,4 +1,4 @@
-![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-externals/badge.svg)
+[![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-externals/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-externals/coverage)
 
 # plugin-externals
 

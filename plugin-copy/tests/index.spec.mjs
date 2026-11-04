@@ -56,35 +56,35 @@ describe('@rollup-extras/plugin-copy integration', () => {
         }
     });
 
-    it.each([
-        false,
-        true,
-    ])('should preserve unchanged disk assets with default copyOnce and clean (output plugin: %s)', async outputPlugin => {
-        const src = join(tmpDir, 'asset.txt');
-        const dir = join(tmpDir, 'dist');
-        const asset = join(dir, 'asset.txt');
-        await writeFile(src, 'unchanged');
-        const plugin = copy({ src, outputPlugin });
-        const cleaner = clean();
-        let cache;
-        for (let index = 0; index < 2; index++) {
-            const bundle = await rollup({
-                input: 'entry',
-                cache,
-                plugins: [virtual({ entry: 'export default 1;' }), cleaner, ...(outputPlugin ? [] : [plugin])],
-            });
-            try {
-                cache = bundle.cache;
-                const { output } = await bundle.write({ format: 'es', dir, plugins: outputPlugin ? [plugin] : [] });
-                expect(output.some(item => item.fileName === 'asset.txt')).toBe(index === 0);
-                expect(await readFile(asset, 'utf8')).toBe('unchanged');
-                if (index === 0) await utimes(asset, 1000, 1000);
-                else expect((await stat(asset)).mtimeMs).toBe(1_000_000);
-            } finally {
-                await bundle.close();
+    it.each([false, true])(
+        'should preserve unchanged disk assets with default copyOnce and clean (output plugin: %s)',
+        async outputPlugin => {
+            const src = join(tmpDir, 'asset.txt');
+            const dir = join(tmpDir, 'dist');
+            const asset = join(dir, 'asset.txt');
+            await writeFile(src, 'unchanged');
+            const plugin = copy({ src, outputPlugin });
+            const cleaner = clean();
+            let cache;
+            for (let index = 0; index < 2; index++) {
+                const bundle = await rollup({
+                    input: 'entry',
+                    cache,
+                    plugins: [virtual({ entry: 'export default 1;' }), cleaner, ...(outputPlugin ? [] : [plugin])],
+                });
+                try {
+                    cache = bundle.cache;
+                    const { output } = await bundle.write({ format: 'es', dir, plugins: outputPlugin ? [plugin] : [] });
+                    expect(output.some(item => item.fileName === 'asset.txt')).toBe(index === 0);
+                    expect(await readFile(asset, 'utf8')).toBe('unchanged');
+                    if (index === 0) await utimes(asset, 1000, 1000);
+                    else expect((await stat(asset)).mtimeMs).toBe(1_000_000);
+                } finally {
+                    await bundle.close();
+                }
             }
         }
-    });
+    );
 
     it.each([false, true])('should track copyOnce by output directory (output.file: %s)', async useFile => {
         const src = join(tmpDir, 'asset.txt');
@@ -1204,44 +1204,42 @@ describe('@rollup-extras/plugin-copy preserveSymlinks', () => {
         expect(await readlink(destLink)).toBe('realdir');
     });
 
-    it.each(
-        [false, true].flatMap(emitFiles => [undefined, true, false].map(followSymlinks => ({ emitFiles, followSymlinks })))
-    )('should control directory symlink traversal (emitFiles: $emitFiles, followSymlinks: $followSymlinks)', async ({
-        emitFiles,
-        followSymlinks,
-    }) => {
-        const srcDir = join(tmpDir, 'src');
-        const destDir = join(tmpDir, 'dest');
-        await mkdir(join(srcDir, 'realdir'), { recursive: true });
-        await writeFile(join(srcDir, 'realdir', 'file.txt'), 'content');
-        await symlink('realdir', join(srcDir, 'linked-dir'));
+    it.each([false, true].flatMap(emitFiles => [undefined, true, false].map(followSymlinks => ({ emitFiles, followSymlinks }))))(
+        'should control directory symlink traversal (emitFiles: $emitFiles, followSymlinks: $followSymlinks)',
+        async ({ emitFiles, followSymlinks }) => {
+            const srcDir = join(tmpDir, 'src');
+            const destDir = join(tmpDir, 'dest');
+            await mkdir(join(srcDir, 'realdir'), { recursive: true });
+            await writeFile(join(srcDir, 'realdir', 'file.txt'), 'content');
+            await symlink('realdir', join(srcDir, 'linked-dir'));
 
-        const bundle = await rollup({
-            input: 'entry',
-            plugins: [
-                virtual({ entry: 'export default 1' }),
-                copy({
-                    src: join(srcDir, '**/*'),
-                    dest: emitFiles ? undefined : destDir,
-                    emitFiles,
-                    ...(followSymlinks === undefined ? {} : { followSymlinks }),
-                }),
-            ],
-        });
-        await bundle.write({ format: 'es', dir: emitFiles ? destDir : join(tmpDir, 'out') });
-        await bundle.close();
+            const bundle = await rollup({
+                input: 'entry',
+                plugins: [
+                    virtual({ entry: 'export default 1' }),
+                    copy({
+                        src: join(srcDir, '**/*'),
+                        dest: emitFiles ? undefined : destDir,
+                        emitFiles,
+                        ...(followSymlinks === undefined ? {} : { followSymlinks }),
+                    }),
+                ],
+            });
+            await bundle.write({ format: 'es', dir: emitFiles ? destDir : join(tmpDir, 'out') });
+            await bundle.close();
 
-        expect(await readFile(join(destDir, 'realdir', 'file.txt'), 'utf8')).toBe('content');
-        const copiedFile = join(destDir, 'linked-dir', 'file.txt');
-        if (followSymlinks === false) {
-            await expect(lstat(copiedFile)).rejects.toMatchObject({ code: 'ENOENT' });
-            return;
+            expect(await readFile(join(destDir, 'realdir', 'file.txt'), 'utf8')).toBe('content');
+            const copiedFile = join(destDir, 'linked-dir', 'file.txt');
+            if (followSymlinks === false) {
+                await expect(lstat(copiedFile)).rejects.toMatchObject({ code: 'ENOENT' });
+                return;
+            }
+            const copiedStat = await lstat(copiedFile);
+            expect(copiedStat.isFile()).toBe(true);
+            expect(copiedStat.isSymbolicLink()).toBe(false);
+            expect(await readFile(copiedFile, 'utf8')).toBe('content');
         }
-        const copiedStat = await lstat(copiedFile);
-        expect(copiedStat.isFile()).toBe(true);
-        expect(copiedStat.isSymbolicLink()).toBe(false);
-        expect(await readFile(copiedFile, 'utf8')).toBe('content');
-    });
+    );
 
     it('should preserve directory symlink when multiple files exist inside it (cache hit)', async () => {
         const srcDir = join(tmpDir, 'src');

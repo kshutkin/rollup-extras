@@ -1,4 +1,32 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "extends": ["config:base"]
+    "extends": ["config:recommended"],
+    "vulnerabilityAlerts": {
+        "enabled": true
+    },
+    "packageRules": [
+        {
+            "description": "Keep Node declarations on the chosen major and update their lockfile resolution",
+            "matchPackageNames": ["@types/node"],
+            "allowedVersions": "24.x",
+            "rangeStrategy": "update-lockfile"
+        },
+        {
+            "description": "Update stable build, test, format, and release tools only for vulnerability alerts",
+            "matchPackageNames": ["@changesets/**", "vitest", "@vitest/**", "@biomejs/biome", "rollup"],
+            "enabled": false
+        },
+        {
+            "description": "Disable ordinary declaration-generator updates by default",
+            "matchPackageNames": ["dts-buddy"],
+            "enabled": false,
+            "rangeStrategy": "bump"
+        },
+        {
+            "description": "Allow ordinary declaration-generator minor updates",
+            "matchPackageNames": ["dts-buddy"],
+            "matchUpdateTypes": ["minor"],
+            "enabled": true
+        }
+    ]
 }

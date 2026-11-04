@@ -1,4 +1,4 @@
-![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-serve/badge.svg)
+[![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-serve/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-serve/coverage)
 
 # Plugin Serve
 

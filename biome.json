@@ -1,9 +1,9 @@
 {
-    "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
+    "$schema": "https://biomejs.dev/schemas/2.6.4/schema.json",
     "linter": {
         "enabled": true,
         "rules": {
-            "recommended": true
+            "preset": "recommended"
         }
     },
     "assist": {
@@ -25,7 +25,10 @@
                                 "source": ["@rollup-extras/**", "@niceties/**"]
                             },
                             ":BLANK_LINE:",
-                            { "type": false, "source": ":PATH:" }
+                            {
+                                "type": false,
+                                "source": ":PATH:"
+                            }
                         ]
                     }
                 }
@@ -71,7 +74,8 @@
             "linter": {
                 "rules": {
                     "a11y": {
-                        "noAutofocus": "off"
+                        "noAutofocus": "off",
+                        "noLabelWithoutControl": "off"
                     }
                 }
             }
@@ -81,5 +85,15 @@
         "enabled": true,
         "clientKind": "git",
         "useIgnoreFile": true
+    },
+    "markdown": {
+        "formatter": {
+            "enabled": false
+        }
+    },
+    "yaml": {
+        "formatter": {
+            "enabled": false
+        }
     }
 }

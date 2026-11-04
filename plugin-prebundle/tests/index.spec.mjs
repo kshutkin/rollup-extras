@@ -141,108 +141,106 @@ describe('@rollup-extras/plugin-prebundle integration', () => {
         }
     });
 
-    it.each(
-        ['internal', 'parent', 'external'].flatMap(mode => [false, true].map(newInstance => ({ mode, newInstance })))
-    )('should preserve different copies of a package across cached builds ($mode resolver, new instance: $newInstance)', async ({
-        mode,
-        newInstance,
-    }) => {
-        const cwd = process.cwd();
-        const root = await realpath(await mkdtemp(join(tmpdir(), 'prebundle-copies-')));
-        const app = join(root, 'app');
-        try {
-            await writeFile(join(root, 'package.json'), '{"type":"module"}');
-            await writePackage(root, 'review-dependency', 'root');
-            await writePackage(app, 'review-dependency', 'nested');
-            await writeFile(
-                join(app, 'entry.js'),
-                "import value, * as namespace from 'review-dependency'; export { namespace }; export default value;"
-            );
-            await writeFile(join(root, 'helper.js'), "import * as namespace from 'review-dependency'; export default namespace;");
-            const input = join(root, 'entry.js');
-            await writeFile(
-                input,
-                "import root, * as namespace from 'review-dependency'; import duplicate from './helper.js'; import nested, { namespace as nestedNamespace } from './app/entry.js'; export default [root, nested, namespace === duplicate, namespace !== nestedNamespace];"
-            );
-            process.chdir(root);
-            let plugin = prebundle({ enableInBuildMode: true });
-            let cache;
-            for (let index = 0; index < 2; index++) {
-                if (newInstance) plugin = prebundle({ enableInBuildMode: true });
-                const resolver =
-                    mode === 'parent'
-                        ? nodeResolve()
-                        : {
-                              name: 'external-dependency',
-                              resolveId(source) {
-                                  if (mode === 'external' && source === 'review-dependency') return { id: source, external: true };
-                              },
-                          };
-                const bundle = await rollup({ input, cache, plugins: [plugin, resolver] });
-                try {
-                    cache = bundle.cache;
-                    const { output } = await bundle.generate({ format: 'es' });
-                    expect(await runOutput(output)).toEqual(['root', 'nested', true, true]);
-                } finally {
-                    await bundle.close();
-                }
-            }
-        } finally {
-            process.chdir(cwd);
-            await rm(root, { recursive: true, force: true });
-        }
-    });
-
-    it.each([
-        false,
-        true,
-    ])('should invalidate cached prebundles when the same import resolves to a different file (dynamic: %s)', async dynamic => {
-        const dir = await realpath(await mkdtemp(join(tmpdir(), 'prebundle-retarget-')));
-        const input = join(dir, 'entry.js');
-        const targets = ['first', 'second'].map(name => join(dir, `${name}.js`));
-        let selected = targets[0];
-        const childBuildCount = () => vi.mocked(rollup).mock.calls.filter(([options]) => options.input === '\0prebundle-entry').length;
-        const initialBuildCount = childBuildCount();
-        try {
-            await writeFile(
-                input,
-                dynamic
-                    ? "export default () => import('review-target').then(module => module.value);"
-                    : "export { default } from 'review-target';"
-            );
-            for (const [index, target] of targets.entries())
-                await writeFile(target, `export default ${index}; export const value = ${index};`);
-            const plugin = prebundle({ enableInBuildMode: true });
-            let cache;
-            for (const index of [0, 0, 1, 1]) {
-                selected = targets[index];
-                const bundle = await rollup({
+    it.each(['internal', 'parent', 'external'].flatMap(mode => [false, true].map(newInstance => ({ mode, newInstance }))))(
+        'should preserve different copies of a package across cached builds ($mode resolver, new instance: $newInstance)',
+        async ({ mode, newInstance }) => {
+            const cwd = process.cwd();
+            const root = await realpath(await mkdtemp(join(tmpdir(), 'prebundle-copies-')));
+            const app = join(root, 'app');
+            try {
+                await writeFile(join(root, 'package.json'), '{"type":"module"}');
+                await writePackage(root, 'review-dependency', 'root');
+                await writePackage(app, 'review-dependency', 'nested');
+                await writeFile(
+                    join(app, 'entry.js'),
+                    "import value, * as namespace from 'review-dependency'; export { namespace }; export default value;"
+                );
+                await writeFile(join(root, 'helper.js'), "import * as namespace from 'review-dependency'; export default namespace;");
+                const input = join(root, 'entry.js');
+                await writeFile(
                     input,
-                    cache,
-                    plugins: [
-                        plugin,
-                        {
-                            name: 'select-target',
-                            resolveId(source) {
-                                if (source === 'review-target') return selected;
-                            },
-                        },
-                    ],
-                });
-                try {
-                    cache = bundle.cache;
-                    const { output } = await bundle.generate({ format: 'es' });
-                    expect(await runOutput(output, module => (dynamic ? module.default() : module.default))).toBe(index);
-                    expect(bundle.watchFiles).toContain(selected);
-                } finally {
-                    await bundle.close();
+                    "import root, * as namespace from 'review-dependency'; import duplicate from './helper.js'; import nested, { namespace as nestedNamespace } from './app/entry.js'; export default [root, nested, namespace === duplicate, namespace !== nestedNamespace];"
+                );
+                process.chdir(root);
+                let plugin = prebundle({ enableInBuildMode: true });
+                let cache;
+                for (let index = 0; index < 2; index++) {
+                    if (newInstance) plugin = prebundle({ enableInBuildMode: true });
+                    const resolver =
+                        mode === 'parent'
+                            ? nodeResolve()
+                            : {
+                                  name: 'external-dependency',
+                                  resolveId(source) {
+                                      if (mode === 'external' && source === 'review-dependency') return { id: source, external: true };
+                                  },
+                              };
+                    const bundle = await rollup({ input, cache, plugins: [plugin, resolver] });
+                    try {
+                        cache = bundle.cache;
+                        const { output } = await bundle.generate({ format: 'es' });
+                        expect(await runOutput(output)).toEqual(['root', 'nested', true, true]);
+                    } finally {
+                        await bundle.close();
+                    }
                 }
+            } finally {
+                process.chdir(cwd);
+                await rm(root, { recursive: true, force: true });
             }
-            expect(childBuildCount() - initialBuildCount).toBe(2);
-        } finally {
-            await rm(dir, { recursive: true, force: true });
         }
-    });
+    );
+
+    it.each([false, true])(
+        'should invalidate cached prebundles when the same import resolves to a different file (dynamic: %s)',
+        async dynamic => {
+            const dir = await realpath(await mkdtemp(join(tmpdir(), 'prebundle-retarget-')));
+            const input = join(dir, 'entry.js');
+            const targets = ['first', 'second'].map(name => join(dir, `${name}.js`));
+            let selected = targets[0];
+            const childBuildCount = () => vi.mocked(rollup).mock.calls.filter(([options]) => options.input === '\0prebundle-entry').length;
+            const initialBuildCount = childBuildCount();
+            try {
+                await writeFile(
+                    input,
+                    dynamic
+                        ? "export default () => import('review-target').then(module => module.value);"
+                        : "export { default } from 'review-target';"
+                );
+                for (const [index, target] of targets.entries())
+                    await writeFile(target, `export default ${index}; export const value = ${index};`);
+                const plugin = prebundle({ enableInBuildMode: true });
+                let cache;
+                for (const index of [0, 0, 1, 1]) {
+                    selected = targets[index];
+                    const bundle = await rollup({
+                        input,
+                        cache,
+                        plugins: [
+                            plugin,
+                            {
+                                name: 'select-target',
+                                resolveId(source) {
+                                    if (source === 'review-target') return selected;
+                                },
+                            },
+                        ],
+                    });
+                    try {
+                        cache = bundle.cache;
+                        const { output } = await bundle.generate({ format: 'es' });
+                        expect(await runOutput(output, module => (dynamic ? module.default() : module.default))).toBe(index);
+                        expect(bundle.watchFiles).toContain(selected);
+                    } finally {
+                        await bundle.close();
+                    }
+                }
+                expect(childBuildCount() - initialBuildCount).toBe(2);
+            } finally {
+                await rm(dir, { recursive: true, force: true });
+            }
+        }
+    );
 
     it('should reject unresolved dependencies instead of emitting broken prebundle imports', async () => {
         await expect(build({ entry: "export { default } from 'review-missing-dependency';" }, { enableInBuildMode: true })).rejects.toThrow(

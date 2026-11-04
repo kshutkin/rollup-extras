@@ -1,4 +1,4 @@
-![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-copy/badge.svg)
+[![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-copy/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-copy/coverage)
 
 # Plugin Copy
 

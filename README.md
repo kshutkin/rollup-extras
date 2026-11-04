@@ -6,20 +6,22 @@ Collection of rollup plugins
 
 ## Packages in this repo
 
-- [utils](./utils) - utilities for other plugins, including options and multi-output handling.
-- [plugin-clean](./plugin-clean) - lightweight, reliable cleaning of the build directory.
-- [plugin-copy](./plugin-copy) - files copying with minimalistic config, watch mode and glob support.
-- [plugin-html](./plugin-html) - asset injection into HTML files with optional minification, beautification, and more.
-- [plugin-serve](./plugin-serve) - [Hono-based](https://hono.dev/) dev-server with an extensible API.
-- [plugin-binify](./plugin-binify) - makes an output file executable with shebang and file attributes.
-- [plugin-externals](./plugin-externals) - declares external dependencies with reasonable defaults and customizable logic.
-- [plugin-angularjs-template-cache](./plugin-angularjs-template-cache) - builds AngularJS template cache.
-- [plugin-exec](./plugin-exec) - Executes some code when the bundle you are building is finished.
-- [plugin-mangle](./plugin-mangle) - mangles (minifies) specific variables and properties based on a configurable prefix.
-- [plugin-script-loader](./plugin-script-loader) - mimics Webpack's script-loader for inlining raw scripts in order or emitting them as separate assets.
-- [plugin-size](./plugin-size) - reports the size of generated artifacts with compression and delta tracking.
-- [plugin-prebundle](./plugin-prebundle) - prebundles external npm dependencies into a single hashed chunk for faster dev/serve builds.
-- [plugin-strip-comments](./plugin-strip-comments) - strips comments from generated chunks with full sourcemap support, configurable by comment type (jsdoc, regular, license, annotation).
+| Package | Description | Branch coverage |
+| --- | --- | --- |
+| [utils](./utils) | utilities for other plugins, including options and multi-output handling. | [![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/utils/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/utils/coverage) |
+| [plugin-clean](./plugin-clean) | lightweight, reliable cleaning of the build directory. | [![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-clean/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-clean/coverage) |
+| [plugin-copy](./plugin-copy) | files copying with minimalistic config, watch mode and glob support. | [![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-copy/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-copy/coverage) |
+| [plugin-html](./plugin-html) | asset injection into HTML files with optional minification, beautification, and more. | [![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-html/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-html/coverage) |
+| [plugin-serve](./plugin-serve) | [Hono-based](https://hono.dev/) dev-server with an extensible API. | [![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-serve/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-serve/coverage) |
+| [plugin-binify](./plugin-binify) | makes an output file executable with shebang and file attributes. | [![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-binify/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-binify/coverage) |
+| [plugin-externals](./plugin-externals) | declares external dependencies with reasonable defaults and customizable logic. | [![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-externals/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-externals/coverage) |
+| [plugin-angularjs-template-cache](./plugin-angularjs-template-cache) | builds AngularJS template cache. | [![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-angularjs-template-cache/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-angularjs-template-cache/coverage) |
+| [plugin-exec](./plugin-exec) | Executes some code when the bundle you are building is finished. | [![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-exec/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-exec/coverage) |
+| [plugin-mangle](./plugin-mangle) | mangles (minifies) specific variables and properties based on a configurable prefix. | [![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-mangle/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-mangle/coverage) |
+| [plugin-script-loader](./plugin-script-loader) | mimics Webpack's script-loader for inlining raw scripts in order or emitting them as separate assets. | [![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-script-loader/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-script-loader/coverage) |
+| [plugin-size](./plugin-size) | reports the size of generated artifacts with compression and delta tracking. | [![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-size/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-size/coverage) |
+| [plugin-prebundle](./plugin-prebundle) | prebundles external npm dependencies into a single hashed chunk for faster dev/serve builds. | [![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-prebundle/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-prebundle/coverage) |
+| [plugin-strip-comments](./plugin-strip-comments) | strips comments from generated chunks with full sourcemap support, configurable by comment type (jsdoc, regular, license, annotation). | [![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-strip-comments/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-strip-comments/coverage) |
 
 ## Other places to search for plugins
 

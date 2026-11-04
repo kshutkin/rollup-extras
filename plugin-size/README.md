@@ -1,4 +1,4 @@
-![Coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/refs/heads/coverage/plugin-size/badge.svg)
+[![Branch coverage](https://raw.githubusercontent.com/kshutkin/rollup-extras/coverage/plugin-size/badge.svg)](https://github.com/kshutkin/rollup-extras/tree/coverage/plugin-size/coverage)
 
 # @rollup-extras/plugin-size
 
