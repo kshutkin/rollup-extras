@@ -1,3 +1,5 @@
+import { SourceMap } from 'node:module';
+
 import { rollup } from 'rollup';
 import { describe, expect, it } from 'vitest';
 
@@ -122,6 +124,34 @@ describe('@rollup-extras/plugin-mangle', () => {
         expect(output[0].map).toBeDefined();
         expect(output[0].map).not.toBeNull();
         expect(output[0].map.mappings).toBeTruthy();
+    });
+
+    it.each(['\n', '\r\n'])('should map mangled properties and following code back to the original columns (%j)', async lineBreak => {
+        const source = [
+            'const $_value = "😀";',
+            'const object = { $_field: $_value };',
+            'export function read() {',
+            '    return object.$_field.length;',
+            '}',
+        ].join(lineBreak);
+        const [chunk] = await build(source, undefined, { sourcemap: true });
+        const result = await import(`data:text/javascript,${encodeURIComponent(chunk.code)}`);
+        expect(result.read()).toBe(2);
+        expect(chunk.code).not.toContain('$_');
+
+        const map = new SourceMap(chunk.map);
+        const property = chunk.code.match(/object\.(\w+)\.length/)[1];
+        for (const [generatedToken, originalToken] of [
+            [`${property}.length`, '$_field.length'],
+            ['.length', '.length'],
+        ]) {
+            const generated = chunk.code.slice(0, chunk.code.indexOf(generatedToken)).split('\n');
+            const original = source.slice(0, source.indexOf(originalToken)).split(lineBreak);
+            expect(map.findEntry(generated.length - 1, generated.at(-1).length)).toMatchObject({
+                originalLine: original.length - 1,
+                originalColumn: original.at(-1).length,
+            });
+        }
     });
 
     it('should assign different mangled names to different properties', async () => {

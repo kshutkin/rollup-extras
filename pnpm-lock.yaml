@@ -152,8 +152,8 @@ importers:
         specifier: ^3.0.3
         version: 3.0.3
       magic-string:
-        specifier: ^0.30.21
-        version: 0.30.21
+        specifier: ^1.4.5
+        version: 1.4.5
       rollup:
         specifier: ^4.0.0
         version: 4.37.0
@@ -201,8 +201,8 @@ importers:
         specifier: workspace:^
         version: link:../utils
       magic-string:
-        specifier: ^0.30.21
-        version: 0.30.21
+        specifier: ^1.4.5
+        version: 1.4.5
       rollup:
         specifier: ^4.0.0
         version: 4.37.0
@@ -249,8 +249,8 @@ importers:
         specifier: workspace:^
         version: link:../utils
       magic-string:
-        specifier: ^0.30.21
-        version: 0.30.21
+        specifier: ^1.4.5
+        version: 1.4.5
       rollup:
         specifier: ^4.0.0
         version: 4.60.2
