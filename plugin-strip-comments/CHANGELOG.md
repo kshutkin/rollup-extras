@@ -1,5 +1,11 @@
 # @rollup-extras/plugin-strip-comments
 
+## 0.1.5
+
+### Patch Changes
+
+- a6d3420: Update magic-string to ^1.4.5, preserving generated code and sourcemaps.
+
 ## 0.1.4
 
 ### Patch Changes
