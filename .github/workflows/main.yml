@@ -27,4 +27,7 @@ jobs:
     with:
       scope: '@rollup-extras'
     uses: kshutkin/pipeline/.github/workflows/main.yml@main
-    secrets: inherit
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
