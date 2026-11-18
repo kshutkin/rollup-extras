@@ -44,7 +44,7 @@
     "dependencies": {
         "@niceties/logger": "^2.1.0",
         "@rollup-extras/utils": "workspace:^",
-        "glob-parent": "^6.0.2"
+        "glob-parent": "^7.0.0"
     },
     "peerDependencies": {
         "rollup": "^4.0.0"
